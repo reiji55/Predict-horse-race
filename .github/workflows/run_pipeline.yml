@@ -29,14 +29,21 @@ jobs:
       - name: 依存インストール
         run: pip install -r requirements.txt
 
-      - name: raw/{week_id}.json ビルド (フェッチャー実装後に有効化)
-        run: |
-          echo "TODO: python -m scraper.build_raw --week ${{ github.event.inputs.week_id }} --dates ${{ github.event.inputs.dates }}"
-
-      - name: logic のテスト
+      # netkeibaを叩く前に落とす（無駄なリクエストを投げないため。ネットワーク不要のテストのみ）
+      - name: テスト
         run: |
           python tests/test_logic.py
           python tests/test_build_predictions.py
+          python tests/test_build_raw.py
+
+      - name: raw/{week_id}.json ビルド
+        # A/B/B2/C は実装済み。D/E（リーディング）は未実装なので jockey_stats / trainer_stats は
+        # null のまま入る（人的スコア③が欠損扱いになるだけで、パイプラインは通る）
+        # 土日を別々に実行する運用（引き継ぎ書v6 §1）では、既存の raw にマージされる
+        run: |
+          python -m scraper.build_raw \
+            --week "${{ github.event.inputs.week_id }}" \
+            --dates ${{ github.event.inputs.dates }}
 
       - name: predictions.json ビルド
         run: |
@@ -44,7 +51,7 @@ jobs:
           if [ -f "raw/${WEEK}.json" ]; then
             python -m logic.build_predictions --week "${WEEK}"
           else
-            echo "raw/${WEEK}.json がまだ無いためスキップします（build_raw の実装待ち）"
+            echo "raw/${WEEK}.json が生成されなかったためスキップします（上のログを確認）"
           fi
 
       - name: 生成物をコミット

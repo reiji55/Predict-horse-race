@@ -13,6 +13,7 @@
 │   ├── speed_index.json       # スピード指数仕様§5
 │   ├── myomi.json             # 妙味メーター仕様§8
 │   ├── cards.json             # 買い目生成仕様§7
+│   ├── scraper.json           # メインレースの絞り込みルール等（OPEN_QUESTIONS B-2）
 │   ├── base_times.json        # スピード指数仕様§4（生成物・今は空プレースホルダー）
 │   └── base_times.README.md
 ├── scraper/
@@ -27,7 +28,7 @@
 │   │   ├── d_jockey_leading.py# 騎手リーディング　　　　🟡調査中（引き継ぎ書v7）
 │   │   ├── e_trainer_leading.py# 調教師リーディング　　 ⬜未着手
 │   │   └── f_results.py       # レース結果・払戻　　　　⬜未着手（タスク7）
-│   └── build_raw.py           # A〜Eを束ねて raw/{week_id}.json を生成　⬜未実装
+│   └── build_raw.py           # A〜Eを束ねて raw/{week_id}.json を生成　✅実装済
 ├── logic/                     # ✅実装済（仕様書の検算サンプルでテスト済み）
 │   ├── speed_index.py         # ①スピード指数（スピード指数仕様）
 │   ├── aptitude.py            # ②適性スコア（買い目生成仕様§1.4）
@@ -84,6 +85,7 @@ pip install -r requirements.txt
 
 python3 tests/test_logic.py              # logic 全モジュール（仕様書の検算サンプルを固定）
 python3 tests/test_build_predictions.py  # raw → predictions.json のエンドツーエンド
+python3 tests/test_build_raw.py          # 絞り込み・週内キャッシュ・マージ（ネットワーク不要）
 
 python3 tests/test_a_race_list.py        # ※実サンプルHTMLの配置が必要
 python3 tests/test_c_horse_history.py    # ※同上
@@ -96,14 +98,18 @@ python3 tests/test_c_horse_history.py    # ※同上
 実サンプルHTMLはnetkeibaの著作物のため**このリポジトリには含めていない**（本リポジトリはパブリック）。
 配置すべきファイルと入手方法は `tests/samples/README.md` を参照。
 
-## predictions.json を作る
+## パイプラインを回す
 
-スクレイパー側のオーケストレーター（`scraper/build_raw.py`）は未実装だが、
-`docs/samples/raw.sample.json` を使えば logic だけを単独で動かせる。
+GitHub Actions の `週末3CARDS パイプライン` を workflow_dispatch で実行すると、下記が順に走る
+（土日を別々に実行する運用。日曜ぶんは既存の `raw/{week_id}.json` にマージされる）。
 
 ```bash
-python -m logic.build_predictions --week 2026-W27   # raw/2026-W27.json を読んで data/predictions.json を書く
+python -m scraper.build_raw --week 2026-W27 --dates 2026-07-05   # netkeiba → raw/2026-W27.json
+python -m logic.build_predictions --week 2026-W27                # raw → data/predictions.json
 ```
+
+対象レースは `config/scraper.json` の `main_race` で決まる（既定＝各開催場の11R）。
+`docs/samples/raw.sample.json` を `raw/` に置けば、スクレイピング無しで logic だけを試せる。
 
 > ⚠ `config/base_times.json` が空のままだと、スピード指数の usable 判定で全ての過去走が落ち、
 > **エラーにならないまま①が丸ごと効かなくなる**（警告ログは出る）。
@@ -111,7 +117,9 @@ python -m logic.build_predictions --week 2026-W27   # raw/2026-W27.json を読�
 
 ## 次のステップ
 
-1. D（騎手リーディング）・E（調教師リーディング）フェッチャーの実装（引き継ぎ書v7 §2）
-2. `scraper/build_raw.py`（メインレースの絞り込みルールの確定が必要＝OPEN_QUESTIONS B-2）
-3. `scripts/build_base_times.py`（スピード指数の前提。取得元ページの確定が必要）
-4. タスク7（`results/build_results.py`・F フェッチャー・成績ダッシュボード）
+1. **D（騎手リーディング）・E（調教師リーディング）フェッチャー**（引き継ぎ書v7 §2）
+   … 未実装でもパイプラインは通るが、人的スコア③が丸ごと欠損する
+2. **`scripts/build_base_times.py`**（スピード指数①の前提。取得元ページの確定が必要）
+   … 空のままだと①も丸ごと欠損する。1・2が入って初めて①②③が揃う
+3. タスク7（`results/build_results.py`・F フェッチャー・成績ダッシュボード）
+4. PWA（`docs/ui/keiba-3cards-mock-v7.html` の `RACES` を predictions.json に差し替え）

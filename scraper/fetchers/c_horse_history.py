@@ -215,9 +215,10 @@ def fetch_horse_history_cached(
 
     cache: 呼び出し側（build_raw.py）が週単位で保持する {horse_ref: past_runs} の辞書。
            build_week() の1回の実行内で複数レースに同じ馬が登場するケースをこれで吸収する。
-    【注意】この辞書はプロセス内キャッシュ。GitHub Actionsの実行が土曜・日曜で
-    別プロセス（別ワークフロー実行）に分かれる運用の場合、実行をまたいだキャッシュ永続化には
-    別途ファイル保存等が必要（現状は未実装・要確認）。
+
+    実行をまたいだ永続化（土曜・日曜を別々のActions実行で回す運用・引き継ぎ書v6 §1）は、
+    `build_raw.load_week_cache()` が **既にコミットされている raw/{week_id}.json から
+    past_runs を読み直して**この辞書に詰めることで実現している（新しいキャッシュファイルは作らない）。
     """
     if horse_ref in cache:
         return cache[horse_ref]
