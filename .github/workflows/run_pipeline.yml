@@ -33,9 +33,19 @@ jobs:
         run: |
           echo "TODO: python -m scraper.build_raw --week ${{ github.event.inputs.week_id }} --dates ${{ github.event.inputs.dates }}"
 
-      - name: predictions.json ビルド (ロジック実装後に有効化)
+      - name: logic のテスト
         run: |
-          echo "TODO: python -m logic.build_predictions --week ${{ github.event.inputs.week_id }}"
+          python tests/test_logic.py
+          python tests/test_build_predictions.py
+
+      - name: predictions.json ビルド
+        run: |
+          WEEK="${{ github.event.inputs.week_id }}"
+          if [ -f "raw/${WEEK}.json" ]; then
+            python -m logic.build_predictions --week "${WEEK}"
+          else
+            echo "raw/${WEEK}.json がまだ無いためスキップします（build_raw の実装待ち）"
+          fi
 
       - name: 生成物をコミット
         run: |

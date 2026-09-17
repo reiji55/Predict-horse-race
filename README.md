@@ -28,7 +28,7 @@
 │   │   ├── e_trainer_leading.py# 調教師リーディング　　 ⬜未着手
 │   │   └── f_results.py       # レース結果・払戻　　　　⬜未着手（タスク7）
 │   └── build_raw.py           # A〜Eを束ねて raw/{week_id}.json を生成　⬜未実装
-├── logic/                     # ⬜全モジュール未実装（数式は仕様書で確定済み）
+├── logic/                     # ✅実装済（仕様書の検算サンプルでテスト済み）
 │   ├── speed_index.py         # ①スピード指数（スピード指数仕様）
 │   ├── aptitude.py            # ②適性スコア（買い目生成仕様§1.4）
 │   ├── human_score.py         # ③人的スコア（買い目生成仕様§1.5）
@@ -70,7 +70,8 @@ v1〜v5は決定の経緯を残した歴史的資料。
 
 ### その他
 
-- `docs/samples/` … `predictions` / `comments` / `results` の各サンプルJSON（＝実装の「目標の形」）
+- `docs/samples/` … `raw` / `predictions` / `comments` / `results` の各サンプルJSON（＝実装の「目標の形」）
+  - `raw.sample.json` は logic を単独で動かすための入力サンプル（1レース10頭・過去走つき）
 - `docs/ui/keiba-3cards-mock-v7.html` … UIモック最新版（単体HTML・キャラ絵4人をbase64で内蔵）
 - `docs/ui/予想師キャラクター外見設定_v1.md` … 4キャラの属性・外見・色調（セリフを書くときの拠り所）
 - `docs/ui/archive/` … 旧世代モック（キャラ・妙味メーター導入前）
@@ -80,16 +81,37 @@ v1〜v5は決定の経緯を残した歴史的資料。
 
 ```bash
 pip install -r requirements.txt
-python3 tests/test_a_race_list.py
-python3 tests/test_c_horse_history.py
+
+python3 tests/test_logic.py              # logic 全モジュール（仕様書の検算サンプルを固定）
+python3 tests/test_build_predictions.py  # raw → predictions.json のエンドツーエンド
+
+python3 tests/test_a_race_list.py        # ※実サンプルHTMLの配置が必要
+python3 tests/test_c_horse_history.py    # ※同上
 ```
+
+`tests/test_logic.py` は**仕様書の検算サンプルをそのままテストにしている**ので、
+通れば実装が仕様の数値と一致していることになる（スピード指数§1.4の指数82.7、
+妙味メーター§4の myomi 73.8、買い目生成§6の sel 値と源さんの軸＝C）。
 
 実サンプルHTMLはnetkeibaの著作物のため**このリポジトリには含めていない**（本リポジトリはパブリック）。
 配置すべきファイルと入手方法は `tests/samples/README.md` を参照。
 
+## predictions.json を作る
+
+スクレイパー側のオーケストレーター（`scraper/build_raw.py`）は未実装だが、
+`docs/samples/raw.sample.json` を使えば logic だけを単独で動かせる。
+
+```bash
+python -m logic.build_predictions --week 2026-W27   # raw/2026-W27.json を読んで data/predictions.json を書く
+```
+
+> ⚠ `config/base_times.json` が空のままだと、スピード指数の usable 判定で全ての過去走が落ち、
+> **エラーにならないまま①が丸ごと効かなくなる**（警告ログは出る）。
+> `scripts/build_base_times.py` の実装が①を動かす前提条件。
+
 ## 次のステップ
 
 1. D（騎手リーディング）・E（調教師リーディング）フェッチャーの実装（引き継ぎ書v7 §2）
-2. `logic/` の実装（仕様書の数式どおり。検算サンプルがそのままテストになる）
+2. `scraper/build_raw.py`（メインレースの絞り込みルールの確定が必要＝OPEN_QUESTIONS B-2）
 3. `scripts/build_base_times.py`（スピード指数の前提。取得元ページの確定が必要）
-4. GitHub Actionsワークフローの有効化（TODOコメントを実処理に置き換え）
+4. タスク7（`results/build_results.py`・F フェッチャー・成績ダッシュボード）
