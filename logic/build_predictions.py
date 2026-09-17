@@ -1,5 +1,5 @@
 """
-predictions.json ビルドスクリプト（データスキーマ仕様_v1_2.md §1 が出力契約）
+predictions.json ビルドスクリプト（データスキーマ仕様_v1.2.md §1 が出力契約）
 
 流れ（引き継ぎ書v3 §4）：
   raw/{week_id}.json

@@ -1,5 +1,5 @@
 """
-妙味メーター計算（妙味メーター仕様_v1_確定版.md 全章）
+妙味メーター計算（妙味メーター仕様_v1.md 全章）
 
 入力：p（logic/prob_model.softmax_scores）, q（logic/prob_model.market_support）, n_usable群（信頼度用）
 出力：myomi (0-100), myomi_parts {"umami": float, "conf": float}, legendary(bool)
