@@ -72,7 +72,9 @@ v1〜v5は決定の経緯を残した歴史的資料。
 
 - `docs/samples/` … `predictions` / `comments` / `results` の各サンプルJSON（＝実装の「目標の形」）
 - `docs/ui/keiba-3cards-mock-v7.html` … UIモック最新版（単体HTML・キャラ絵4人をbase64で内蔵）
+- `docs/ui/予想師キャラクター外見設定_v1.md` … 4キャラの属性・外見・色調（セリフを書くときの拠り所）
 - `docs/ui/archive/` … 旧世代モック（キャラ・妙味メーター導入前）
+- `docs/OPEN_QUESTIONS.md` … 未確定・要確認事項の集約（着手前にここを見る）
 
 ## テストの実行
 
