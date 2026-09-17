@@ -20,14 +20,15 @@
 ├── scraper/
 │   ├── common/
 │   │   ├── constants.py       # 開催場romaji対応表・正規化ルール（取得項目仕様§2.1）
+│   │   ├── leading_api.py     # D・E共通のリーディングAJAX API（パーサーのみ未実装）
 │   │   └── http.py            # レート制限付きHTTP取得（取得項目仕様§1.1 マナー設計）
 │   ├── fetchers/
 │   │   ├── a_race_list.py     # 開催日別レース一覧　　　✅実装済
 │   │   ├── b_shutuba.py       # 出馬表　　　　　　　　　✅実装済
 │   │   ├── b2_odds.py         # オッズAPI（AJAX直叩き）✅実装済
 │   │   ├── c_horse_history.py # 馬の戦績（直近5走）　　 ✅実装済
-│   │   ├── d_jockey_leading.py# 騎手リーディング　　　　🟡調査中（引き継ぎ書v7）
-│   │   ├── e_trainer_leading.py# 調教師リーディング　　 ⬜未着手
+│   │   ├── d_jockey_leading.py# 騎手リーディング　　　　🟡API判明・パーサー待ち
+│   │   ├── e_trainer_leading.py# 調教師リーディング　　 🟡同上（Dと同一API）
 │   │   └── f_results.py       # レース結果・払戻　　　　⬜未着手（タスク7）
 │   └── build_raw.py           # A〜Eを束ねて raw/{week_id}.json を生成　✅実装済
 ├── logic/                     # ✅実装済（仕様書の検算サンプルでテスト済み）
@@ -60,7 +61,7 @@
 | ファイル | 内容 |
 |---|---|
 | `データスキーマ仕様_v1.2.md` | ファイル間の契約（predictions / comments / results） |
-| `取得項目_共通内部フォーマット仕様_v1.md` | フェッチャーの入出力契約（`raw/{week_id}.json`） |
+| `取得項目_共通内部フォーマット仕様_v1.1.md` | フェッチャーの入出力契約（`raw/{week_id}.json`） |
 | `スピード指数仕様_v1.md` | ①スピード指数の算出ロジック |
 | `妙味メーター仕様_v1.md` | 妙味（0〜100）と鳳の降臨判定 |
 | `買い目生成仕様_v1.md` | 合成スコア・印・キャラ別買い目 |
@@ -78,6 +79,7 @@ v1〜v8。**最新はv8**（成果物の統合・logic実装完了）。各版�
   `data/predictions.json` などが読めれば実データを表示し、読めなければサンプル表示にフォールバックする
 - `docs/ui/adapter.js` … JSON → 画面のデータ構造への変換（`tests/test_adapter.js` で検証）
 - `docs/ui/予想師キャラクター外見設定_v1.md` … 4キャラの属性・外見・色調（セリフを書くときの拠り所）
+- `docs/ui/SD_プロンプト集_予想師4キャラ.md` … キャラ絵の生成プロンプト（アニメ塗り路線）
 - `docs/ui/archive/` … 旧世代モック（キャラ・妙味メーター導入前）
 - `docs/OPEN_QUESTIONS.md` … 未確定・要確認事項の集約（着手前にここを見る）
 
@@ -122,8 +124,8 @@ python -m logic.build_predictions --week 2026-W27                # raw → data/
 
 ## 次のステップ
 
-1. **D（騎手リーディング）・E（調教師リーディング）フェッチャー**（引き継ぎ書v7 §2）
-   … 未実装でもパイプラインは通るが、人的スコア③が丸ごと欠損する
+1. **D・E のパーサー**（API呼び出しは実装済み＝`scraper/common/leading_api.py`）
+   … APIレスポンスの実サンプルが1件あれば書ける。未実装でもパイプラインは通るが、③が丸ごと欠損する
 2. **`scripts/build_base_times.py`**（スピード指数①の前提。取得元ページの確定が必要）
    … 空のままだと①も丸ごと欠損する。1・2が入って初めて①②③が揃う
 3. **F（レース結果・払戻）フェッチャー**（集計側 `results/build_results.py` は実装済み。

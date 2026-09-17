@@ -5,22 +5,28 @@ Eページ：調教師リーディング
 取得タイミング：当日朝 / 1週あたり1ページ
 取れるもの：全厩舎の成績（着度数）
 
-TODO（実装フェーズ・HTMLサンプル入手後）：
-- netkeiba調教師リーディングページのURL形式
-- 着度数のパース
-- 出走馬の trainer_ref とリーディング表の紐付けキー
+--- 実装の状況 ---
+
+`https://db.sp.netkeiba.com/trainer/trainer_leading.html` の実サンプルで確認したとおり、
+**Dと完全に同じ作り**で `category` が `trainer` になるだけ（インラインJSの
+`var category = 'trainer';` 以外はD版と同一）。API呼び出しは `scraper/common/leading_api.py`
+に実装済みで、残るはレスポンスHTML断片のパーサーだけ（D・Eで共通）。
 """
 from __future__ import annotations
 
 from typing import Any
+
+from scraper.common import leading_api
+
+CATEGORY = "trainer"
 
 
 def fetch_trainer_leading(period: str = "2026") -> dict[str, dict[str, Any]]:
     """
     調教師リーディング（全厩舎分・全体成績）を一括取得する。
 
-    period: 集計期間（年など）
+    period: 集計期間（年）
     戻り値: {trainer_ref: trainer_stats(dict)} のマップ
             trainer_stats は 取得項目仕様§2.6 の型（scope="overall"）
     """
-    raise NotImplementedError("HTMLサンプル入手後に実装（取得項目仕様§1.1 Eページ）")
+    return leading_api.fetch_leading(CATEGORY, period)
