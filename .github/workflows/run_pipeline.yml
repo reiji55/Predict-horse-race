@@ -1,0 +1,46 @@
+name: 週末3CARDS パイプライン
+
+# 引き継ぎ書v3 §4「GitHub Actions（workflow_dispatch 手動トリガー）」
+# 土日朝、スマホからRunボタンをポチする運用（引き継ぎ書v1 §6）
+
+on:
+  workflow_dispatch:
+    inputs:
+      week_id:
+        description: 'ISO週識別子 例: 2026-W27'
+        required: true
+      dates:
+        description: '対象日（スペース区切り）例: 2026-07-04 2026-07-05'
+        required: true
+
+permissions:
+  contents: write  # GITHUB_TOKEN でのpushに必要（デフォルトreadの環境がある）
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 依存インストール
+        run: pip install -r requirements.txt
+
+      - name: raw/{week_id}.json ビルド (フェッチャー実装後に有効化)
+        run: |
+          echo "TODO: python -m scraper.build_raw --week ${{ github.event.inputs.week_id }} --dates ${{ github.event.inputs.dates }}"
+
+      - name: predictions.json ビルド (ロジック実装後に有効化)
+        run: |
+          echo "TODO: python -m logic.build_predictions --week ${{ github.event.inputs.week_id }}"
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add raw/ data/  # rawもコミット（後方検証＝重み再計算に past_runs 等の生データが必要）
+          git diff --cached --quiet || git commit -m "auto: ${{ github.event.inputs.week_id }} 予想生成"
+          git push

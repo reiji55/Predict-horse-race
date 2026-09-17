@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>週末3CARDS｜メインレース予想</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F3EE;
+    --card:#FFFFFF;
+    --ink:#1A241F;
+    --ink-soft:#5A6660;
+    --turf:#175A38;
+    --turf-deep:#0E3B25;
+    --red-pen:#D8332A;
+    --gold:#B8860B;
+    --line:#DFE3D9;
+    --radius:14px;
+    --mincho:'Shippori Mincho', serif;
+    --gothic:'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{font-size:16px}
+  body{
+    font-family:var(--gothic);
+    background:var(--paper);
+    color:var(--ink);
+    max-width:480px;
+    margin:0 auto;
+    min-height:100vh;
+    padding-bottom:76px;
+    line-height:1.55;
+  }
+  button{font-family:inherit;border:none;background:none;cursor:pointer;color:inherit}
+
+  /* ===== ヘッダー ===== */
+  .app-head{
+    background:var(--turf-deep);
+    color:#fff;
+    padding:calc(env(safe-area-inset-top, 0px) + 14px) 18px 12px;
+    position:sticky;top:0;z-index:20;
+  }
+  .app-head .brand{
+    font-family:var(--mincho);
+    font-weight:800;font-size:1.05rem;letter-spacing:.14em;
+    display:flex;align-items:baseline;gap:10px;
+  }
+  .app-head .brand small{
+    font-family:var(--gothic);font-weight:500;font-size:.68rem;
+    letter-spacing:.08em;opacity:.75;
+  }
+  .app-head .weekband{
+    margin-top:6px;font-size:.72rem;letter-spacing:.06em;opacity:.85;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .status-pill{
+    font-size:.66rem;font-weight:700;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.3);
+    padding:2px 10px;border-radius:999px;
+  }
+  .status-pill.fresh{background:#2E7D4F;border-color:#3C9A64}
+
+  .screen{display:none;padding:16px 16px 24px;animation:fade .18s ease}
+  .screen.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    .screen{animation:none}
+  }
+
+  /* ===== レース一覧 ===== */
+  .day-label{
+    font-size:.78rem;font-weight:900;letter-spacing:.2em;
+    color:var(--ink-soft);margin:14px 4px 8px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .day-label::after{content:"";flex:1;height:1px;background:var(--line)}
+  .race-item{
+    width:100%;text-align:left;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:10px;
+    display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 2px rgba(20,40,30,.05);
+  }
+  .race-item:active{transform:scale(.985)}
+  .race-item .venue{
+    font-family:var(--mincho);font-weight:800;font-size:.82rem;
+    color:var(--turf);writing-mode:vertical-rl;letter-spacing:.3em;
+    border-right:2px solid var(--turf);padding-right:8px;line-height:1;
+    min-height:52px;display:flex;align-items:center;
+  }
+  .race-item .info{flex:1}
+  .race-item .rname{
+    font-family:var(--mincho);font-weight:800;font-size:1.02rem;letter-spacing:.04em;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  }
+  .grade{
+    font-family:var(--gothic);font-size:.62rem;font-weight:900;color:#fff;
+    padding:1px 7px;border-radius:4px;letter-spacing:.05em;
+  }
+  .grade.g3{background:#1E5AC8}
+  .grade.op{background:#6B7280}
+  .race-item .meta{font-size:.72rem;color:var(--ink-soft);margin-top:3px;letter-spacing:.03em}
+  .race-item .time{
+    font-family:var(--mincho);font-weight:800;font-size:1.05rem;color:var(--ink);
+    text-align:right;line-height:1.2;
+  }
+  .race-item .time small{display:block;font-family:var(--gothic);font-size:.6rem;font-weight:700;color:var(--ink-soft);letter-spacing:.1em}
+
+  .notice{
+    margin-top:18px;font-size:.66rem;color:var(--ink-soft);
+    border-top:1px dashed var(--line);padding-top:10px;line-height:1.7;
+  }
+
+  /* ===== レース詳細 ===== */
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:.78rem;font-weight:700;color:var(--turf);
+    padding:4px 2px;margin-bottom:8px;
+  }
+  .detail-head{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .detail-head::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:5px;
+    background:linear-gradient(180deg,var(--turf) 0%,#4C9A6C 100%);
+  }
+  .detail-head .rname{
+    font-family:var(--mincho);font-weight:800;font-size:1.3rem;letter-spacing:.05em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .detail-head .cond{font-size:.74rem;color:var(--ink-soft);margin-top:4px;letter-spacing:.04em}
+
+  .marks-row{
+    display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  .marks-row::-webkit-scrollbar{display:none}
+  .mark-chip{
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    min-width:44px;padding:6px 4px;border-radius:10px;background:var(--paper);
+  }
+  .mark-chip .mk{font-family:var(--mincho);font-weight:800;font-size:1rem;line-height:1}
+  .mark-chip .mk.hon{color:var(--red-pen)}
+  .mark-chip .hname{font-size:.56rem;font-weight:700;color:var(--ink-soft);letter-spacing:0;white-space:nowrap}
+
+  /* 馬番チップ(枠番カラー) */
+  .uma{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;border-radius:5px;
+    font-size:.78rem;font-weight:900;line-height:1;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
+  }
+  .w1{background:#fff;color:#111;box-shadow:inset 0 0 0 1.5px #999}
+  .w2{background:#222;color:#fff}
+  .w3{background:#DC2F2F;color:#fff}
+  .w4{background:#1E5AC8;color:#fff}
+  .w5{background:#F2C518;color:#111}
+  .w6{background:#1D9E50;color:#fff}
+  .w7{background:#E8762C;color:#fff}
+  .w8{background:#F286A8;color:#111}
+
+  /* ===== 3カード ===== */
+  .risk-card{
+    background:var(--card);border-radius:var(--radius);
+    border:1px solid var(--line);
+    margin-bottom:14px;overflow:hidden;
+    box-shadow:0 2px 6px rgba(20,40,30,.06);
+  }
+  .risk-card .rc-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 16px;color:#fff;
+  }
+  .rc-head .rc-title{
+    font-family:var(--mincho);font-weight:800;font-size:1.15rem;letter-spacing:.2em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .rc-head .rc-sub{font-family:var(--gothic);font-size:.62rem;font-weight:700;opacity:.9;letter-spacing:.1em}
+  .rc-head .rc-hit{text-align:right;font-size:.6rem;font-weight:700;letter-spacing:.08em;opacity:.95}
+  .rc-head .rc-hit b{display:block;font-family:var(--mincho);font-size:1.05rem;letter-spacing:.02em}
+  .risk-card.low .rc-head{background:linear-gradient(120deg,#175A38,#2E7D4F)}
+  .risk-card.mid .rc-head{background:linear-gradient(120deg,#8A6508,#B8860B)}
+  .risk-card.high .rc-head{background:linear-gradient(120deg,#8E1F18,#C23028)}
+
+  .rc-range{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 16px;border-bottom:1px solid var(--line);
+    font-size:.7rem;color:var(--ink-soft);font-weight:700;letter-spacing:.05em;
+  }
+  .rc-range b{font-family:var(--mincho);font-size:1rem;color:var(--ink);letter-spacing:.02em}
+
+  .bet-row{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 16px;border-bottom:1px dashed var(--line);
+  }
+  .bet-row:last-of-type{border-bottom:none}
+  .bet-type{
+    font-size:.66rem;font-weight:900;letter-spacing:.05em;
+    padding:3px 8px;border-radius:5px;white-space:nowrap;
+    background:var(--paper);color:var(--turf);border:1px solid var(--line);
+  }
+  .bet-horses{flex:1;display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-weight:900;font-size:.8rem;color:var(--ink-soft)}
+  .bet-amt{font-family:var(--mincho);font-weight:800;font-size:.95rem;white-space:nowrap}
+
+  .rc-total{
+    display:flex;justify-content:flex-end;gap:10px;align-items:baseline;
+    padding:8px 16px;background:var(--paper);
+    font-size:.68rem;font-weight:700;color:var(--ink-soft);letter-spacing:.08em;
+  }
+  .rc-total b{font-family:var(--mincho);font-size:1.05rem;color:var(--ink)}
+
+  .rc-analysis{
+    margin:12px 16px 16px;padding:10px 12px 10px 14px;
+    border-left:3px solid var(--red-pen);
+    background:#FDF6F5;border-radius:0 8px 8px 0;
+    font-size:.78rem;line-height:1.75;
+  }
+  .rc-analysis .label{
+    font-size:.6rem;font-weight:900;color:var(--red-pen);letter-spacing:.2em;margin-bottom:2px;
+  }
+
+  /* ===== 成績 ===== */
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .stat-box{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;text-align:center;
+  }
+  .stat-box .lbl{font-size:.64rem;font-weight:700;color:var(--ink-soft);letter-spacing:.15em}
+  .stat-box .val{font-family:var(--mincho);font-weight:800;font-size:1.7rem;line-height:1.3;letter-spacing:.02em}
+  .stat-box .val.plus{color:var(--turf)}
+  .stat-box .val.minus{color:var(--red-pen)}
+  .stat-box .sub{font-size:.62rem;color:var(--ink-soft)}
+
+  .sec-title{
+    font-family:var(--mincho);font-weight:800;font-size:.95rem;letter-spacing:.15em;
+    margin:20px 4px 10px;display:flex;align-items:center;gap:10px;
+  }
+  .sec-title::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .cardstat{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 16px;margin-bottom:8px;
+  }
+  .cardstat .cs-head{display:flex;justify-content:space-between;font-size:.76rem;font-weight:900;margin-bottom:6px}
+  .cardstat .cs-head .rate{font-family:var(--mincho);font-weight:800}
+  .bar{height:8px;border-radius:999px;background:var(--paper);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px}
+  .cardstat.low .cs-head span:first-child{color:var(--turf)}
+  .cardstat.mid .cs-head span:first-child{color:var(--gold)}
+  .cardstat.high .cs-head span:first-child{color:var(--red-pen)}
+  .cardstat.low .bar i{background:#2E7D4F}
+  .cardstat.mid .bar i{background:#B8860B}
+  .cardstat.high .bar i{background:#C23028}
+  .cardstat .cs-sub{font-size:.62rem;color:var(--ink-soft);margin-top:5px}
+
+  .hist-item{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px 14px;margin-bottom:8px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .hit-mark{
+    font-family:var(--mincho);font-weight:800;font-size:1.3rem;line-height:1;
+    width:34px;text-align:center;
+  }
+  .hit-mark.hit{color:var(--red-pen)}
+  .hit-mark.miss{color:#9AA5A0}
+  .hist-item .h-info{flex:1}
+  .hist-item .h-name{font-weight:900;font-size:.82rem}
+  .hist-item .h-meta{font-size:.64rem;color:var(--ink-soft);margin-top:1px}
+  .hist-item .h-pay{font-family:var(--mincho);font-weight:800;font-size:.95rem;text-align:right}
+  .hist-item .h-pay small{display:block;font-family:var(--gothic);font-size:.58rem;font-weight:700;color:var(--ink-soft)}
+  .h-pay.plus{color:var(--turf)}
+
+  /* ===== ボトムナビ ===== */
+  .bottom-nav{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:480px;
+    background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);
+    display:flex;z-index:30;
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav button{
+    flex:1;padding:10px 0 8px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-size:.62rem;font-weight:900;letter-spacing:.15em;color:var(--ink-soft);
+  }
+  .bottom-nav button .ico{font-family:var(--mincho);font-size:1.15rem;line-height:1.2;font-weight:800}
+  .bottom-nav button.on{color:var(--turf)}
+  .bottom-nav button:focus-visible,.race-item:focus-visible,.back-btn:focus-visible{
+    outline:2px solid var(--turf);outline-offset:2px;border-radius:8px;
+  }
+</style>
+</head>
+<body>
+
+<header class="app-head">
+  <div class="brand">週末3CARDS <small>メインレース予想</small></div>
+  <div class="weekband">
+    <span>2026.7.4 SAT — 7.5 SUN</span>
+    <span class="status-pill fresh" id="updateStatus">当日朝 更新済み</span>
+  </div>
+</header>
+
+<!-- ===== 画面1: レース一覧 ===== -->
+<section class="screen active" id="scr-list"></section>
+
+<!-- ===== 画面2: レース詳細 ===== -->
+<section class="screen" id="scr-detail"></section>
+
+<!-- ===== 画面3: 成績 ===== -->
+<section class="screen" id="scr-stats"></section>
+
+<nav class="bottom-nav">
+  <button id="nav-list" class="on" onclick="goList()"><span class="ico">馬</span>レース</button>
+  <button id="nav-stats" onclick="goStats()"><span class="ico">成</span>成績</button>
+</nav>
+
+<script>
+/* ================= サンプルデータ(モック) ================= */
+const RACES = [
+  {
+    id:"r1", day:"土", venue:"函館", no:"11R", name:"五稜郭ステークス", grade:"op",
+    time:"15:20", cond:"芝1800m・3勝クラス・16頭", updated:true,
+    marks:[
+      {mk:"◎",hon:true,waku:4,num:7,name:"サンプルホースA"},
+      {mk:"○",waku:6,num:11,name:"サンプルホースB"},
+      {mk:"▲",waku:2,num:3,name:"サンプルホースC"},
+      {mk:"△",waku:8,num:15,name:"サンプルホースD"},
+      {mk:"△",waku:1,num:1,name:"サンプルホースE"},
+    ],
+    cards:{
+      low:{hit:"52%",range:"700〜1,400円",total:500,
+        bets:[
+          {type:"ワイド",h:[[4,7],[6,11]],amt:200},
+          {type:"ワイド",h:[[4,7],[2,3]],amt:100},
+          {type:"ワイド",h:[[4,7],[1,1]],amt:100},
+          {type:"馬連",h:[[4,7],[6,11]],amt:100},
+        ],
+        note:"◎7は当該コース(3-1-0-1)と抜群の相性。時計指数も2位に1.2差をつけ最上位。相手は先行力ある○11が本線。"},
+      mid:{hit:"31%",range:"1,500〜4,000円",total:500,
+        bets:[
+          {type:"馬連",h:[[4,7],[2,3]],amt:150},
+          {type:"馬連",h:[[6,11],[2,3]],amt:100},
+          {type:"ワイド",h:[[2,3],[8,15]],amt:100},
+          {type:"3連複",h:[[4,7],[6,11],[2,3]],amt:150},
+        ],
+        note:"▲3は洋芝替わりで指数急上昇の妙味枠。オッズは8番人気だが当モデル評価は3位で乖離大。"},
+      high:{hit:"12%",range:"6,000〜25,000円",total:500,
+        bets:[
+          {type:"3連複",h:[[4,7],[8,15],[6,11]],amt:100},
+          {type:"3連複",h:[[4,7],[8,15],[2,3]],amt:100},
+          {type:"3連複",h:[[8,15],[6,11],[2,3]],amt:100},
+          {type:"ワイド",h:[[8,15],[1,1]],amt:200},
+        ],
+        note:"△15は父が函館芝の鬼。人気薄でも馬場が渋れば一発の下地十分。15絡みの3連複で高配当を狙う。"},
+    }
+  },
+  {
+    id:"r2", day:"日", venue:"小倉", no:"11R", name:"CBC賞", grade:"g3",
+    time:"15:35", cond:"芝1200m・G3・ハンデ・18頭", updated:true,
+    marks:[
+      {mk:"◎",hon:true,waku:3,num:5,name:"サンプルホースF"},
+      {mk:"○",waku:7,num:14,name:"サンプルホースG"},
+      {mk:"▲",waku:5,num:9,name:"サンプルホースH"},
+      {mk:"△",waku:1,num:2,name:"サンプルホースI"},
+      {mk:"△",waku:8,num:17,name:"サンプルホースJ"},
+    ],
+    cards:{
+      low:{hit:"48%",range:"800〜1,600円",total:500,
+        bets:[
+          {type:"ワイド",h:[[3,5],[7,14]],amt:200},
+          {type:"ワイド",h:[[3,5],[5,9]],amt:100},
+          {type:"ワイド",h:[[7,14],[5,9]],amt:100},
+          {type:"馬連",h:[[3,5],[7,14]],amt:100},
+        ],
+        note:"◎5は軽ハンデ54kgで指数最上位。夏の小倉1200は先行有利のトラックバイアスで脚質もマッチ。"},
+      mid:{hit:"28%",range:"2,000〜5,500円",total:500,
+        bets:[
+          {type:"馬連",h:[[3,5],[5,9]],amt:150},
+          {type:"馬連",h:[[3,5],[1,2]],amt:100},
+          {type:"3連複",h:[[3,5],[7,14],[5,9]],amt:150},
+          {type:"ワイド",h:[[5,9],[1,2]],amt:100},
+        ],
+        note:"▲9は騎手×小倉芝短距離で勝率22%の好相性。前走は不利があり指数以上に評価できる。"},
+      high:{hit:"11%",range:"8,000〜40,000円",total:500,
+        bets:[
+          {type:"3連複",h:[[3,5],[8,17],[7,14]],amt:100},
+          {type:"3連複",h:[[3,5],[8,17],[5,9]],amt:100},
+          {type:"3連複",h:[[8,17],[7,14],[1,2]],amt:100},
+          {type:"ワイド",h:[[8,17],[3,5]],amt:200},
+        ],
+        note:"△17は52kgの軽量と血統的な小倉適性が魅力。単勝万馬券圏だがモデル評価は6位で歪みあり。"},
+    }
+  },
+  {
+    id:"r3", day:"日", venue:"福島", no:"11R", name:"ラジオNIKKEI賞", grade:"g3",
+    time:"15:45", cond:"芝1800m・G3・3歳・ハンデ・16頭", updated:true,
+    marks:[
+      {mk:"◎",hon:true,waku:2,num:4,name:"サンプルホースK"},
+      {mk:"○",waku:6,num:12,name:"サンプルホースL"},
+      {mk:"▲",waku:4,num:8,name:"サンプルホースM"},
+      {mk:"△",waku:7,num:13,name:"サンプルホースN"},
+      {mk:"△",waku:3,num:6,name:"サンプルホースO"},
+    ],
+    cards:{
+      low:{hit:"50%",range:"700〜1,500円",total:500,
+        bets:[
+          {type:"ワイド",h:[[2,4],[6,12]],amt:200},
+          {type:"ワイド",h:[[2,4],[4,8]],amt:100},
+          {type:"ワイド",h:[[6,12],[4,8]],amt:100},
+          {type:"馬連",h:[[2,4],[6,12]],amt:100},
+        ],
+        note:"◎4は小回り福島向きの機動力が武器で内枠も好材料。3歳ハンデ戦は上位指数馬の信頼度が高い。"},
+      mid:{hit:"30%",range:"1,800〜5,000円",total:500,
+        bets:[
+          {type:"馬連",h:[[2,4],[4,8]],amt:150},
+          {type:"馬連",h:[[2,4],[7,13]],amt:100},
+          {type:"3連複",h:[[2,4],[6,12],[4,8]],amt:150},
+          {type:"ワイド",h:[[4,8],[7,13]],amt:100},
+        ],
+        note:"▲8は厩舎の夏福島成績が優秀。前走から距離短縮のローテもプラス評価。"},
+      high:{hit:"13%",range:"7,000〜30,000円",total:500,
+        bets:[
+          {type:"3連複",h:[[2,4],[3,6],[6,12]],amt:100},
+          {type:"3連複",h:[[2,4],[3,6],[4,8]],amt:100},
+          {type:"3連複",h:[[3,6],[6,12],[7,13]],amt:100},
+          {type:"ワイド",h:[[3,6],[2,4]],amt:200},
+        ],
+        note:"△6は未対戦の相手関係で人気を落としているが、持ち時計はメンバー2位。雨予報なら更に狙い目。"},
+    }
+  },
+];
+
+const STATS = {
+  hitRate:"41%", roi:"87%", bought:"18,000円", paid:"15,660円", races:12,
+  cards:[
+    {cls:"low", label:"堅実(低)", rate:54, sub:"13/24的中・回収率91%"},
+    {cls:"mid", label:"妙味(中)", rate:29, sub:"7/24的中・回収率96%"},
+    {cls:"high", label:"一撃(高)", rate:8, sub:"2/24的中・回収率74%"},
+  ],
+  history:[
+    {hit:true, name:"宝塚記念(G1)", meta:"6/28 阪神11R・妙味カード的中", pay:"+2,840円"},
+    {hit:false, name:"パラダイスS(L)", meta:"6/28 東京11R", pay:"-1,500円"},
+    {hit:true, name:"天保山S(OP)", meta:"6/27 阪神11R・堅実カード的中", pay:"+380円"},
+    {hit:false, name:"江の島S(3勝)", meta:"6/27 東京11R", pay:"-1,500円"},
+  ]
+};
+
+/* ================= 描画 ================= */
+const WAKU_CLS = w => "w"+w;
+const umaChip = (w,n) => `<span class="uma ${WAKU_CLS(w)}">${n}</span>`;
+const horsesHtml = pairs => pairs.map(p=>umaChip(p[0],p[1])).join('<span style="opacity:.4">－</span>');
+
+function renderList(){
+  const days = ["土","日"];
+  let html = "";
+  days.forEach(d=>{
+    const rs = RACES.filter(r=>r.day===d);
+    if(!rs.length) return;
+    html += `<div class="day-label">${d==="土"?"7/4 SATURDAY":"7/5 SUNDAY"}</div>`;
+    rs.forEach(r=>{
+      html += `
+      <button class="race-item" onclick="goDetail('${r.id}')">
+        <span class="venue">${r.venue}</span>
+        <span class="info">
+          <span class="rname">${r.name}
+            ${r.grade==="g3"?'<span class="grade g3">GⅢ</span>':'<span class="grade op">OP</span>'}
+          </span>
+          <span class="meta">${r.no}・${r.cond}</span>
+        </span>
+        <span class="time">${r.time}<small>発走</small></span>
+      </button>`;
+    });
+  });
+  html += `<p class="notice">※ 表示はすべてサンプルデータです。予想は参考情報であり、購入判断はご自身の責任でお願いします。馬券の購入は20歳以上に限られます。</p>`;
+  document.getElementById("scr-list").innerHTML = html;
+}
+
+function cardHtml(cls, title, sub, c){
+  const bets = c.bets.map(b=>`
+    <div class="bet-row">
+      <span class="bet-type">${b.type}</span>
+      <span class="bet-horses">${horsesHtml(b.h)}</span>
+      <span class="bet-amt">${b.amt}円</span>
+    </div>`).join("");
+  return `
+  <article class="risk-card ${cls}">
+    <div class="rc-head">
+      <div>
+        <div class="rc-title">${title}</div>
+        <div class="rc-sub">${sub}</div>
+      </div>
+      <div class="rc-hit">想定的中率<b>${c.hit}</b></div>
+    </div>
+    <div class="rc-range"><span>500円 → 想定払戻レンジ</span><b>${c.range}</b></div>
+    ${bets}
+    <div class="rc-total">合計 <b>${c.total}円</b></div>
+    <div class="rc-analysis"><div class="label">分 析</div>${c.note}</div>
+  </article>`;
+}
+
+function renderDetail(r){
+  const marks = r.marks.map(m=>`
+    <div class="mark-chip">
+      <span class="mk ${m.hon?'hon':''}">${m.mk}</span>
+      ${umaChip(m.waku,m.num)}
+      <span class="hname">${m.name}</span>
+    </div>`).join("");
+  document.getElementById("scr-detail").innerHTML = `
+    <button class="back-btn" onclick="goList()">← レース一覧へ</button>
+    <div class="detail-head">
+      <div class="rname">${r.name}
+        ${r.grade==="g3"?'<span class="grade g3">GⅢ</span>':'<span class="grade op">OP</span>'}
+      </div>
+      <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
+      <div class="marks-row">${marks}</div>
+    </div>
+    ${cardHtml("low","堅 実","リスク低・当てにいく1枚",r.cards.low)}
+    ${cardHtml("mid","妙 味","リスク中・的中と配当の両取り",r.cards.mid)}
+    ${cardHtml("high","一 撃","リスク高・高配当狙い",r.cards.high)}
+    <p class="notice">※ サンプルデータ。想定的中率・払戻レンジはモデルの試算値であり結果を保証するものではありません。</p>
+  `;
+}
+
+function renderStats(){
+  const cs = STATS.cards.map(c=>`
+    <div class="cardstat ${c.cls}">
+      <div class="cs-head"><span>${c.label}</span><span class="rate">${c.rate}%</span></div>
+      <div class="bar"><i style="width:${c.rate}%"></i></div>
+      <div class="cs-sub">${c.sub}</div>
+    </div>`).join("");
+  const hist = STATS.history.map(h=>`
+    <div class="hist-item">
+      <span class="hit-mark ${h.hit?'hit':'miss'}">${h.hit?'◯':'✕'}</span>
+      <span class="h-info">
+        <span class="h-name">${h.name}</span>
+        <div class="h-meta">${h.meta}</div>
+      </span>
+      <span class="h-pay ${h.hit?'plus':''}">${h.pay}<small>収支</small></span>
+    </div>`).join("");
+  document.getElementById("scr-stats").innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="lbl">的中率</div><div class="val">${STATS.hitRate}</div><div class="sub">対象${STATS.races}レース</div></div>
+      <div class="stat-box"><div class="lbl">回収率</div><div class="val minus">${STATS.roi}</div><div class="sub">100%超えでプラス</div></div>
+      <div class="stat-box"><div class="lbl">累計購入</div><div class="val" style="font-size:1.2rem">${STATS.bought}</div><div class="sub">1レース1,500円×3カード</div></div>
+      <div class="stat-box"><div class="lbl">累計払戻</div><div class="val" style="font-size:1.2rem">${STATS.paid}</div><div class="sub">サンプル集計</div></div>
+    </div>
+    <div class="sec-title">カード別 的中率</div>
+    ${cs}
+    <div class="sec-title">直近の結果</div>
+    ${hist}
+    <p class="notice">※ サンプルデータ。実装時はレース結果を自動取得し、カード別・券種別の的中率と回収率を自動集計します。</p>
+  `;
+}
+
+/* ================= ナビゲーション ================= */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({top:0});
+}
+function setNav(on){
+  document.getElementById("nav-list").classList.toggle("on", on==="list");
+  document.getElementById("nav-stats").classList.toggle("on", on==="stats");
+}
+function goList(){ show("scr-list"); setNav("list"); }
+function goStats(){ show("scr-stats"); setNav("stats"); }
+function goDetail(id){
+  const r = RACES.find(x=>x.id===id);
+  renderDetail(r);
+  show("scr-detail"); setNav("list");
+}
+
+renderList();
+renderStats();
+</script>
+</body>
+</html>

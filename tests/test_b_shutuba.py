@@ -1,0 +1,91 @@
+"""
+B（出馬表）・B2（オッズAPI）パーサーのオフラインテスト。
+
+実サンプルHTML/ APIレスポンスに対してパース結果を検証する。
+実サンプルは配布物に含めないため、tests/samples/ に各自で配置して実行する想定：
+  tests/samples/shutuba_fuchu.html         （府中牝馬S 出馬表・枠順確定後）
+  tests/samples/shutuba_tanabata.html       （七夕賞 出馬表・枠順未確定）
+  tests/samples/odds_fuchu.txt              （府中牝馬S オッズAPIレスポンス）
+
+実行： python -m pytest tests/test_b_shutuba.py  もしくは  python tests/test_b_shutuba.py
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scraper.fetchers.b_shutuba import parse_shutuba_html
+from scraper.fetchers.b2_odds import (
+    extract_win_place_odds,
+    merge_odds_into_race,
+    parse_odds_response,
+)
+
+SAMPLES = Path(__file__).resolve().parent / "samples"
+
+
+def test_shutuba_confirmed():
+    """枠順確定後の出馬表：枠番・馬番・馬体重・馬場状態が取れること。"""
+    html = (SAMPLES / "shutuba_fuchu.html").read_text(encoding="utf-8", errors="replace")
+    race = parse_shutuba_html(html, "202605030611")
+
+    assert race["id"] == "20260621-tokyo-11"
+    assert race["venue"] == "東京"
+    assert race["grade"] == "g3"
+    assert race["course"]["surface"] == "芝"
+    assert race["course"]["dist"] == 1800
+    assert race["going"] == "稍重"  # 正規化された馬場状態
+    assert race["weather"] == "曇"
+
+    nums = [e["num"] for e in race["entries"]]
+    assert nums == list(range(1, 17))  # 1..16 が過不足なく
+    assert race["entries"][0]["waku"] == 1
+    assert race["entries"][0]["body_weight"] is not None
+
+    print("test_shutuba_confirmed: OK")
+
+
+def test_shutuba_unconfirmed():
+    """枠順未確定の出馬表：馬番はtr idから取れ、枠番/馬場はNoneでも落ちないこと。"""
+    html = (SAMPLES / "shutuba_tanabata.html").read_text(encoding="utf-8", errors="replace")
+    race = parse_shutuba_html(html, "202603020611")
+
+    assert race["id"] == "20260712-fukushima-11"
+    nums = sorted(e["num"] for e in race["entries"])
+    assert nums == list(range(1, len(nums) + 1))  # 連番で重複なし
+    assert all(e["waku"] is None for e in race["entries"])  # 枠番未確定
+    assert race["going"] is None  # 馬場状態はまだ無い
+
+    print("test_shutuba_unconfirmed: OK")
+
+
+def test_odds_decode_and_merge():
+    """オッズAPI：jsonp剥がし→base64+zlib解凍→馬番マップ→出馬表への統合。"""
+    text = (SAMPLES / "odds_fuchu.txt").read_text(encoding="utf-8")
+    body = parse_odds_response(text)
+    assert body["official_datetime"] is not None
+
+    by_num = extract_win_place_odds(body)
+    assert len(by_num) == 16
+    # 1番人気の馬の単勝が最小であること（サンプルでは6番3.3倍）
+    assert by_num[6]["win_odds"] == 3.3
+    assert by_num[6]["popularity"] == 1
+    assert by_num[6]["place_odds"] == [1.4, 1.7]
+
+    # 出馬表に統合すると win_odds の欠損が消えること
+    html = (SAMPLES / "shutuba_fuchu.html").read_text(encoding="utf-8", errors="replace")
+    race = parse_shutuba_html(html, "202605030611")
+    merge_odds_into_race(race, {"official_datetime": body["official_datetime"], "by_num": by_num})
+    assert all(e["win_odds"] is not None for e in race["entries"])
+    assert race["odds_updated_at"] == body["official_datetime"]
+
+    print("test_odds_decode_and_merge: OK")
+
+
+if __name__ == "__main__":
+    test_shutuba_confirmed()
+    test_shutuba_unconfirmed()
+    test_odds_decode_and_merge()
+    print("すべてのテストが通りました。")
