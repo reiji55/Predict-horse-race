@@ -73,7 +73,9 @@ v1〜v5は決定の経緯を残した歴史的資料。
 
 - `docs/samples/` … `raw` / `predictions` / `comments` / `results` の各サンプルJSON（＝実装の「目標の形」）
   - `raw.sample.json` は logic を単独で動かすための入力サンプル（1レース10頭・過去走つき）
-- `docs/ui/keiba-3cards-mock-v7.html` … UIモック最新版（単体HTML・キャラ絵4人をbase64で内蔵）
+- `docs/ui/keiba-3cards-mock-v7.html` … PWAの画面（単体HTML・キャラ絵4人をbase64で内蔵）。
+  `data/predictions.json` などが読めれば実データを表示し、読めなければサンプル表示にフォールバックする
+- `docs/ui/adapter.js` … JSON → 画面のデータ構造への変換（`tests/test_adapter.js` で検証）
 - `docs/ui/予想師キャラクター外見設定_v1.md` … 4キャラの属性・外見・色調（セリフを書くときの拠り所）
 - `docs/ui/archive/` … 旧世代モック（キャラ・妙味メーター導入前）
 - `docs/OPEN_QUESTIONS.md` … 未確定・要確認事項の集約（着手前にここを見る）
@@ -87,6 +89,7 @@ python3 tests/test_logic.py              # logic 全モジュール（仕様書�
 python3 tests/test_build_predictions.py  # raw → predictions.json のエンドツーエンド
 python3 tests/test_build_raw.py          # 絞り込み・週内キャッシュ・マージ（ネットワーク不要）
 python3 tests/test_build_results.py      # 成績集計（サンプルの払戻を再現できるか）
+node    tests/test_adapter.js           # JSON → UI のデータ変換
 
 python3 tests/test_a_race_list.py        # ※実サンプルHTMLの配置が必要
 python3 tests/test_c_horse_history.py    # ※同上
@@ -124,4 +127,5 @@ python -m logic.build_predictions --week 2026-W27                # raw → data/
    … 空のままだと①も丸ごと欠損する。1・2が入って初めて①②③が揃う
 3. **F（レース結果・払戻）フェッチャー**（集計側 `results/build_results.py` は実装済み。
    `f_results.py` の docstring に、返すべきデータの形を書いてある）
-4. PWA（`docs/ui/keiba-3cards-mock-v7.html` の `RACES` を predictions.json に差し替え）
+4. PWA の仕上げ（画面は実データ表示済み。残るは GitHub Pages の有効化と、
+   manifest / Service Worker などPWAとしての体裁）

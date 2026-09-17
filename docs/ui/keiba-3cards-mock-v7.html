@@ -112,7 +112,10 @@
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   }
   .grade{font-size:.6rem;font-weight:900;color:#fff;padding:1px 7px;border-radius:4px;letter-spacing:.05em}
+  .grade.g1{background:#1A1A1A}
+  .grade.g2{background:#153E8A}
   .grade.g3{background:#1E5AC8}
+  .grade.cls{background:#7C8A80}
   .grade.op{background:#6B7280}
   .grade.mi{background:#8CA894}
   .race-item .meta{font-size:.7rem;color:var(--ink-soft);margin-top:3px;letter-spacing:.02em}
@@ -153,10 +156,15 @@
   .mark-chip{
     display:flex;flex-direction:column;align-items:center;gap:3px;
     min-width:44px;padding:6px 4px;border-radius:10px;background:var(--paper);
+    /* 実馬名は6〜9文字あり、縮むと隣のチップと重なるので縮小させない（行は横スクロールする） */
+    flex:0 0 auto;
   }
   .mark-chip .mk{font-family:var(--mincho);font-weight:800;font-size:1rem;line-height:1}
   .mark-chip .mk.hon{color:var(--red-pen)}
-  .mark-chip .hname{font-size:.56rem;font-weight:700;color:var(--ink-soft);white-space:nowrap}
+  .mark-chip .hname{
+    font-size:.56rem;font-weight:700;color:var(--ink-soft);white-space:nowrap;
+    max-width:6.5em;overflow:hidden;text-overflow:ellipsis;   /* 長い馬名は…で省略 */
+  }
 
   /* 確変バナー */
   .kakuhen{
@@ -393,8 +401,8 @@
 <header class="app-head">
   <div class="brand">週末3CARDS <small>予想師と狙う妙味レース</small></div>
   <div class="weekband">
-    <span>2026.7.4 SAT — 7.5 SUN</span>
-    <span class="status-pill fresh">当日朝 更新済み</span>
+    <span id="weekBand">2026.7.4 SAT — 7.5 SUN</span>
+    <span class="status-pill fresh" id="updateStatus">当日朝 更新済み</span>
   </div>
 </header>
 
@@ -409,6 +417,7 @@
   <button id="nav-stats" onclick="goStats()"><span class="ico">成</span>成績</button>
 </nav>
 
+<script src="adapter.js"></script>
 <script>
 /* ================= 予想師データ ================= */
 const CHARS = {
@@ -439,7 +448,7 @@ const CHARS = {
 };
 
 /* ================= レースデータ(サンプル) ================= */
-const RACES = [
+let RACES = [
   {
     id:"r1", day:"土", venue:"函館", no:"11R", name:"五稜郭ステークス", grade:"op",
     time:"15:20", cond:"芝1800m・3勝クラス・16頭", distort:41,
@@ -600,7 +609,7 @@ const RACES = [
   },
 ];
 
-const STATS = {
+let STATS = {
   balance:"-2,340円", bought:"39,000円", paid:"36,660円", roi:"94%", races:24,
   chars:[
     {id:"kei",   hit:54, roi:91,  rec:"13/24的中",          avgPay:"690円"},
@@ -617,6 +626,10 @@ const STATS = {
   ]
 };
 
+/* 実データを読み込めたかどうか。読めていなければ画面に「サンプル」と明示する */
+let IS_SAMPLE = true;
+const sampleNote = () => IS_SAMPLE ? "※ 表示はすべてサンプルデータです。" : "※ ";
+
 /* ================= 描画ユーティリティ ================= */
 const umaChip = (w,n) => `<span class="uma w${w}">${n}</span>`;
 // img(画像パス)が設定されていればそれを表示、無ければ絵文字にフォールバック。
@@ -625,7 +638,16 @@ const avatarHtml = (ch, cls) => ch.img
   ? `<img src="${ch.img}" alt="${ch.name}" class="${cls} avatar-img">`
   : `<span class="${cls}">${ch.ava}</span>`;
 const horsesHtml = pairs => pairs.map(p=>umaChip(p[0],p[1])).join('<span style="opacity:.4">－</span>');
-const gradeBadge = g => g==="g3" ? '<span class="grade g3">GⅢ</span>' : g==="op" ? '<span class="grade op">OP</span>' : '<span class="grade mi">未勝利</span>';
+// データスキーマ仕様§1 races[].grade の全コードに対応（g1/g2 や 1〜3勝クラスが
+// 「未勝利」バッジになってしまうのを防ぐ）。adapter.js の GRADE_LABEL と同じ表記に揃える。
+const GRADE_BADGE = {
+  g1:["g1","GⅠ"], g2:["g2","GⅡ"], g3:["g3","GⅢ"], op:["op","OP"],
+  "3win":["cls","3勝"], "2win":["cls","2勝"], "1win":["cls","1勝"], mi:["mi","未勝利"],
+};
+const gradeBadge = g => {
+  const badge = GRADE_BADGE[g];
+  return badge ? `<span class="grade ${badge[0]}">${badge[1]}</span>` : "";
+};
 function distortHtml(v){
   const cls = v>=80 ? "legend" : v>=60 ? "hot" : "";
   return `<span class="distort ${cls}">
@@ -655,7 +677,7 @@ function renderList(){
       </button>`;
     });
   });
-  html += `<p class="notice">※ 表示はすべてサンプルデータです。「妙味メーター」はオッズと当モデル評価の乖離(=期待値の旨み)を数値化した独自指標で、高いほどベット妙味が大きいレース(80超で鳳が降臨)。予想は参考情報であり、購入判断はご自身の責任でお願いします。馬券の購入は20歳以上に限られます。</p>`;
+  html += `<p class="notice">${sampleNote()}「妙味メーター」はオッズと当モデル評価の乖離(=期待値の旨み)を数値化した独自指標で、高いほどベット妙味が大きいレース(80超で鳳が降臨)。予想は参考情報であり、購入判断はご自身の責任でお願いします。馬券の購入は20歳以上に限られます。</p>`;
   document.getElementById("scr-list").innerHTML = html;
 }
 
@@ -715,7 +737,7 @@ function renderDetail(r){
       <div class="marks-row">${marks}</div>
     </div>
     ${r.cards.map(cardHtml).join("")}
-    <p class="notice">※ サンプルデータ。想定的中率・払戻レンジはモデルの試算値であり結果を保証するものではありません。</p>
+    <p class="notice">${sampleNote()}想定的中率・払戻レンジはモデルの試算値であり、結果を保証するものではありません。</p>
   `;
 }
 
@@ -787,11 +809,11 @@ function renderStats(){
       </div>
     </div>
     <div class="sec-title">予想師別 成績</div>
-    <p class="roi-note">「回収」バーの点線は損益分岐点(100%)。点線を右に超えていればプラス収支です。鳳の312%はバーの上限(150%)を振り切っています。</p>
+    <p class="roi-note">「回収」バーの点線は損益分岐点(100%)。点線を右に超えていればプラス収支です。バーの上限は150%で、それを超えた回収率は振り切って表示されます。</p>
     ${cs}
     <div class="sec-title">直近の結果</div>
     ${hist}
-    <p class="notice">※ サンプルデータ。実装時はレース結果を自動取得し、予想師別・券種別の的中率と回収率を自動集計します。</p>
+    <p class="notice">${sampleNote()}レース結果から予想師別・券種別に自動集計しています。マイナス収支も隠さず表示します。</p>
   `;
 }
 
@@ -814,9 +836,68 @@ function goDetail(id){
   show("scr-detail"); setNav("list");
 }
 
-renderList();
-renderChars();
-renderStats();
+/* ================= 実データの読み込み =================
+   GitHub Pages ではリポジトリ直下の data/ を読む（このファイルは docs/ui/ にあるので ../../data/）。
+   file:// で直接開いた場合や、まだ predictions.json が生成されていない場合は fetch が失敗するので、
+   上のサンプルデータがそのまま表示される（モックとしての単体動作を壊さない）。
+   変換ロジックは adapter.js（tests/test_adapter.js でサンプルJSONに対して検証済み）。 */
+const DATA_BASE = "../../data/";
+
+async function loadJson(name){
+  try{
+    const res = await fetch(DATA_BASE + name, {cache:"no-store"});
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(e){
+    return null;   // file:// や未生成のときはモックのまま動かす
+  }
+}
+
+function setStatus(text, fresh){
+  const pill = document.getElementById("updateStatus");
+  if(!pill) return;
+  pill.textContent = text;
+  pill.classList.toggle("fresh", !!fresh);
+}
+
+/* レースIDの先頭8桁(YYYYMMDD)から「2026.7.4 — 7.5」のような見出しを作る */
+function weekBandText(races){
+  const days = races.map(r => (r.id && r.id.length >= 8) ? r.id.slice(0,8) : null).filter(Boolean);
+  if(!days.length) return null;
+  const md = d => `${Number(d.slice(4,6))}.${Number(d.slice(6,8))}`;
+  const first = days.reduce((a,b) => a < b ? a : b);
+  const last  = days.reduce((a,b) => a > b ? a : b);
+  const head  = `${first.slice(0,4)}.${md(first)}`;
+  return first === last ? head : `${head} — ${md(last)}`;
+}
+
+async function boot(){
+  renderList(); renderChars(); renderStats();          // まずサンプルで描画
+
+  const [predictions, comments, results] = await Promise.all([
+    loadJson("predictions.json"), loadJson("comments.json"), loadJson("results.json"),
+  ]);
+
+  if(predictions && predictions.races && predictions.races.length){
+    IS_SAMPLE = false;
+    RACES = W3CAdapter.toRaces(predictions, comments || {});
+    renderList();
+    const band = document.getElementById("weekBand");
+    const text = weekBandText(RACES);
+    if(band && text) band.textContent = text;
+    const generated = predictions.generated_at ? predictions.generated_at.slice(11,16) : null;
+    setStatus(generated ? `${generated} 更新` : "更新済み", true);
+  }else{
+    setStatus("サンプル表示", false);
+  }
+
+  if(results && results.results && results.results.length){
+    STATS = W3CAdapter.toStats(results, predictions || {});
+    renderStats();
+  }
+}
+
+boot();
 </script>
 </body>
 </html>
