@@ -41,7 +41,7 @@
 ├── scripts/
 │   └── build_base_times.py    # base_times.json 初期構築（1回きり）⬜未実装
 ├── results/
-│   └── build_results.py       # results.json 生成（タスク7）⬜未実装
+│   └── build_results.py       # results.json 生成（タスク7）✅実装済（Fフェッチャー待ち）
 ├── raw/                       # フェッチャー出力（後方検証のためコミット対象）
 ├── data/
 │   ├── comments.json          # 運用者が手書きするセリフファイル
@@ -86,6 +86,7 @@ pip install -r requirements.txt
 python3 tests/test_logic.py              # logic 全モジュール（仕様書の検算サンプルを固定）
 python3 tests/test_build_predictions.py  # raw → predictions.json のエンドツーエンド
 python3 tests/test_build_raw.py          # 絞り込み・週内キャッシュ・マージ（ネットワーク不要）
+python3 tests/test_build_results.py      # 成績集計（サンプルの払戻を再現できるか）
 
 python3 tests/test_a_race_list.py        # ※実サンプルHTMLの配置が必要
 python3 tests/test_c_horse_history.py    # ※同上
@@ -121,5 +122,6 @@ python -m logic.build_predictions --week 2026-W27                # raw → data/
    … 未実装でもパイプラインは通るが、人的スコア③が丸ごと欠損する
 2. **`scripts/build_base_times.py`**（スピード指数①の前提。取得元ページの確定が必要）
    … 空のままだと①も丸ごと欠損する。1・2が入って初めて①②③が揃う
-3. タスク7（`results/build_results.py`・F フェッチャー・成績ダッシュボード）
+3. **F（レース結果・払戻）フェッチャー**（集計側 `results/build_results.py` は実装済み。
+   `f_results.py` の docstring に、返すべきデータの形を書いてある）
 4. PWA（`docs/ui/keiba-3cards-mock-v7.html` の `RACES` を predictions.json に差し替え）
