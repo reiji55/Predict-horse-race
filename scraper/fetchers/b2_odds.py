@@ -194,12 +194,20 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
         # 応答はあるのに単勝が1件も取れない＝パラメータかレスポンス構造の食い違い。
         # 中身が分からないまま「オッズ全馬null」で通ってしまうのを防ぐため、手がかりを必ず残す
         # （2026-09-19 の本番実行で実際にこれが起きた）。
+        odds = body.get("odds")
+        tan = odds.get(ODDS_TYPE_TAN) if isinstance(odds, dict) else None
+        if isinstance(tan, dict):
+            sample = list(tan.items())[:3]
+        elif isinstance(tan, list):
+            sample = tan[:3]
+        else:
+            sample = tan
         logger.warning(
-            "単勝オッズが1件も取れませんでした race_id=%s / 本体のキー=%s / "
-            "oddsのキー=%s / official_datetime=%r / 応答の先頭=%r",
-            race_source_ref, sorted(body)[:8],
-            sorted(body.get("odds", {}))[:8] if isinstance(body.get("odds"), dict) else type(body.get("odds")).__name__,
-            body.get("official_datetime"), resp.text[:200],
+            "単勝オッズが1件も取れませんでした race_id=%s / official_datetime=%r / "
+            "oddsのキー=%s / odds['1'] の型=%s・件数=%s / 中身の先頭3件=%r",
+            race_source_ref, body.get("official_datetime"),
+            sorted(odds)[:8] if isinstance(odds, dict) else type(odds).__name__,
+            type(tan).__name__, len(tan) if hasattr(tan, "__len__") else None, sample,
         )
     return {
         "official_datetime": body.get("official_datetime"),
