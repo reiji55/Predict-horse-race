@@ -119,15 +119,21 @@ TRACK_CODE = {"芝": "1", "ダ": "2"}
 
 # 結果テーブルのヘッダー名→内部キー。表記ゆれを吸収するため候補を並べる
 _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
-    "date": ("日付",),
+    "date": ("開催日", "日付"),
     "venue": ("開催",),
     "racename": ("レース名", "レース"),
     "finish": ("着順",),
     "dist": ("距離",),
     "going": ("馬場",),
     "time": ("タイム",),
+    "heads": ("頭数",),
 }
-_REQUIRED_COLUMNS = ("finish", "dist", "time")
+# 着順は必須にしない。**レース検索の結果表は1行＝1レース**で着順の列が無く、
+# 代わりに「勝ち馬」「タイム」が載る（＝全行が勝ちタイム）。実サンプルのヘッダー：
+#   開催日 / 開催 / 天気 / R / レース名 / 映像 / 距離 / 頭数 / 馬場 / タイム /
+#   ペース / 勝ち馬 / 騎手 / 調教師 / 2着馬 / 3着馬
+# 着順の列がある表（1行＝1頭の形式）にも当たれるよう、あれば1着で絞る。
+_REQUIRED_COLUMNS = ("dist", "time")
 
 _DIST_RE = re.compile(r"(芝|ダ|障)\s*(\d+)")
 _VENUE_IN_KAISAI_RE = re.compile(r"^\d*(\D+?)\d*$")
@@ -346,9 +352,10 @@ def _parse_class(racename: str) -> str | None:
 
 def parse_race_search_html(html: str) -> list[dict[str, Any]]:
     """
-    レース検索結果のHTMLから**1着馬の行だけ**を拾って勝ちタイムレコードにする。
+    レース検索結果のHTMLから勝ちタイムレコードを作る。
 
-    検索結果は「1行＝1頭の出走」なので、着順1の行がそのレースの勝ち馬＝勝ちタイムになる。
+    **1行＝1レース**で、タイム列がそのまま勝ちタイム（勝ち馬の時計）。着順の列は無い。
+    着順の列がある形式（1行＝1頭）に当たった場合は、1着の行だけを拾う。
     """
     soup = BeautifulSoup(html, "lxml")
     table_el = soup.select_one("table.race_table_01") or soup.select_one("table.nk_tb_common")
@@ -366,7 +373,8 @@ def parse_race_search_html(html: str) -> list[dict[str, Any]]:
             index = columns.get(key)
             return tds[index].get_text(strip=True) if index is not None else ""
 
-        if cell("finish") != "1":
+        # 着順の列がある形式のときだけ1着で絞る（無い形式は全行が勝ちタイム）
+        if "finish" in columns and cell("finish") != "1":
             continue
 
         dist_m = _DIST_RE.search(cell("dist"))
@@ -379,15 +387,17 @@ def parse_race_search_html(html: str) -> list[dict[str, Any]]:
         venue = venue_m.group(1) if venue_m else kaisai
 
         going_raw = cell("going")
-        date_text = cell("date")
+        date_text = cell("date").replace("/", "-").replace(".", "-")
+        heads_text = cell("heads")
 
         records.append({
-            "date": date_text.replace("/", "-") or None,
+            "date": date_text or None,
             "venue": venue or None,
             "surface": surface,
             "dist": dist,
             "going": constants.GOING_NORMALIZE.get(going_raw, going_raw) or None,
             "class": _parse_class(cell("racename")),
+            "heads": int(heads_text) if heads_text.isdigit() else None,
             "win_time": time_to_sec(cell("time")),
         })
     return records

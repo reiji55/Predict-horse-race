@@ -221,6 +221,54 @@ def test_parse_race_search_returns_empty_without_table():
     assert bbt.parse_race_search_html("<html><body>該当するレースがありません</body></html>") == []
 
 
+# 2026-09-18 の本番実行で netkeiba が実際に返したヘッダー。
+# **1行＝1レース**で着順の列が無く、タイム＝勝ちタイム。
+REAL_SEARCH_HTML = """
+<table class="race_table_01">
+  <thead><tr>
+    <th>開催日</th><th>開催</th><th>天気</th><th>R</th><th>レース名</th><th>映像</th>
+    <th>距離</th><th>頭数</th><th>馬場</th><th>タイム</th><th>ペース</th>
+    <th>勝ち馬</th><th>騎手</th><th>調教師</th><th>2着馬</th><th>3着馬</th>
+  </tr></thead>
+  <tbody>
+    <tr><td>2026/03/01</td><td>1阪神2</td><td>晴</td><td>11</td><td>阪急杯(GIII)</td><td>動画</td>
+        <td>芝1400</td><td>16</td><td>良</td><td>1:19.8</td><td>34.5-35.3</td>
+        <td>ウマA</td><td>川田将雅</td><td>杉山晴紀</td><td>ウマB</td><td>ウマC</td></tr>
+    <tr><td>2025/12/14</td><td>5阪神4</td><td>曇</td><td>9</td><td>3歳以上1勝クラス</td><td>動画</td>
+        <td>芝1400</td><td>14</td><td>稍</td><td>1:21.3</td><td>35.1-36.0</td>
+        <td>ウマD</td><td>武豊</td><td>友道康夫</td><td>ウマE</td><td>ウマF</td></tr>
+  </tbody>
+</table>
+"""
+
+
+def test_parse_real_search_result_every_row_is_a_winning_time():
+    """実際の結果表は1行＝1レース。着順の列が無くても全行を勝ちタイムとして取る。"""
+    records = bbt.parse_race_search_html(REAL_SEARCH_HTML)
+
+    assert len(records) == 2
+    first = records[0]
+    assert first["date"] == "2026-03-01"
+    assert first["venue"] == "阪神"            # "1阪神2" から場名だけ
+    assert first["surface"] == "芝" and first["dist"] == 1400
+    assert first["going"] == "良"
+    assert first["class"] == "g3"              # "(GIII)"
+    assert first["heads"] == 16
+    assert first["win_time"] == pytest.approx(79.8)
+
+    assert records[1]["class"] == "1win"       # "3歳以上1勝クラス"
+    assert records[1]["going"] == "稍重"       # "稍" を正規化
+
+
+def test_real_search_result_feeds_build_table():
+    """この形のまま build_table に渡せること（勝ちタイムがOP水準に正規化される）。"""
+    records = bbt.parse_race_search_html(REAL_SEARCH_HTML)
+    table, _ = bbt.build_table(records, CLASS_OFFSET, min_samples=2)
+
+    # g3: 79.8 − (−0.3)×0.7 = 80.01 / 1win: 81.3 − 1.5×0.7 = 80.25 → 中央値 80.1
+    assert table["阪神"]["芝"]["1400"] == pytest.approx(80.1, abs=0.05)
+
+
 def test_search_params_match_the_real_form():
     """`race/search_detail.html` の実サンプルから採取したフィールド名・コードを固定する。"""
     params = bbt.build_search_params("東京", "芝", 1600, 2023, 2026)
