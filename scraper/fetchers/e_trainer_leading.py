@@ -9,8 +9,9 @@ Eページ：調教師リーディング
 
 `https://db.sp.netkeiba.com/trainer/trainer_leading.html` の実サンプルで確認したとおり、
 **Dと完全に同じ作り**で `category` が `trainer` になるだけ（インラインJSの
-`var category = 'trainer';` 以外はD版と同一）。API呼び出しは `scraper/common/leading_api.py`
-に実装済みで、残るはレスポンスHTML断片のパーサーだけ（D・Eで共通）。
+`var category = 'trainer';` 以外はD版と同一）。実装は `scraper/common/leading_api.py` に
+共通化してある（D・Eで共有）。APIの仕様・**着度数が載っていないので率から逆算していること**は
+そちらのdocstringを参照。
 """
 from __future__ import annotations
 

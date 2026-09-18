@@ -20,7 +20,7 @@
 ├── scraper/
 │   ├── common/
 │   │   ├── constants.py       # 開催場romaji対応表・正規化ルール（取得項目仕様§2.1）
-│   │   ├── leading_api.py     # D・E共通のリーディングAJAX API（パーサーのみ未実装）
+│   │   ├── leading_api.py     # D・E共通のリーディングAJAX API
 │   │   └── http.py            # レート制限付きHTTP取得（取得項目仕様§1.1 マナー設計）
 │   ├── fetchers/
 │   │   ├── a_race_list.py     # 開催日別レース一覧　　　✅実装済

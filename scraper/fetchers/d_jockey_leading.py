@@ -8,9 +8,9 @@ Dページ：騎手リーディング
 
 --- 実装の状況 ---
 
-API呼び出しは `scraper/common/leading_api.py` に実装済み（D・Eで共有）。
-**残るはレスポンスHTML断片のパーサーだけ**（`leading_api.parse_leading_html`）。
-APIの仕様・発見の経緯はそちらのdocstringを参照。
+実装は `scraper/common/leading_api.py` に置いてある（D・Eで共有。APIが同一で category が違うだけ）。
+APIの仕様・発見の経緯・**着度数が載っていないので率から逆算していること**は、
+そちらのdocstringを参照。
 
 --- ⚠ scope が "venue" から "overall" に変わった（OPEN_QUESTIONS B-3）---
 
