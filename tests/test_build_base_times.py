@@ -277,3 +277,34 @@ def test_end_to_end_from_raw_produces_loadable_table(tmp_path):
     table, _ = bbt.build_table(bbt.collect_from_raw(tmp_path), CLASS_OFFSET, min_samples=5)
 
     assert speed_index.lookup_base_time(table, "東京", "芝", 1600) == pytest.approx(93.3)
+
+
+# --- 少しずつ埋める運用ラッパー（scripts/fill_base_times.py）-------------
+
+from scripts import fill_base_times as fbt
+
+
+def test_pending_skips_courses_already_in_the_table():
+    table = {"阪神": {"ダ": {"1400": 82.5, "1800": 108.0}}}
+    pending = fbt.pending_courses(table, ["阪神"], limit=10)
+
+    keys = {(v, s, d) for v, s, d in pending}
+    assert ("阪神", "ダ", 1400) not in keys      # 既にあるものは出ない
+    assert ("阪神", "ダ", 1800) not in keys
+    assert ("阪神", "ダ", 1200) in keys
+    assert all(v == "阪神" for v, _, _ in pending)
+
+
+def test_pending_respects_the_limit():
+    assert len(fbt.pending_courses({}, None, limit=6)) == 6
+    assert len(fbt.pending_courses({}, ["小倉"], limit=100)) == 7   # 小倉は芝4+ダ3
+
+
+def test_merge_keeps_other_courses():
+    """追記であって置き換えではない（前回までに埋めたコースを消さない）。"""
+    base = {"阪神": {"ダ": {"1400": 82.5}}, "中山": {"芝": {"2000": 120.0}}}
+    merged = fbt.merge_table(base, {"阪神": {"ダ": {"1800": 108.0}, "芝": {"1600": 93.0}}})
+
+    assert merged["阪神"]["ダ"] == {"1400": 82.5, "1800": 108.0}
+    assert merged["阪神"]["芝"] == {"1600": 93.0}
+    assert merged["中山"]["芝"] == {"2000": 120.0}      # 触られていない

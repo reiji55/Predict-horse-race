@@ -4,14 +4,20 @@ name: 週末3CARDS パイプライン
 # 土日朝、スマホからRunボタンをポチする運用（引き継ぎ書v1 §6）
 
 on:
+  # 土日の朝に自動実行（UTC）。JSTは+9時間なので 01:00 UTC = 10:00 JST。
+  # メインは15:30前後なので、朝に出しておいて昼過ぎにもう一度回すと
+  # オッズが固まった状態の買い目が取れる（04:00 UTC = 13:00 JST）。
+  schedule:
+    - cron: '0 1 * * 6,0'
+    - cron: '0 4 * * 6,0'
   workflow_dispatch:
     inputs:
       week_id:
-        description: 'ISO週識別子 例: 2026-W27'
-        required: true
+        description: 'ISO週識別子 例: 2026-W38（空なら今日から自動判定）'
+        required: false
       dates:
-        description: '対象日（スペース区切り）例: 2026-07-04 2026-07-05'
-        required: true
+        description: '対象日（スペース区切り）例: 2026-09-19（空なら今日）'
+        required: false
 
 permissions:
   contents: write  # GITHUB_TOKEN でのpushに必要（デフォルトreadの環境がある）
@@ -38,18 +44,31 @@ jobs:
           python tests/test_build_results.py
           python tests/test_fetchers_def.py
 
+      # スケジュール実行では入力が無いので、実行日（JST）から自動で決める
+      - name: 対象の週と日付を決める
+        id: target
+        run: |
+          WEEK="${{ github.event.inputs.week_id }}"
+          DATES="${{ github.event.inputs.dates }}"
+          TODAY=$(TZ=Asia/Tokyo date +%Y-%m-%d)
+          [ -z "$DATES" ] && DATES="$TODAY"
+          [ -z "$WEEK" ] && WEEK=$(TZ=Asia/Tokyo date +%G-W%V)
+          echo "week=$WEEK"   >> "$GITHUB_OUTPUT"
+          echo "dates=$DATES" >> "$GITHUB_OUTPUT"
+          echo "対象: week=$WEEK dates=$DATES"
+
       - name: raw/{week_id}.json ビルド
         # A/B/B2/C/D/E すべて実装済み。リーディングの取得に失敗した場合は
         # jockey_stats / trainer_stats が null のまま入る（③が欠損扱いになるだけで止まらない）
         # 土日を別々に実行する運用（引き継ぎ書v6 §1）では、既存の raw にマージされる
         run: |
           python -m scraper.build_raw \
-            --week "${{ github.event.inputs.week_id }}" \
-            --dates ${{ github.event.inputs.dates }}
+            --week "${{ steps.target.outputs.week }}" \
+            --dates ${{ steps.target.outputs.dates }}
 
       - name: predictions.json ビルド
         run: |
-          WEEK="${{ github.event.inputs.week_id }}"
+          WEEK="${{ steps.target.outputs.week }}"
           if [ -f "raw/${WEEK}.json" ]; then
             python -m logic.build_predictions --week "${WEEK}"
           else
@@ -61,5 +80,5 @@ jobs:
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
           git add raw/ data/  # rawもコミット（後方検証＝重み再計算に past_runs 等の生データが必要）
-          git diff --cached --quiet || git commit -m "auto: ${{ github.event.inputs.week_id }} 予想生成"
+          git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 予想生成"
           git push

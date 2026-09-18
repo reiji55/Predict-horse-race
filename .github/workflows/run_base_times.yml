@@ -1,0 +1,59 @@
+name: 基準タイム表を少しずつ埋める
+
+# ①スピード指数の前提となる config/base_times.json を作る（スピード指数仕様§4）。
+#
+# **全101コースを一度に取ると数百リクエストの連打になる**ので、既定では少数のコースだけを
+# 取って表に追記する。何日かに分けて走らせれば、アクセス量を抑えたまま表が埋まっていく。
+# 既に埋まっているコースは飛ばすので、同じ設定で何度走らせても前に進む。
+
+on:
+  workflow_dispatch:
+    inputs:
+      venues:
+        description: '対象の場（スペース区切り）例: 阪神 中山。空なら全場から未取得順に'
+        required: false
+      max_courses:
+        description: '1回で取るコース数の上限（既定 6）'
+        required: false
+        default: '6'
+      start_year:
+        required: false
+        default: '2023'
+      end_year:
+        required: false
+        default: '2026'
+
+permissions:
+  contents: write
+
+jobs:
+  base-times:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 依存インストール
+        run: pip install -r requirements.txt
+
+      - name: テスト
+        run: python -m pytest tests/test_build_base_times.py -q
+
+      - name: 未取得のコースを少しだけ取得して追記
+        run: |
+          python -m scripts.fill_base_times \
+            --max-courses "${{ github.event.inputs.max_courses || '6' }}" \
+            --start-year "${{ github.event.inputs.start_year || '2023' }}" \
+            --end-year "${{ github.event.inputs.end_year || '2026' }}" \
+            ${{ github.event.inputs.venues && format('--venues {0}', github.event.inputs.venues) || '' }}
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add config/base_times.json
+          git diff --cached --quiet || git commit -m "auto: 基準タイム表を追記"
+          git push

@@ -1,0 +1,75 @@
+name: 週末3CARDS 成績集計
+
+# レースが終わったあとに走らせて、結果と払戻を取り込み data/results.json を作る。
+# **後方検証（係数のチューニング）のデータはここでしか溜まらない。**
+# 予想だけ回して成績集計を回さないと、いつまで経っても振り返りの材料が揃わない。
+
+on:
+  # 土日の夜に自動実行。最終レースは16:30頃なので 10:00 UTC = 19:00 JST。
+  schedule:
+    - cron: '0 10 * * 6,0'
+  workflow_dispatch:
+    inputs:
+      week_id:
+        description: 'ISO週識別子 例: 2026-W38（空なら今日から自動判定）'
+        required: false
+      refetch:
+        description: '取得済みのレースも取り直す（true/false）'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  results:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 依存インストール
+        run: pip install -r requirements.txt
+
+      # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
+      - name: テスト
+        run: |
+          python -m pytest tests/test_build_results.py tests/test_fetch_week_results.py -q
+
+      - name: 対象の週を決める
+        id: target
+        run: |
+          WEEK="${{ github.event.inputs.week_id }}"
+          [ -z "$WEEK" ] && WEEK=$(TZ=Asia/Tokyo date +%G-W%V)
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+          echo "対象: week=$WEEK"
+
+      - name: レース結果の取得（Fページ）
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          if [ ! -f "raw/${WEEK}.json" ]; then
+            echo "raw/${WEEK}.json が無いので何もしません（先に予想パイプラインを回してください）"
+            exit 0
+          fi
+          FLAG=""
+          [ "${{ github.event.inputs.refetch }}" = "true" ] && FLAG="--refetch"
+          python -m results.fetch_week_results --week "${WEEK}" $FLAG
+
+      - name: results.json ビルド
+        run: |
+          if [ -f data/race_results.json ] && [ -f data/predictions.json ]; then
+            python -m results.build_results --results data/race_results.json
+          else
+            echo "結果か予想がまだ無いためスキップします"
+          fi
+
+      - name: 生成物をコミット
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 成績集計"
+          git push
