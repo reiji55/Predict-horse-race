@@ -44,7 +44,7 @@
 | C-2 | Aページのグレードアイコン番号（5,16,17,18…）とグレードの対応が未確認。現状 `grade=None` + `grade_icon_raw` に生値温存。※同梱サンプル10件は「5=OP / 16=3勝 / 17=2勝 / 18=1勝」で矛盾しないが**未検証の仮説**。なおメインレースのgradeはB出馬表側が取れるので、B-2の決め方次第では実害が小さい | v6§2.2・§3-1 |
 | C-3 | Aページのハンデ戦判定（`Icon_GradeType13` の有無で `note="ハンデ"`）は実データパターンからの推定。複数週での検証待ち | v6§3-2 |
 | C-4 | ~~Cページの週内キャッシュはプロセス内のみ。土日別実行だと日曜に同じ馬を再取得する~~ → ✅**解消**。`build_raw.load_week_cache()` が**既にコミット済みの raw/{week_id}.json から past_runs を読み直す**ことで、実行をまたいだキャッシュにした（新しいファイルは作らない）。日曜ぶんの結果は既存 raw にマージされる（`merge_races`） | v5§3-2 / v6§1 |
-| C-5 | `base_times.json` の生成元ページが仕様側でも未確定だった件。→ **スクリプト自体は実装済み**（`scripts/build_base_times.py`。収集経路を3つ用意：①コミット済み raw の past_runs から `finish==1` の走を拾う／②手元のJSON・CSV／③netkeibaのレース検索 `?pid=race_search_detail`）。**経路③は現状使えない**：`db.netkeiba.com/?pid=race_search_detail` を実際に保存してもらったところ、`<span style="color:red">...URL: /?pid=race_search_detail...</span>` だけが返っており、これは v7§2.1 で「実体なし」と結論した `?pid=jockey_leading` のハズレ応答と**同一の形**（pid部分だけ違う）。取得方法の問題ではなく**このpidが存在しない**。正しい検索の入口（レース検索の実URLとフォームのパラメータ）が未判明。結果テーブルのパーサーは**ヘッダー名で列を解決**するので列構成が変わっても静かにはズレない（必要な列が無ければ例外）。疎通確認は「実在するコースで0件が返らないこと」で行う。なお `config/base_times.json` が空である限り①は全馬 null（警告ログあり） | 速度§4 |
+| C-5 | `base_times.json` の生成元ページが仕様側でも未確定だった件。→ **スクリプト自体は実装済み**（`scripts/build_base_times.py`。収集経路を3つ用意：①コミット済み raw の past_runs から `finish==1` の走を拾う／②手元のJSON・CSV／③netkeibaのレース検索 `?pid=race_search_detail`）。**経路③の入口URLは判明、フォームのパラメータ名が未取得**：`?pid=race_search_detail` は存在せず（v7§2.1 の `?pid=jockey_leading` と同じ赤字応答）、**netkeibaのDBは pid形式からパス形式に作り替えられている**。DBトップ（`db.netkeiba.com/?rf=navi`）のナビから正しい入口を確認した → **`https://db.netkeiba.com/race/search_detail.html`（レース詳細検索）**。同じ並びで 競走馬/騎手/調教師/馬主/生産者 も `…/search_detail.html` に移っている。残るは**このフォームのフィールド名（場・馬場・距離・期間の指定方法）**で、フォームのページを1枚もらえば確定する。結果テーブルのパーサーは**ヘッダー名で列を解決**するので列構成が変わっても静かにはズレない（必要な列が無ければ例外）。疎通確認は「実在するコースで0件が返らないこと」で行う。なお `config/base_times.json` が空である限り①は全馬 null（警告ログあり） | 速度§4 |
 | C-6 | Cページのパーサーは列インデックス直指定（18=タイム, 27=上り）。間にnetkeibaの有料指数列が挟まっており、列構成が変わると静かにズレる。ヘッダー名からの列解決に変えると堅くなる | （コードレビューでの指摘） |
 | C-7 | **D/Eのリーディングに着度数が無い**。載るのは勝利数・勝率・連対率だけなので、`starts`/`seconds` は率から逆算している（丸め誤差は分母数百に対し1%未満）。**複勝率は `sort_key=win` のレスポンスに載らない**ため `thirds=None` になり、③人的スコアは買い目生成仕様§1.5 が定める複勝率ではなく**連対率**で評価している。`sort_key=avt`（複勝率順）のレスポンスに複勝率が載るなら解消できる（要サンプル1件） | 実サンプル解析 |
 | C-8 | Dのリーディングは **`limit` が効かず1ページ20件固定**。既定5ページ＝上位100人までを取得し、表に載らない騎手は `jockey_stats=None`（③欠損）になる。メインレースに乗るのは上位騎手が中心という前提での割り切り | 実サンプル解析 |
@@ -61,6 +61,13 @@
   `<span style="color:red"><b><br>URL: /?pid=xxx<br></b></span>` だけの応答になる。
   これを見たらUAやCookieを疑う前に**pidそのものが無い**と判断してよい。
   確認済み：`jockey_leading`（v7§2.1）、`race_search_detail`（C-5）
+- **db.netkeiba.com は `?pid=xxx` からパス形式に移行済み**（DBトップの実サンプルで確認）。
+  ネット上の旧いスクレイピング記事が挙げるpidは基本的に**もう無い**と思ってよい。
+  各詳細検索の現行URL：
+  `/race/search_detail.html`（レース）、`/horse/search_detail.html`（競走馬）、
+  `/jockey/search_detail.html`（騎手）、`/trainer/search_detail.html`（調教師）、
+  `/owner/search_detail.html`（馬主）、`/breeder/search_detail.html`（生産者）。
+  キーワード検索だけなら `/horse/search_all.html`（POST、`word` と `match`）
 - **レコードタイムの記事は基準タイムに使えない** — `dir.netkeiba.com/keibamatome/detail.html?no=2722`。
   ①レコード＝分布の最速端であり中央値の代用にならない（しかもコースごとにレコードの硬さが違うので、
   コースごとに違う量のバイアスが入る）②主要コースのみで101コースを賄えない

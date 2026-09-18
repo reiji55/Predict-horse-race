@@ -135,8 +135,9 @@ JRA10場×芝ダ×距離＝101コースについて、直近3年の勝ちタイ�
 OP水準に正規化した**中央値**を採る（スピード指数仕様§4）。`--dry-run` は書き出さず、
 どのコースが何本集まったか・どこが未充足かだけを表示する。
 
-⛔ `--source netkeiba` は**検索URL（`?pid=race_search_detail`）が存在しないと判明**しているため現状使えない。
-正しい入口が分かるまでは `--source raw` / `--source file` を使うこと。
+⚠ `--source netkeiba` の入口は `https://db.netkeiba.com/race/search_detail.html`（確認済み。
+旧来よく挙げられる `?pid=race_search_detail` は**存在しない**）。ただし**フォームのフィールド名は
+未取得の想定値**なので、まず1コースで件数を確かめること。当面は `--source raw` / `--source file` を使う。
 結果テーブルのパーサーはヘッダー名で列を解決するので、列構成が変わっても静かにズレない。
 
 ## 次のステップ
