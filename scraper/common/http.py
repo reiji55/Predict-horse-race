@@ -37,11 +37,7 @@ def _wait_for_rate_limit() -> None:
     time.sleep(random.uniform(0, JITTER_SEC))
 
 
-def get(url: str, **kwargs) -> requests.Response | None:
-    """
-    レート制限・UA明示・1回リトライ付きのGET。
-    失敗時は None を返す（呼び出し側＝各フェッチャーが該当フィールドをnullにして続行する）。
-    """
+def _request(method: str, url: str, **kwargs) -> requests.Response | None:
     headers = kwargs.pop("headers", {})
     headers.setdefault("User-Agent", USER_AGENT)
 
@@ -51,10 +47,26 @@ def get(url: str, **kwargs) -> requests.Response | None:
         global _last_request_at
         _last_request_at = time.monotonic()
         try:
-            resp = requests.get(url, headers=headers, timeout=TIMEOUT_SEC, **kwargs)
+            resp = requests.request(method, url, headers=headers, timeout=TIMEOUT_SEC, **kwargs)
             resp.raise_for_status()
             return resp
         except requests.RequestException as exc:
-            logger.warning("取得失敗 (試行%d/%d) url=%s error=%s", attempt, attempts, url, exc)
-    logger.error("取得を諦めました url=%s", url)
+            logger.warning("取得失敗 (試行%d/%d) %s url=%s error=%s", attempt, attempts, method, url, exc)
+    logger.error("取得を諦めました %s url=%s", method, url)
     return None
+
+
+def get(url: str, **kwargs) -> requests.Response | None:
+    """
+    レート制限・UA明示・1回リトライ付きのGET。
+    失敗時は None を返す（呼び出し側＝各フェッチャーが該当フィールドをnullにして続行する）。
+    """
+    return _request("GET", url, **kwargs)
+
+
+def post(url: str, **kwargs) -> requests.Response | None:
+    """
+    GETと同じマナー（間隔・UA・リトライ）を守るPOST。
+    netkeibaのレース検索（`?pid=race_search_detail`）のようにフォーム送信が要る経路で使う。
+    """
+    return _request("POST", url, **kwargs)

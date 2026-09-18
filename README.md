@@ -41,7 +41,7 @@
 │   ├── cards.py               # 印付与・キャラ別買い目生成
 │   └── build_predictions.py   # raw → predictions.json オーケストレーター
 ├── scripts/
-│   └── build_base_times.py    # base_times.json 初期構築（1回きり）⬜未実装
+│   └── build_base_times.py    # base_times.json 初期構築（1回きり）
 ├── results/
 │   └── build_results.py       # results.json 生成（タスク7）✅実装済
 ├── raw/                       # フェッチャー出力（後方検証のためコミット対象）
@@ -121,15 +121,30 @@ python -m logic.build_predictions --week 2026-W27                # raw → data/
 `docs/samples/raw.sample.json` を `raw/` に置けば、スクレイピング無しで logic だけを試せる。
 
 > ⚠ `config/base_times.json` が空のままだと、スピード指数の usable 判定で全ての過去走が落ち、
-> **エラーにならないまま①が丸ごと効かなくなる**（警告ログは出る）。
-> `scripts/build_base_times.py` の実装が①を動かす前提条件。
+> **エラーにならないまま①が丸ごと効かなくなる**（警告ログは出る）。中身を入れるのが下記。
+
+## 基準タイム表を作る
+
+```bash
+python -m scripts.build_base_times --source raw    --dry-run   # 手持ちの raw から（ネットワーク不要）
+python -m scripts.build_base_times --source file   --input times.csv
+python -m scripts.build_base_times --source netkeiba --start-year 2023 --end-year 2026
+```
+
+JRA10場×芝ダ×距離＝101コースについて、直近3年の勝ちタイムをクラス補正で
+OP水準に正規化した**中央値**を採る（スピード指数仕様§4）。`--dry-run` は書き出さず、
+どのコースが何本集まったか・どこが未充足かだけを表示する。
+
+`--source netkeiba` の**検索フォームのパラメータは実サンプル未取得の想定値**なので、
+まず1コースで件数を確認すること（実在コースで0件ならパラメータ側が誤り）。
+結果テーブルのパーサーはヘッダー名で列を解決するので、列構成が変わっても静かにズレない。
 
 ## 次のステップ
 
-**フェッチャーは A/B/B2/C/D/E/F すべて実装済み。** 残っているのは下記。
+**フェッチャーは A/B/B2/C/D/E/F すべて実装済み。ロジック・成績集計・UI接続も済み。** 残りは下記。
 
-1. **`scripts/build_base_times.py`**（スピード指数①の前提。取得元ページの確定が必要）
-   … 空のままだと①が丸ごと欠損する。これが入って初めて①②③が揃う
+1. **基準タイム表を実際に埋める**（スピード指数①の前提）。
+   スクリプトは実装済みだが `config/base_times.json` はまだ空
 2. **本番での疎通確認**（OPEN_QUESTIONS C-1）。Cookie無しでAJAX系APIが通るかは未検証
 3. PWA の仕上げ（画面は実データ表示済み。残るは GitHub Pages の有効化と、
    manifest / Service Worker などPWAとしての体裁）
