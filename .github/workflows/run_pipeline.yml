@@ -35,10 +35,12 @@ jobs:
           python tests/test_logic.py
           python tests/test_build_predictions.py
           python tests/test_build_raw.py
+          python tests/test_build_results.py
+          python tests/test_fetchers_def.py
 
       - name: raw/{week_id}.json ビルド
-        # A/B/B2/C は実装済み。D/E（リーディング）は未実装なので jockey_stats / trainer_stats は
-        # null のまま入る（人的スコア③が欠損扱いになるだけで、パイプラインは通る）
+        # A/B/B2/C/D/E すべて実装済み。リーディングの取得に失敗した場合は
+        # jockey_stats / trainer_stats が null のまま入る（③が欠損扱いになるだけで止まらない）
         # 土日を別々に実行する運用（引き継ぎ書v6 §1）では、既存の raw にマージされる
         run: |
           python -m scraper.build_raw \
