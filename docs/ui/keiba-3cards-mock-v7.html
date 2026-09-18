@@ -642,9 +642,15 @@ let STATS = {
   ]
 };
 
-/* 実データを読み込めたかどうか。読めていなければ画面に「サンプル」と明示する */
-let IS_SAMPLE = true;
+/* 実データを読み込めたかどうか。読めていなければ画面に「サンプル」と明示する。
+   ★ 予想(predictions.json)と成績(results.json)は**別ファイル・別のタイミングで揃う**ので、
+   フラグも分けている。以前は1つのフラグを予想の読み込みで false にしていたため、
+   成績がサンプルのままでも「サンプルです」の注記だけが消え、
+   **架空の収支・的中率が実績のように表示されていた**（馬券アプリとして最悪の状態）。 */
+let IS_SAMPLE = true;         // レース・買い目
+let STATS_IS_SAMPLE = true;   // 成績
 const sampleNote = () => IS_SAMPLE ? "※ 表示はすべてサンプルデータです。" : "※ ";
+const statsNote = () => STATS_IS_SAMPLE ? "※ 表示はすべてサンプルデータです。" : "※ ";
 
 /* ================= 描画ユーティリティ ================= */
 const umaChip = (w,n) => `<span class="uma w${w}">${n}</span>`;
@@ -836,6 +842,22 @@ function renderStats(){
       <div class="cs-foot"><span>的中したときの平均払戻(500円あたり)</span><b>${s.avgPay}</b></div>
     </div>`;
   }).join("");
+  // 予想は実データなのに成績がまだ無い状態。ここでサンプルを出すと嘘になるので、
+  // 数字を一切出さずに「まだ無い」と正直に言う。
+  if(STATS_IS_SAMPLE && !IS_SAMPLE){
+    document.getElementById("scr-stats").innerHTML = `
+      <div class="stat-grid">
+        <div class="stat-box" style="grid-column:1/-1">
+          <div class="lbl">累計成績</div>
+          <div class="val" style="font-size:1.35rem">まだ集計できる結果がありません</div>
+          <div class="sub">レースが終わると自動で結果と払戻を取り込み、ここに実績が積み上がります。</div>
+        </div>
+      </div>
+      <p class="notice">※ 的中率・回収率は<b>実際のレース結果からのみ</b>集計します。
+      レース画面に出ている「想定的中率」はモデルの試算値で、ここに出る実績とは別物です。</p>`;
+    return;
+  }
+
   const hist = STATS.history.map(h=>`
     <div class="hist-item" ${h.legend?'style="border-color:var(--legend-bright);background:linear-gradient(150deg,#FFFDF4,#FBF3D9)"':''}>
       <span class="hit-mark ${h.hit?'hit':'miss'}">${h.hit?'◯':'✕'}</span>
@@ -858,7 +880,7 @@ function renderStats(){
     ${cs}
     <div class="sec-title">直近の結果</div>
     ${hist}
-    <p class="notice">${sampleNote()}レース結果から予想師別・券種別に自動集計しています。マイナス収支も隠さず表示します。</p>
+    <p class="notice">${statsNote()}レース結果から予想師別・券種別に自動集計しています。マイナス収支も隠さず表示します。</p>
   `;
 }
 
@@ -937,9 +959,10 @@ async function boot(){
   }
 
   if(results && results.results && results.results.length){
+    STATS_IS_SAMPLE = false;
     STATS = W3CAdapter.toStats(results, predictions || {});
-    renderStats();
   }
+  renderStats();   // 成績が無い場合も、空状態に描き直すため必ず呼ぶ
 }
 
 boot();
