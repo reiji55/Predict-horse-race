@@ -297,9 +297,8 @@ def test_fetch_course_records_stops_when_a_page_adds_nothing_new(monkeypatch):
     calls = []
 
     class _Resp:
-        text = SEARCH_HTML
-        encoding = None
-        apparent_encoding = "EUC-JP"
+        # 本番と同じく **EUC-JPのバイト列**で返す（decode_response が復号する）
+        content = SEARCH_HTML.encode("euc-jp")
 
     def fake_get(url, params=None, **kwargs):
         calls.append(params["page"])
@@ -383,3 +382,30 @@ def test_demand_orders_the_courses_to_fetch(tmp_path, monkeypatch):
 def test_demand_is_empty_without_raw(tmp_path, monkeypatch):
     monkeypatch.setattr(bbt, "RAW_DIR", tmp_path / "nope")
     assert fbt.demand_from_raw() == {}
+
+
+def test_decode_uses_the_declared_charset():
+    """文字コードの自動判定に任せず、ページが宣言している charset で読む。"""
+    html = '<html><head><meta http-equiv="Content-Type" content="text/html; charset=EUC-JP">' \
+           '<title>レース検索</title></head><body>阪神 芝1400 良</body></html>'
+    assert "阪神 芝1400 良" in bbt.decode_response(html.encode("euc-jp"))
+
+    utf8 = '<html><head><meta charset="UTF-8"><title>x</title></head><body>中山 ダ1800</body></html>'
+    assert "中山 ダ1800" in bbt.decode_response(utf8.encode("utf-8"))
+
+
+def test_decode_falls_back_to_euc_jp_without_a_declaration():
+    """宣言が無ければ EUC-JP（db.netkeiba.com の実際の文字コード）。"""
+    assert "京都 ダ1400" in bbt.decode_response("<html><body>京都 ダ1400</body></html>".encode("euc-jp"))
+
+
+def test_decode_survives_an_unknown_charset():
+    html = '<html><head><meta charset="x-unknown-enc"></head><body>小倉 ダ1700</body></html>'
+    assert "小倉 ダ1700" in bbt.decode_response(html.encode("euc-jp"))
+
+
+def test_real_headers_parse_from_euc_jp_bytes():
+    """実サンプルのヘッダーが EUC-JP のバイト列からでも正しく列解決できること。"""
+    records = bbt.parse_race_search_html(bbt.decode_response(REAL_SEARCH_HTML.encode("euc-jp")))
+    assert len(records) == 2
+    assert records[0]["venue"] == "阪神" and records[0]["dist"] == 1400

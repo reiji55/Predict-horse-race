@@ -135,6 +135,13 @@ _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
 # 着順の列がある表（1行＝1頭の形式）にも当たれるよう、あれば1着で絞る。
 _REQUIRED_COLUMNS = ("dist", "time")
 
+# db.netkeiba.com は **EUC-JP**。`resp.apparent_encoding`（中身からの推測）に任せると、
+# 同じページでも返ってくる中身次第で判定がブレて文字化けする（2026-09-18 に実際に発生し、
+# ヘッダーが "≥ęļŇ∆Ł" のような化け方をして列解決に失敗した）。
+# HTMLが宣言している charset を読み、無ければ EUC-JP にする。
+_CHARSET_RE = re.compile(rb'charset=["\']?([\w-]+)', re.I)
+DEFAULT_ENCODING = "EUC-JP"
+
 _DIST_RE = re.compile(r"(芝|ダ|障)\s*(\d+)")
 _VENUE_IN_KAISAI_RE = re.compile(r"^\d*(\D+?)\d*$")
 
@@ -311,6 +318,17 @@ def time_to_sec(text: str) -> float | None:
 # --------------------------------------------------------------------------- 経路3：netkeiba検索
 
 
+def decode_response(content: bytes, default: str = DEFAULT_ENCODING) -> str:
+    """HTMLが宣言している charset で復号する。宣言が無ければ EUC-JP（上記参照）。"""
+    m = _CHARSET_RE.search(content[:2048])
+    encoding = m.group(1).decode("ascii", "ignore") if m else default
+    try:
+        return content.decode(encoding, errors="replace")
+    except LookupError:
+        logger.warning("未知の文字コード %r が宣言されていたので %s で読みます", encoding, default)
+        return content.decode(default, errors="replace")
+
+
 def _resolve_columns(table_el) -> dict[str, int]:
     """
     ヘッダー行の文字列から列位置を解決する。
@@ -441,10 +459,8 @@ def fetch_course_records(venue_jp: str, surface: str, dist: int, start_year: int
         if resp is None:
             logger.warning("検索の取得に失敗 %s/%s/%s page=%d", venue_jp, surface, dist, page)
             break
-        resp.encoding = resp.apparent_encoding
-
         added = 0
-        for record in parse_race_search_html(resp.text):
+        for record in parse_race_search_html(decode_response(resp.content)):
             key = (record["date"], record["venue"], record["dist"], record["win_time"])
             if key in seen:
                 continue
