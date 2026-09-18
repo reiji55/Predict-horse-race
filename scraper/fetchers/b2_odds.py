@@ -12,8 +12,10 @@
   クエリ:
     pid=api_get_jra_odds
     race_id={12桁のnetkeibaレースID}
-    type=all           （全券種。単勝だけなら type=1 でもよい）
+    type=1             （券種。1=単勝。netkeiba自身のJSの既定値がこれ。
+                        2026-09-19 の本番実行では type=all が空を返した）
     action=init
+    sort=odds          （netkeiba自身のJSが常に送っている。省くと空が返るとみられる）
     output=jsonp または json
     compress=1         （レスポンスのdataをbase64+zlib圧縮する）
   必須ヘッダー（推定）:
@@ -25,6 +27,11 @@ output=jsonp の場合： jQueryXXX({...})  ← 外側の関数呼び出しを�
   → output=json を指定すれば生JSONで返るはず（jsonp剥がし不要。実装ではこちらを優先）
 compress=1 の場合： {"status":"result","data":"<base64(zlib(本体JSON))>", ...}
   → data を base64デコード → zlib解凍 → 本体JSON
+
+--- パラメータの出典（2026-09-19 追記）---
+`jquery.odds_update.js` の `_getOdds()` が実際に投げている値に合わせてある。
+初回の本番実行で単勝が1件も取れず、そのJSを読み直して type / sort の食い違いが判明した。
+JSをこの目で読んだうえでの値なので、推測ではない。
 
 --- 本体JSON構造 ---
 {
@@ -46,11 +53,14 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import re
 import zlib
 from typing import Any
 
 from scraper.common.http import get as http_get
+
+logger = logging.getLogger("scraper.b2_odds")
 
 ODDS_API_URL = "https://race.netkeiba.com/api/api_get_jra_odds.html"
 ODDS_PAGE_URL_TMPL = "https://race.netkeiba.com/odds/index.html?race_id={race_id}"
@@ -155,11 +165,17 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
 
     race_source_ref: netkeibaのレースID（12桁、例 "202605030611"）
     """
+    # ★ パラメータは netkeiba 自身の `jquery.odds_update.js`（`_getOdds()`）に合わせてある。
+    #   2026-09-19 の本番実行で単勝オッズが1件も取れず、そのJSを読み直して判明した差分：
+    #     type : "all" ではなく **"1"**（＝単勝。JSの既定 oddsType は 1）
+    #     sort : JSは常に送っている（既定 "odds"）。こちらは送っていなかった
+    #   compress=1 は「data が base64(zlib(JSON))」の意味で、_decode_payload が復元する。
     params = {
         "pid": "api_get_jra_odds",
         "race_id": race_source_ref,
-        "type": "all",
+        "type": ODDS_TYPE_TAN,
         "action": "init",
+        "sort": "odds",
         "output": "json",   # jsonp剥がしを避けるため生JSONを要求
         "compress": "1",
     }
@@ -173,9 +189,21 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
         raise RuntimeError(f"オッズAPIの取得に失敗しました: race_id={race_source_ref}")
 
     body = parse_odds_response(resp.text)
+    by_num = extract_win_place_odds(body)
+    if not any(v.get("win_odds") is not None for v in by_num.values()):
+        # 応答はあるのに単勝が1件も取れない＝パラメータかレスポンス構造の食い違い。
+        # 中身が分からないまま「オッズ全馬null」で通ってしまうのを防ぐため、手がかりを必ず残す
+        # （2026-09-19 の本番実行で実際にこれが起きた）。
+        logger.warning(
+            "単勝オッズが1件も取れませんでした race_id=%s / 本体のキー=%s / "
+            "oddsのキー=%s / official_datetime=%r / 応答の先頭=%r",
+            race_source_ref, sorted(body)[:8],
+            sorted(body.get("odds", {}))[:8] if isinstance(body.get("odds"), dict) else type(body.get("odds")).__name__,
+            body.get("official_datetime"), resp.text[:200],
+        )
     return {
         "official_datetime": body.get("official_datetime"),
-        "by_num": extract_win_place_odds(body),
+        "by_num": by_num,
     }
 
 
