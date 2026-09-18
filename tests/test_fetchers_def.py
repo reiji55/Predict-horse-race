@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from results import build_results
 from scraper.common import leading_api
-from scraper.fetchers import f_results
+from scraper.fetchers import b2_odds, f_results
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
@@ -157,6 +157,66 @@ def test_result_feeds_build_results_directly():
     assert card["payout"] == 1220 + 580
     assert results["results"][0]["finish"] == [4, 5, 8, 10]
     print("test_result_feeds_build_results_directly: OK（払戻 %d円）" % card["payout"])
+
+
+# --- B2 オッズAPI（本番の実レスポンスで判明した構造） ------------------
+
+# 2026-09-19 阪神11R の実レスポンスから採取した形。
+#   **馬番は配列の中ではなくキー側**（"01" のような2桁ゼロ埋め）で、配列は3要素。
+#   以前は [オッズ, "0.0", 人気, 馬番] の4要素だと想定して arr[3] を馬番として読んでおり、
+#   IndexError で全件スキップ＝オッズ全馬null になっていた。
+REAL_ODDS_BODY = {
+    "official_datetime": "2026-09-19 03:41:17",
+    "odds": {
+        "1": {"01": ["40.5", 0, 12], "02": ["46.0", 0, 13], "03": ["100.3", 0, 16],
+              "04": ["3.2", 0, 1]},
+        "2": {"01": ["8.1", "13.9", 12], "04": ["1.4", "1.7", 1]},
+    },
+}
+
+
+def test_odds_num_comes_from_the_key_not_the_array():
+    by_num = b2_odds.extract_win_place_odds(REAL_ODDS_BODY)
+
+    assert sorted(by_num) == [1, 2, 3, 4]          # キーの "01" が馬番1になる
+    assert by_num[1]["win_odds"] == 40.5           # 保存ページの表示「40.5 (12人気)」と一致
+    assert by_num[1]["popularity"] == 12
+    assert by_num[4]["win_odds"] == 3.2 and by_num[4]["popularity"] == 1
+    print("test_odds_num_comes_from_the_key_not_the_array: OK")
+
+
+def test_place_odds_ignores_the_zero_placeholder():
+    """単勝と同じ形で2要素目が 0 のことがあるので、両方が正の数のときだけ複勝として採る。"""
+    by_num = b2_odds.extract_win_place_odds(REAL_ODDS_BODY)
+
+    assert by_num[1]["place_odds"] == [8.1, 13.9]
+    assert by_num[4]["place_odds"] == [1.4, 1.7]
+    assert by_num[2].get("place_odds") is None     # 複勝に載っていない馬
+    print("test_place_odds_ignores_the_zero_placeholder: OK")
+
+
+def test_odds_tolerates_broken_entries():
+    """取消馬などの変則エントリ1件で全体を落とさない（マナー設計の原則）。"""
+    body = {"odds": {"1": {"01": ["12.3", 0, 2], "--": ["9.9", 0, 1], "03": [], "04": "壊れた値"}}}
+    by_num = b2_odds.extract_win_place_odds(body)
+
+    assert by_num[1]["win_odds"] == 12.3           # 正常な行は生き残る
+    assert 3 not in by_num and 4 not in by_num     # 壊れた行は黙って捨てる
+    print("test_odds_tolerates_broken_entries: OK")
+
+
+def test_odds_merge_fills_the_shutuba():
+    race = {"entries": [{"num": 1, "win_odds": None, "popularity": None},
+                        {"num": 9, "win_odds": None, "popularity": None}]}
+    b2_odds.merge_odds_into_race(race, {
+        "official_datetime": REAL_ODDS_BODY["official_datetime"],
+        "by_num": b2_odds.extract_win_place_odds(REAL_ODDS_BODY),
+    })
+
+    assert race["entries"][0]["win_odds"] == 40.5
+    assert race["entries"][1]["win_odds"] is None   # オッズに無い馬はnullのまま
+    assert race["odds_updated_at"] == "2026-09-19 03:41:17"
+    print("test_odds_merge_fills_the_shutuba: OK")
 
 
 ALL_TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]

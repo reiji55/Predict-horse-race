@@ -37,13 +37,17 @@ JSをこの目で読んだうえでの値なので、推測ではない。
 {
   "official_datetime": "2026-06-21 15:54:02",   # オッズ確定時刻（odds_updated_at に使える）
   "odds": {
-    "1": { ninki_rank(str): [単勝オッズ(str), "0.0", 人気(int), 馬番(2桁ゼロ埋めstr)], ... },  # 単勝
-    "2": { ...: [複勝下限(str), 複勝上限(str), 人気(int), 馬番(2桁str)], ... },              # 複勝
+    "1": { 馬番(2桁ゼロ埋めstr): [単勝オッズ(str), 0, 人気(int)], ... },   # 単勝
+    "2": { 馬番(2桁ゼロ埋めstr): [複勝下限(str), 複勝上限(str), 人気(int)], ... },  # 複勝
     "3": 枠連(組番4桁), "4": 馬連(組番4桁), "5": ワイド(組番4桁),
     "6": 馬単(組番4桁), "7": 3連複(組番6桁), "8": 3連単(組番6桁)
   }
 }
-配列の並び：単勝は[odds, "0.0", 人気, 馬番]、複勝は[下限, 上限, 人気, 馬番]。
+★ **馬番は配列の中ではなくキー側**。2026-09-19 の本番実行の実レスポンスで確認した
+（例 `"1": {"01": ["40.5", 0, 12], ...}` ＝ 1番の単勝40.5倍・12人気。
+保存した出馬表ページの表示「40.5 (12人気)」と一致）。
+以前は4要素 [オッズ, "0.0", 人気, 馬番] だと想定して `arr[3]` を馬番として読んでおり、
+IndexError で全件スキップ＝**オッズが全馬null**になっていた。
 組番は2桁ゼロ埋め馬番の連結（例 ワイド "0608" = 6番-8番）。
 
 MVPで使うのは type=1(単勝) と type=2(複勝)。
@@ -125,34 +129,42 @@ def extract_win_place_odds(body: dict[str, Any]) -> dict[int, dict[str, Any]]:
     result: dict[int, dict[str, Any]] = {}
     odds = body.get("odds", {})
 
-    def _to_float(s: str) -> float | None:
+    def _to_float(s: Any) -> float | None:
         try:
             v = float(s)
             return v if v > 0 else None
         except (ValueError, TypeError):
             return None
 
-    # 単勝（取消馬など変則エントリ1件で全体を落とさない：マナー設計「失敗はnullで続行」の原則）
-    for arr in odds.get(ODDS_TYPE_TAN, {}).values():
-        # [単勝, "0.0", 人気, 馬番]
+    def _num_of(key: Any, arr: Any) -> int | None:
+        """馬番は**キー側**（"01" のような2桁ゼロ埋め）。古い形式のため配列末尾も一応見る。"""
         try:
-            num = int(arr[3])
+            return int(key)
+        except (ValueError, TypeError):
+            pass
+        try:
+            return int(arr[3])
         except (ValueError, TypeError, IndexError):
+            return None
+
+    # 単勝：{"01": ["40.5", 0, 12], ...} ＝ {馬番: [単勝オッズ, 0, 人気]}
+    # 取消馬など変則エントリ1件で全体を落とさない（マナー設計「失敗はnullで続行」の原則）
+    for key, arr in odds.get(ODDS_TYPE_TAN, {}).items():
+        num = _num_of(key, arr)
+        if num is None or not isinstance(arr, (list, tuple)) or not arr:
             continue
         result.setdefault(num, {})
-        result[num]["win_odds"] = _to_float(arr[0]) if len(arr) > 0 else None
+        result[num]["win_odds"] = _to_float(arr[0])
         result[num]["popularity"] = int(arr[2]) if len(arr) > 2 and str(arr[2]).isdigit() else None
 
-    # 複勝
-    for arr in odds.get(ODDS_TYPE_FUKU, {}).values():
-        # [下限, 上限, 人気, 馬番]
-        try:
-            num = int(arr[3])
-        except (ValueError, TypeError, IndexError):
+    # 複勝：{馬番: [下限, 上限, 人気]}。単勝と同じ形で2要素目が 0 のこともあるため、
+    # 下限・上限の**両方が正の数として読めたときだけ**採用する
+    for key, arr in odds.get(ODDS_TYPE_FUKU, {}).items():
+        num = _num_of(key, arr)
+        if num is None or not isinstance(arr, (list, tuple)) or len(arr) < 2:
             continue
         result.setdefault(num, {})
-        low = _to_float(arr[0]) if len(arr) > 0 else None
-        high = _to_float(arr[1]) if len(arr) > 1 else None
+        low, high = _to_float(arr[0]), _to_float(arr[1])
         result[num]["place_odds"] = [low, high] if (low is not None and high is not None) else None
 
     return result
