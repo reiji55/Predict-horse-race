@@ -8,6 +8,7 @@
     python -m scripts.fill_base_times --max-courses 6
     python -m scripts.fill_base_times --venues 阪神 中山 --max-courses 4
 
+- **埋める順番は手元の raw が必要としている走数の多い順**（`--ignore-demand` で無効化）
 - 既に表にあるコースは飛ばすので、同じ設定で何度走らせても前に進む
 - 取得できた勝ちタイムは既存の表に**マージ**する（他のコースを消さない）
 - 1コースでも0件だったら、検索クエリが壊れた合図なので警告を出す
@@ -15,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import json
 import logging
 
@@ -34,9 +36,41 @@ def load_table() -> dict:
         return {}
 
 
-def pending_courses(table: dict, venues: list[str] | None,
-                    limit: int) -> list[tuple[str, str, int]]:
-    """まだ表に無いコースを、指定した場（未指定なら全場）から limit 件まで返す。"""
+def demand_from_raw() -> collections.Counter:
+    """
+    手元の raw/*.json の過去走が、どのコースの基準タイムを必要としているかを数える。
+
+    **埋める順番はこれで決める。** 表の並び順（札幌から順）で埋めても、実際に予想する
+    レースのコースと噛み合わなければ①スピード指数は1頭も出ない。
+    実際 2026-09-19 はダート戦2つだったのに中山の芝から埋めてしまい、139走中1走しか
+    当たらなかった（＝①は全馬 null のまま）。
+    """
+    demand: collections.Counter = collections.Counter()
+    if not bbt.RAW_DIR.is_dir():
+        return demand
+    for path in sorted(bbt.RAW_DIR.glob("*.json")):
+        try:
+            with path.open(encoding="utf-8") as f:
+                raw = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        for race in raw.get("races", []):
+            for entry in race.get("entries", []):
+                for run in entry.get("past_runs") or []:
+                    venue, surface, dist = run.get("venue"), run.get("surface"), run.get("dist")
+                    if venue and surface and dist:
+                        demand[(venue, surface, int(dist))] += 1
+    return demand
+
+
+def pending_courses(table: dict, venues: list[str] | None, limit: int,
+                    demand: collections.Counter | None = None) -> list[tuple[str, str, int]]:
+    """
+    まだ表に無いコースを limit 件まで返す。
+
+    demand が渡されていれば**必要とされている走数の多い順**に並べる（上記参照）。
+    demand に無いコースはその後ろに、表の並び順で続く。
+    """
     pending = []
     for venue, by_surface in bbt.COURSES.items():
         if venues and venue not in venues:
@@ -46,9 +80,10 @@ def pending_courses(table: dict, venues: list[str] | None,
                 if str(dist) in table.get(venue, {}).get(surface, {}):
                     continue
                 pending.append((venue, surface, dist))
-                if len(pending) >= limit:
-                    return pending
-    return pending
+
+    if demand:
+        pending.sort(key=lambda c: -demand.get(c, 0))
+    return pending[:limit]
 
 
 def merge_table(base: dict, addition: dict) -> dict:
@@ -66,17 +101,25 @@ def main() -> None:
     parser.add_argument("--start-year", type=int, default=2023)
     parser.add_argument("--end-year", type=int, default=2026)
     parser.add_argument("--min-samples", type=int, default=bbt.DEFAULT_MIN_SAMPLES)
+    parser.add_argument("--ignore-demand", action="store_true",
+                        help="手元のrawが必要としている順ではなく、表の並び順で埋める")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
     table = load_table()
-    targets = pending_courses(table, args.venues, args.max_courses)
+    demand = None if args.ignore_demand else demand_from_raw()
+    if demand:
+        logger.info("手元のrawが必要としているコース: %d種類・%d走ぶん",
+                    len(demand), sum(demand.values()))
+    targets = pending_courses(table, args.venues, args.max_courses, demand)
     if not targets:
         print("未取得のコースはありません（指定範囲は埋まっています）")
         return
 
-    print("今回取得するコース: " + ", ".join(f"{v}/{s}/{d}" for v, s, d in targets))
+    print("今回取得するコース: " + ", ".join(
+        f"{v}/{s}/{d}" + (f"({demand[(v, s, d)]}走)" if demand and demand.get((v, s, d)) else "")
+        for v, s, d in targets))
 
     records: list[dict] = []
     empty: list[str] = []

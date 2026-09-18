@@ -356,3 +356,30 @@ def test_merge_keeps_other_courses():
     assert merged["阪神"]["ダ"] == {"1400": 82.5, "1800": 108.0}
     assert merged["阪神"]["芝"] == {"1600": 93.0}
     assert merged["中山"]["芝"] == {"2000": 120.0}      # 触られていない
+
+
+def test_demand_orders_the_courses_to_fetch(tmp_path, monkeypatch):
+    """必要とされている走数の多い順に取る（表の並び順で埋めると噛み合わないことがある）。"""
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    runs = ([{"venue": "中山", "surface": "ダ", "dist": 1800}] * 18
+            + [{"venue": "京都", "surface": "ダ", "dist": 1400}] * 14
+            + [{"venue": "中山", "surface": "芝", "dist": 1200}] * 1)
+    (raw_dir / "2026-W38.json").write_text(json.dumps(
+        {"races": [{"entries": [{"past_runs": runs}]}]}, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(bbt, "RAW_DIR", raw_dir)
+
+    demand = fbt.demand_from_raw()
+    assert demand[("中山", "ダ", 1800)] == 18
+    assert demand[("中山", "芝", 1200)] == 1
+
+    targets = fbt.pending_courses({}, None, limit=2, demand=demand)
+    assert targets == [("中山", "ダ", 1800), ("京都", "ダ", 1400)]
+
+    # --ignore-demand 相当（demand を渡さない）では表の並び順のまま
+    assert fbt.pending_courses({}, None, limit=1)[0][0] == "札幌"
+
+
+def test_demand_is_empty_without_raw(tmp_path, monkeypatch):
+    monkeypatch.setattr(bbt, "RAW_DIR", tmp_path / "nope")
+    assert fbt.demand_from_raw() == {}
