@@ -23,15 +23,25 @@ config/base_times.json 初期構築スクリプト（スピード指数仕様_v1
 
 `--source` で選ぶ。既定は `raw`（ネットワークを使わない安全側）。
 
---- ⚠ 経路3（netkeiba検索）の未検証部分 ---
+--- ⛔ 経路3は現状 **URLが誤りと判明している**（OPEN_QUESTIONS C-5）---
 
-**検索フォームのパラメータ名・場コード・track コードは実サンプル未取得のままの想定値**である。
-一方、**結果テーブルのパーサーは列インデックス直指定ではなくヘッダー名で列を解決する**ので、
-netkeiba側の列構成が変わっても静かにズレることはない（OPEN_QUESTIONS C-6 と同じ轍を踏まないため）。
-必要なヘッダーが見つからなければ例外を投げて止まる。
+`https://db.netkeiba.com/?pid=race_search_detail` を実際に保存してもらったところ、中身は
+netkeibaの「そんなページは無い」応答だけだった：
 
-疎通を確認するときは、まず1コースだけ `--dry-run` 無しで叩いて件数を見ること。
-0件が返るなら（実在するコースで0件はありえない）パラメータ側が誤っている。
+    <span style="color:red"><b><br>URL: /?pid=race_search_detail<br></b></span>
+
+これは v7 §2.1 で「実体なし」と結論した `?pid=jockey_leading` のハズレ応答と**同一の形**
+（pid部分だけが違う）。取得方法の問題ではなく、**このpidが存在しない**。
+よって `SEARCH_URL` / `build_search_params()` は**動かないことが分かっている想定値**であり、
+正しい検索の入口が判明するまで `--source netkeiba` は使えない。
+
+一方、**結果テーブルのパーサー（`parse_race_search_html`）は入口とは独立**で、
+列インデックス直指定ではなくヘッダー名で列を解決する（OPEN_QUESTIONS C-6 と同じ轍を踏まないため）。
+必要なヘッダーが見つからなければ例外を投げて止まる。検索結果の実サンプルが手に入れば、
+パーサー側はそのまま流用できる見込み。
+
+当面は `--source raw`（運用を回すうちに past_runs から貯まる）か
+`--source file`（手元でCSV化して渡す）を使うこと。
 """
 from __future__ import annotations
 
@@ -77,13 +87,13 @@ COURSES: dict[str, dict[str, list[int]]] = {
     "小倉": {"芝": [1200, 1800, 2000, 2600], "ダ": [1000, 1700, 2400]},
 }
 
-# netkeibaの場コード（race_id の場部分と同じ並び）。⚠検索フォームでの使用は未検証
+# netkeibaの場コード（race_id の場部分と同じ並び）。⛔検索フォームでの使用は未確定（本書冒頭）
 VENUE_CODE = {
     "札幌": "01", "函館": "02", "福島": "03", "新潟": "04", "東京": "05",
     "中山": "06", "中京": "07", "京都": "08", "阪神": "09", "小倉": "10",
 }
 
-# 検索フォームの馬場コード。⚠未検証
+# 検索フォームの馬場コード。⛔未確定（本書冒頭）
 TRACK_CODE = {"芝": "1", "ダ": "2"}
 
 # 結果テーブルのヘッダー名→内部キー。表記ゆれを吸収するため候補を並べる
@@ -367,7 +377,8 @@ def build_search_params(venue_jp: str, surface: str, dist: int, start_year: int,
     """
     レース検索（`?pid=race_search_detail`）のフォーム値を組み立てる。
 
-    ⚠ **パラメータ名・場コード・trackコードは実サンプル未取得の想定値**（本書冒頭の注記）。
+    ⛔ **この pid は存在しないことが実サンプルで判明している**（モジュール冒頭の注記）。
+    正しい入口が分かるまで、この関数の戻り値は「形の雛形」以上の意味を持たない。
     検証は「実在するコースで0件が返らないこと」で行う。
     """
     return {
@@ -414,6 +425,11 @@ def fetch_course_records(venue_jp: str, surface: str, dist: int, start_year: int
 def collect_from_netkeiba(start_year: int, end_year: int,
                           courses: dict[str, dict[str, list[int]]] | None = None) -> list[dict[str, Any]]:
     """全コースを順に取得する。**約101コース×数ページ＝数百リクエスト**になるので1回きりの実行に限る。"""
+    logger.warning(
+        "⛔ この経路の検索URL（%s の pid=race_search_detail）は存在しないことが判明しています。"
+        "正しい入口が判明するまで全コースが0件になります。まず1コースで件数を確かめてください。",
+        SEARCH_URL,
+    )
     courses = courses if courses is not None else COURSES
     records: list[dict[str, Any]] = []
     for venue_jp, by_surface in courses.items():
