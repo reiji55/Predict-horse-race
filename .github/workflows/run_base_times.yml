@@ -37,7 +37,7 @@ jobs:
           python-version: '3.12'
 
       - name: 依存インストール
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: テスト
         run: python -m pytest tests/test_build_base_times.py -q

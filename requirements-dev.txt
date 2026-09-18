@@ -1,0 +1,4 @@
+# テスト実行用。本番のパイプラインには要らない（requirements.txt は実行時の依存だけ）。
+# 新しいテストは pytest のフィクスチャ・monkeypatch を使うので、CIではこちらも入れる。
+-r requirements.txt
+pytest>=8.0
