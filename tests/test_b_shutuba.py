@@ -26,10 +26,25 @@ from scraper.fetchers.b2_odds import (
 SAMPLES = Path(__file__).resolve().parent / "samples"
 
 
+def _require(*names: str):
+    """
+    必要な実サンプルが tests/samples/ に無ければ、落とさずスキップする。
+    サンプルはnetkeibaの著作物でリポジトリに含めていないため、
+    「手元にある分だけテストが走る」ようにしておく（配置手順は tests/samples/README.md）。
+    """
+    missing = [n for n in names if not (SAMPLES / n).exists()]
+    if missing:
+        print(f"  … スキップ（tests/samples/ に {', '.join(missing)} が必要）")
+        return None
+    return [(SAMPLES / n).read_text(encoding="utf-8", errors="replace") for n in names]
+
+
 def test_shutuba_confirmed():
     """枠順確定後の出馬表：枠番・馬番・馬体重・馬場状態が取れること。"""
-    html = (SAMPLES / "shutuba_fuchu.html").read_text(encoding="utf-8", errors="replace")
-    race = parse_shutuba_html(html, "202605030611")
+    files = _require("shutuba_fuchu.html")
+    if files is None:
+        return
+    race = parse_shutuba_html(files[0], "202605030611")
 
     assert race["id"] == "20260621-tokyo-11"
     assert race["venue"] == "東京"
@@ -49,8 +64,10 @@ def test_shutuba_confirmed():
 
 def test_shutuba_unconfirmed():
     """枠順未確定の出馬表：馬番はtr idから取れ、枠番/馬場はNoneでも落ちないこと。"""
-    html = (SAMPLES / "shutuba_tanabata.html").read_text(encoding="utf-8", errors="replace")
-    race = parse_shutuba_html(html, "202603020611")
+    files = _require("shutuba_tanabata.html")
+    if files is None:
+        return
+    race = parse_shutuba_html(files[0], "202603020611")
 
     assert race["id"] == "20260712-fukushima-11"
     nums = sorted(e["num"] for e in race["entries"])
@@ -63,7 +80,10 @@ def test_shutuba_unconfirmed():
 
 def test_odds_decode_and_merge():
     """オッズAPI：jsonp剥がし→base64+zlib解凍→馬番マップ→出馬表への統合。"""
-    text = (SAMPLES / "odds_fuchu.txt").read_text(encoding="utf-8")
+    files = _require("odds_fuchu.txt", "shutuba_fuchu.html")
+    if files is None:
+        return
+    text, shutuba_html = files
     body = parse_odds_response(text)
     assert body["official_datetime"] is not None
 
@@ -75,8 +95,7 @@ def test_odds_decode_and_merge():
     assert by_num[6]["place_odds"] == [1.4, 1.7]
 
     # 出馬表に統合すると win_odds の欠損が消えること
-    html = (SAMPLES / "shutuba_fuchu.html").read_text(encoding="utf-8", errors="replace")
-    race = parse_shutuba_html(html, "202605030611")
+    race = parse_shutuba_html(shutuba_html, "202605030611")
     merge_odds_into_race(race, {"official_datetime": body["official_datetime"], "by_num": by_num})
     assert all(e["win_odds"] is not None for e in race["entries"])
     assert race["odds_updated_at"] == body["official_datetime"]

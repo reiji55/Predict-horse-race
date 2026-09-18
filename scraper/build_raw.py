@@ -1,5 +1,5 @@
 """
-raw/{week_id}.json ビルドスクリプト（取得項目・共通内部フォーマット仕様_v1.md §2 が出力契約）
+raw/{week_id}.json ビルドスクリプト（取得項目・共通内部フォーマット仕様_v1.1.md §2 が出力契約）
 
 流れ：
   A（レース一覧）→ メインレース特定（§ 下記「メインレースの絞り込み」）
@@ -155,27 +155,34 @@ def merge_races(existing: list[dict[str, Any]], new: list[dict[str, Any]]) -> li
 
 def fetch_leading_stats(venues: list[str], period: str) -> tuple[dict[str, Any], dict[str, Any]]:
     """
-    D（騎手リーディング・場別）とE（調教師リーディング）を取得する。
+    D（騎手リーディング）とE（調教師リーディング）を取得する。
 
-    どちらも未実装（引き継ぎ書v7 §2 の調査段階）なので、`NotImplementedError` は握りつぶして
-    空マップを返す。人的スコア③は jockey_stats / trainer_stats が None でも
-    `logic.human_score` 側で欠損として扱われ、合成スコアの重みが再正規化されるので
-    パイプライン全体は止まらない（取得項目仕様§2.0 原則2「取れなかったらnull」）。
+    **場別リーディングは存在しない**ため、騎手も全国成績を1回取るだけでよい
+    （OPEN_QUESTIONS B-3）。`venues` は呼び出し側の互換のために受け取るが絞り込みには使わない。
+
+    取得に失敗しても例外を投げずに空マップを返す。人的スコア③は jockey_stats /
+    trainer_stats が None でも `logic.human_score` 側で欠損として扱われ、合成スコアの重みが
+    再正規化されるのでパイプライン全体は止まらない（取得項目仕様§2.0 原則2「取れなかったらnull」）。
+
+    戻り値: ({venue: {jockey_ref: stats}}, {trainer_ref: stats})
+            騎手側は場別に見えるが、全場に同じ全国成績のマップを入れている
+            （attach_stats の呼び出し側を変えずに済ませるため）
     """
     jockey_stats: dict[str, Any] = {}
     trainer_stats: dict[str, Any] = {}
 
-    for venue in venues:
-        try:
-            jockey_stats[venue] = d_jockey_leading.fetch_jockey_leading(venue, period)
-        except NotImplementedError:
-            logger.warning("D（騎手リーディング）は未実装のため jockey_stats は null になります（%s）", venue)
-            break
+    try:
+        overall_jockeys = d_jockey_leading.fetch_jockey_leading(period=period)
+        jockey_stats = {venue: overall_jockeys for venue in venues}
+    except (NotImplementedError, RuntimeError):
+        logger.warning("騎手リーディングを取得できませんでした。jockey_stats は null のまま続行します",
+                       exc_info=True)
 
     try:
         trainer_stats = e_trainer_leading.fetch_trainer_leading(period)
-    except NotImplementedError:
-        logger.warning("E（調教師リーディング）は未実装のため trainer_stats は null になります")
+    except (NotImplementedError, RuntimeError):
+        logger.warning("調教師リーディングを取得できませんでした。trainer_stats は null のまま続行します",
+                       exc_info=True)
 
     return jockey_stats, trainer_stats
 

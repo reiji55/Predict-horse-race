@@ -1,0 +1,101 @@
+<!--
+  Fページ（レース結果・払戻）のテスト用フィクスチャ。
+  実サンプル（2026-09-13 中山1R）の構造だけを再現した最小HTML。
+  netkeibaの実HTMLそのものは著作物なのでリポジトリには含めない（tests/samples/README.md 参照）。
+  値は実サンプルと同じものを使っているので、パーサーの回帰テストとして機能する。
+-->
+<html><head><title>３歳以上障害未勝利 結果・払戻 | 2026年9月13日 中山1R レース情報(JRA) - netkeiba</title></head>
+<body>
+<table id="All_Result_Table" class="RaceTable01">
+  <tr>
+    <th>着順</th><th>枠</th><th>馬番</th><th>馬名</th><th>性齢</th><th>斤量</th><th>騎手</th>
+    <th>タイム</th><th>着差</th><th>人気</th><th>単勝オッズ</th><th>後3F</th>
+    <th>コーナー通過順</th><th>厩舎</th><th>馬体重(増減)</th>
+  </tr>
+  <tr>
+    <td>1</td><td>4</td><td>4</td><td>モナコブル</td><td>牡5</td><td>60.0</td><td>五十嵐</td>
+    <td>3:17.3</td><td></td><td>2</td><td>5.8</td><td>13.7</td>
+    <td>3-2-3-2</td><td>美浦 岩戸</td><td>470 (0)</td>
+  </tr>
+  <tr>
+    <td>2</td><td>5</td><td>5</td><td>セイウンビッグバン</td><td>牡4</td><td>60.0</td><td>伴</td>
+    <td>3:17.4</td><td>3/4</td><td>3</td><td>6.9</td><td>13.7</td>
+    <td>5-5-5-5</td><td>美浦 萱野</td><td>460 (+16)</td>
+  </tr>
+  <tr>
+    <td>3</td><td>7</td><td>8</td><td>サラフィエル</td><td>セ7</td><td>60.0</td><td>大江圭</td>
+    <td>3:17.4</td><td>ハナ</td><td>4</td><td>7.1</td><td>13.7</td>
+    <td>1-1-1-1</td><td>美浦 鈴木慎</td><td>458 (+4)</td>
+  </tr>
+  <tr>
+    <td>4</td><td>8</td><td>10</td><td>サンプルホース</td><td>牡6</td><td>60.0</td><td>山田</td>
+    <td>3:18.0</td><td>3.1/2</td><td>1</td><td>3.2</td><td>14.0</td>
+    <td>2-3-2-3</td><td>栗東 サンプル</td><td>500 (-2)</td>
+  </tr>
+  <tr>
+    <td>中止</td><td>3</td><td>3</td><td>チュウシホース</td><td>牡5</td><td>60.0</td><td>佐藤</td>
+    <td></td><td></td><td>8</td><td>45.0</td><td></td>
+    <td></td><td>美浦 サンプル</td><td>480 (+2)</td>
+  </tr>
+</table>
+
+<table class="Payout_Detail_Table">
+  <tr class="Tansho">
+    <th>単勝</th>
+    <td class="Result"><div><span>4</span></div></td>
+    <td class="Payout"><span>580円</span></td>
+    <td class="Ninki"><span>2人気</span></td>
+  </tr>
+  <tr class="Fukusho">
+    <th>複勝</th>
+    <td class="Result">
+      <div><span>4</span></div><div><span>5</span></div><div><span>8</span></div>
+    </td>
+    <td class="Payout"><span>180円<br>210円<br>180円</span></td>
+    <td class="Ninki"><span>3人気</span><span>5人気</span><span>2人気</span></td>
+  </tr>
+  <tr class="Wakuren">
+    <th>枠連</th>
+    <td class="Result"><ul><li><span>4</span></li><li><span>5</span></li><li></li></ul></td>
+    <td class="Payout"><span>2,090円</span></td>
+    <td class="Ninki"><span>12人気</span></td>
+  </tr>
+</table>
+
+<table class="Payout_Detail_Table">
+  <tr class="Umaren">
+    <th>馬連</th>
+    <td class="Result"><ul><li><span>4</span></li><li><span>5</span></li><li></li></ul></td>
+    <td class="Payout"><span>1,730円</span></td>
+    <td class="Ninki"><span>6人気</span></td>
+  </tr>
+  <tr class="Wide">
+    <th>ワイド</th>
+    <td class="Result">
+      <ul><li><span>4</span></li><li><span>5</span></li><li></li></ul>
+      <ul><li><span>4</span></li><li><span>8</span></li><li></li></ul>
+      <ul><li><span>5</span></li><li><span>8</span></li><li></li></ul>
+    </td>
+    <td class="Payout"><span>610円<br>580円<br>710円</span></td>
+    <td class="Ninki"><span>6人気</span><span>5人気</span><span>9人気</span></td>
+  </tr>
+  <tr class="Umatan">
+    <th>馬単</th>
+    <td class="Result"><ul><li><span>4</span></li><li><span>5</span></li><li></li></ul></td>
+    <td class="Payout"><span>3,100円</span></td>
+    <td class="Ninki"><span>11人気</span></td>
+  </tr>
+  <tr class="Fuku3">
+    <th>3連複</th>
+    <td class="Result"><ul><li><span>4</span></li><li><span>5</span></li><li><span>8</span></li></ul></td>
+    <td class="Payout"><span>3,630円</span></td>
+    <td class="Ninki"><span>16人気</span></td>
+  </tr>
+  <tr class="Tan3">
+    <th>3連単</th>
+    <td class="Result"><ul><li><span>4</span></li><li><span>5</span></li><li><span>8</span></li></ul></td>
+    <td class="Payout"><span>17,970円</span></td>
+    <td class="Ninki"><span>61人気</span></td>
+  </tr>
+</table>
+</body></html>

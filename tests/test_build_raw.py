@@ -7,7 +7,7 @@ build_raw（スクレイパーのオーケストレーター）のテスト。
 - メインレースの絞り込み（config/scraper.json の main_race）
 - 土日別実行で raw をマージすること（日曜の実行が土曜ぶんを消さない）
 - 週内キャッシュ（既存 raw を読み直して同じ馬を取り直さない）
-- D・E 未実装でもパイプラインが止まらないこと
+- D・E が取れなくてもパイプラインが止まらないこと
 
 実行： python3 tests/test_build_raw.py  もしくは  python -m pytest tests/test_build_raw.py
 """
@@ -207,13 +207,42 @@ def test_week_cache_avoids_refetching_the_same_horse():
     print("test_week_cache_avoids_refetching_the_same_horse: OK")
 
 
-# --- D・E 未実装でも止まらないこと ------------------------------------
+# --- D・E が取れなくても止まらないこと ---------------------------------
 
-def test_leading_stats_tolerate_unimplemented_fetchers():
-    """D・E が NotImplementedError でも空マップを返し、パイプラインは続行する。"""
-    jockey_stats, trainer_stats = build_raw.fetch_leading_stats(["小倉", "福島"], "2026")
-    assert jockey_stats == {} and trainer_stats == {}
-    print("test_leading_stats_tolerate_unimplemented_fetchers: OK")
+def test_leading_stats_tolerate_fetch_failure():
+    """リーディングの取得に失敗しても例外を投げず、空マップで続行すること。"""
+    from scraper.fetchers import d_jockey_leading, e_trainer_leading
+    original = (d_jockey_leading.fetch_jockey_leading, e_trainer_leading.fetch_trainer_leading)
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("ネットワーク断を想定")
+
+    d_jockey_leading.fetch_jockey_leading = _boom
+    e_trainer_leading.fetch_trainer_leading = _boom
+    try:
+        jockey_stats, trainer_stats = build_raw.fetch_leading_stats(["小倉", "福島"], "2026")
+        assert jockey_stats == {} and trainer_stats == {}
+    finally:
+        d_jockey_leading.fetch_jockey_leading, e_trainer_leading.fetch_trainer_leading = original
+    print("test_leading_stats_tolerate_fetch_failure: OK")
+
+
+def test_leading_stats_spread_overall_to_all_venues():
+    """場別リーディングは存在しないので、全場に同じ全国成績が入ること（OPEN_QUESTIONS B-3）。"""
+    from scraper.fetchers import d_jockey_leading, e_trainer_leading
+    original = (d_jockey_leading.fetch_jockey_leading, e_trainer_leading.fetch_trainer_leading)
+
+    overall = {"05339": {"scope": "overall", "period": "2026", "starts": 372,
+                         "wins": 103, "seconds": 63, "thirds": None}}
+    d_jockey_leading.fetch_jockey_leading = lambda *a, **k: overall
+    e_trainer_leading.fetch_trainer_leading = lambda *a, **k: {}
+    try:
+        jockey_stats, _ = build_raw.fetch_leading_stats(["小倉", "福島"], "2026")
+        assert set(jockey_stats) == {"小倉", "福島"}
+        assert jockey_stats["小倉"] is jockey_stats["福島"] is overall
+    finally:
+        d_jockey_leading.fetch_jockey_leading, e_trainer_leading.fetch_trainer_leading = original
+    print("test_leading_stats_spread_overall_to_all_venues: OK")
 
 
 def test_attach_stats_matches_by_ref():
