@@ -23,25 +23,45 @@ config/base_times.json 初期構築スクリプト（スピード指数仕様_v1
 
 `--source` で選ぶ。既定は `raw`（ネットワークを使わない安全側）。
 
---- 経路3の状況：URLは判明、フォームのパラメータ名が未判明（OPEN_QUESTIONS C-5）---
+--- 経路3：レース詳細検索の仕様（実サンプルで確定）---
 
 **netkeibaのDBは `?pid=xxx` 形式からパス形式に作り替えられている。**
 旧来スクレイピング記事が挙げる `?pid=race_search_detail` は**存在しない**
 （実際に保存したところ、v7§2.1 の `?pid=jockey_leading` と同じ「pidが無い」赤字応答だった）。
+現行の入口は `https://db.netkeiba.com/race/search_detail.html`（＝検索フォームのページ）で、
+そのフォームの送信先が下記。**POSTではなくGET**なのでURLを組み立てるだけでよい。
 
-DBトップ（`db.netkeiba.com/?rf=navi`）のナビゲーションから、正しい入口が確定した：
+    GET https://db.netkeiba.com/race/list.html
 
-    レース詳細検索 → https://db.netkeiba.com/race/search_detail.html
+フォームのフィールド（`race/search_detail.html` の実サンプルから採取）：
 
-ただし**このフォームのフィールド名（場・馬場・距離・期間の指定方法）はまだ未取得**なので、
-`build_search_params()` の中身は依然として想定値。フォームのページを1枚もらえれば確定する。
+  word, match      キーワード（p=を含む / b=で始まる / e=で終わる / m=に一致する）
+  track[]          1=芝 2=ダート 3=障害
+  jyo[]            01=札幌 02=函館 03=福島 04=新潟 05=東京
+                   06=中山 07=中京 08=京都 09=阪神 10=小倉
+                   （30以降は地方：門別・盛岡・水沢・浦和・船橋・大井・川崎・金沢・笠松・
+                     名古屋・園田・姫路・高知・佐賀・帯広(ば)。本アプリはJRA10場のみ使う）
+  yf, mf / yt, mt  期間の開始（年・月）／終了（年・月）
+  kf, kt           距離の下限・上限（m・半角数字）。`kf=kt=1600` で1600m限定になる
+  kyori[]          距離のチェックボックス（1000は「1000以下」、4000は「4000以上」）
+  baba[]           1=良 2=稍重 3=重 4=不良
+  class[]          1=G1 2=G2 3=G3 4=L 5=OP 6=3勝(1600万) 7=2勝(1000万)
+                   8=1勝(500万) 9=新馬 10=未勝利 11=未出走
+  jyoken[]         1=牝馬限定 2=父内国産限定 3=アラブ 4=指定 5=混合 6=特指 7=国際
+  barei[]          11=2歳 12=3歳 13=4歳 14=4歳以上
+  sort             date-desc / kaisai-desc / name-asc / kyori-desc
+  limit            20 / 50 / 100
 
-一方、**結果テーブルのパーサー（`parse_race_search_html`）は入口とは独立**で、
-列インデックス直指定ではなくヘッダー名で列を解決する（OPEN_QUESTIONS C-6 と同じ轍を踏まないため）。
+本スクリプトは `track[]`＋`jyo[]`＋`kf`/`kt`＋期間 だけを指定し、クラスは絞らない
+（§4「全クラスの勝ちタイムを使う」）。クラスは結果のレース名から判定する。
+
+**唯一残る想定値はページ送りのパラメータ名（`page`）**。フォームのページには現れないため。
+効かなかった場合に同じ1ページ目を繰り返し積まないよう、`fetch_course_records()` は
+**新規レコードが増えなくなった時点で打ち切る**ようにしてある。
+
+結果テーブルのパーサー（`parse_race_search_html`）は列インデックス直指定ではなく
+ヘッダー名で列を解決する（OPEN_QUESTIONS C-6 と同じ轍を踏まないため）。
 必要なヘッダーが見つからなければ例外を投げて止まる。
-
-それまでは `--source raw`（運用を回すうちに past_runs から貯まる）か
-`--source file`（手元でCSV化して渡す）を使うこと。
 """
 from __future__ import annotations
 
@@ -57,7 +77,7 @@ from typing import Any, Iterable
 from bs4 import BeautifulSoup
 
 from scraper.common import constants
-from scraper.common.http import post as http_post
+from scraper.common.http import get as http_get
 
 logger = logging.getLogger("scripts.build_base_times")
 
@@ -66,8 +86,8 @@ OUTPUT_PATH = ROOT / "config" / "base_times.json"
 SPEED_CONFIG_PATH = ROOT / "config" / "speed_index.json"
 RAW_DIR = ROOT / "raw"
 
-# レース詳細検索。DBトップのナビゲーションから確認した実URL（旧 ?pid=race_search_detail は存在しない）
-SEARCH_URL = "https://db.netkeiba.com/race/search_detail.html"
+# レース詳細検索フォーム（`race/search_detail.html`）の送信先。GETで叩ける
+SEARCH_URL = "https://db.netkeiba.com/race/list.html"
 
 # 1コースあたりこの本数に満たなければ中央値を採らない（外れ値1本で基準がぶれるのを防ぐ）
 DEFAULT_MIN_SAMPLES = 5
@@ -88,13 +108,13 @@ COURSES: dict[str, dict[str, list[int]]] = {
     "小倉": {"芝": [1200, 1800, 2000, 2600], "ダ": [1000, 1700, 2400]},
 }
 
-# netkeibaの場コード（race_id の場部分と同じ並び）。⛔検索フォームでの使用は未確定（本書冒頭）
+# 検索フォームの `jyo[]`（実サンプルで確定。地方の30以降は本アプリでは使わない）
 VENUE_CODE = {
     "札幌": "01", "函館": "02", "福島": "03", "新潟": "04", "東京": "05",
     "中山": "06", "中京": "07", "京都": "08", "阪神": "09", "小倉": "10",
 }
 
-# 検索フォームの馬場コード。⛔未確定（本書冒頭）
+# 検索フォームの `track[]`（実サンプルで確定。3=障害は使わない）
 TRACK_CODE = {"芝": "1", "ダ": "2"}
 
 # 結果テーブルのヘッダー名→内部キー。表記ゆれを吸収するため候補を並べる
@@ -376,46 +396,61 @@ def parse_race_search_html(html: str) -> list[dict[str, Any]]:
 def build_search_params(venue_jp: str, surface: str, dist: int, start_year: int, end_year: int,
                         page: int = 1) -> dict[str, Any]:
     """
-    レース詳細検索（`/race/search_detail.html`）のフォーム値を組み立てる。
+    レース詳細検索のクエリを組み立てる（モジュール冒頭のフィールド表のとおり）。
 
-    ⚠ **フィールド名・場コード・trackコードはまだ未取得の想定値**（モジュール冒頭の注記）。
-    URLだけは確定済み。検証は「実在するコースで0件が返らないこと」で行う。
+    クラス（`class[]`）は**あえて絞らない**：§4が「全クラスの勝ちタイムを使う」と定めているため。
+    `page` だけはフォームに現れないので想定値（呼び出し側が空振りを検知する）。
     """
     return {
         "word": "",
-        "start_year": str(start_year),
-        "start_mon": "1",
-        "end_year": str(end_year),
-        "end_mon": "12",
-        "jyo[]": VENUE_CODE[venue_jp],
-        "kyori_min": str(dist),
-        "kyori_max": str(dist),
         "track[]": TRACK_CODE[surface],
-        "sort": "date",
-        "list": "100",
+        "jyo[]": VENUE_CODE[venue_jp],
+        "kf": str(dist),             # 距離の下限
+        "kt": str(dist),             # 距離の上限（下限と同値＝その距離限定）
+        "yf": str(start_year), "mf": "1",
+        "yt": str(end_year), "mt": "12",
+        "sort": "date-desc",
+        "limit": "100",
         "page": str(page),
     }
 
 
 def fetch_course_records(venue_jp: str, surface: str, dist: int, start_year: int, end_year: int,
                          max_pages: int = 10) -> list[dict[str, Any]]:
-    """1コース（venue×surface×dist）ぶんの勝ちタイムを、期間まとめて取得する。"""
+    """
+    1コース（venue×surface×dist）ぶんの勝ちタイムを、期間まとめて取得する。
+
+    ページ送りの `page` はフォームに現れないため想定値。**効かなかった場合に同じ1ページ目を
+    繰り返し積むのを防ぐため、新規レコードが増えなくなった時点で打ち切る。**
+    """
     records: list[dict[str, Any]] = []
+    seen: set[tuple] = set()
     for page in range(1, max_pages + 1):
         params = build_search_params(venue_jp, surface, dist, start_year, end_year, page=page)
-        resp = http_post(SEARCH_URL, data=params)
+        resp = http_get(SEARCH_URL, params=params)
         if resp is None:
             logger.warning("検索の取得に失敗 %s/%s/%s page=%d", venue_jp, surface, dist, page)
             break
         resp.encoding = resp.apparent_encoding
-        page_records = parse_race_search_html(resp.text)
-        if not page_records:
+
+        added = 0
+        for record in parse_race_search_html(resp.text):
+            key = (record["date"], record["venue"], record["dist"], record["win_time"])
+            if key in seen:
+                continue
+            seen.add(key)
+            records.append(record)
+            added += 1
+
+        if added == 0:
+            if page > 1:
+                logger.debug("%s/%s/%s page=%d で新規0件のため打ち切り", venue_jp, surface, dist, page)
             break
-        records.extend(page_records)
+
     if not records:
         logger.warning(
             "%s/%s/%s で0件でした。実在するコースで0件はありえないので、"
-            "検索パラメータ（フォーム名・場コード・trackコード）を疑ってください",
+            "検索クエリ（特に kf/kt・jyo[]・track[]）を疑ってください",
             venue_jp, surface, dist,
         )
     return records
@@ -424,10 +459,10 @@ def fetch_course_records(venue_jp: str, surface: str, dist: int, start_year: int
 def collect_from_netkeiba(start_year: int, end_year: int,
                           courses: dict[str, dict[str, list[int]]] | None = None) -> list[dict[str, Any]]:
     """全コースを順に取得する。**約101コース×数ページ＝数百リクエスト**になるので1回きりの実行に限る。"""
-    logger.warning(
-        "⚠ %s のフォームのフィールド名はまだ未取得の想定値です。"
-        "まず1コースで件数を確かめてください（実在コースで0件ならパラメータ側が誤り）。",
+    logger.info(
+        "%s に %d コース分を問い合わせます（リクエスト間隔は http.py のマナー設計に従います）",
         SEARCH_URL,
+        sum(len(d) for by_surface in (courses or COURSES).values() for d in by_surface.values()),
     )
     courses = courses if courses is not None else COURSES
     records: list[dict[str, Any]] = []

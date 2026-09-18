@@ -221,12 +221,47 @@ def test_parse_race_search_returns_empty_without_table():
     assert bbt.parse_race_search_html("<html><body>該当するレースがありません</body></html>") == []
 
 
-def test_search_params_cover_one_course_and_period():
+def test_search_params_match_the_real_form():
+    """`race/search_detail.html` の実サンプルから採取したフィールド名・コードを固定する。"""
     params = bbt.build_search_params("東京", "芝", 1600, 2023, 2026)
-    assert params["jyo[]"] == "05"
-    assert params["track[]"] == "1"
-    assert params["kyori_min"] == params["kyori_max"] == "1600"
-    assert params["start_year"] == "2023" and params["end_year"] == "2026"
+
+    assert params["jyo[]"] == "05"                       # 05=東京
+    assert params["track[]"] == "1"                      # 1=芝
+    assert params["kf"] == params["kt"] == "1600"        # 距離の下限=上限
+    assert (params["yf"], params["mf"]) == ("2023", "1")
+    assert (params["yt"], params["mt"]) == ("2026", "12")
+    assert params["limit"] == "100"                      # フォームの選択肢は 20/50/100
+    assert params["sort"] == "date-desc"
+
+    # クラスは絞らない（§4「全クラスの勝ちタイムを使う」）
+    assert "class[]" not in params
+
+
+def test_search_params_use_jra_codes_for_every_venue():
+    for venue, code in bbt.VENUE_CODE.items():
+        assert code in {f"{n:02d}" for n in range(1, 11)}, venue
+    assert bbt.VENUE_CODE["札幌"] == "01" and bbt.VENUE_CODE["小倉"] == "10"
+    assert bbt.TRACK_CODE == {"芝": "1", "ダ": "2"}       # 3=障害は使わない
+
+
+def test_fetch_course_records_stops_when_a_page_adds_nothing_new(monkeypatch):
+    """ページ送りの `page` が効かなかった場合に、同じ1ページ目を積み続けないこと。"""
+    calls = []
+
+    class _Resp:
+        text = SEARCH_HTML
+        encoding = None
+        apparent_encoding = "EUC-JP"
+
+    def fake_get(url, params=None, **kwargs):
+        calls.append(params["page"])
+        return _Resp()  # pageを無視して常に同じ内容を返すサーバーの模擬
+
+    monkeypatch.setattr(bbt, "http_get", fake_get)
+    records = bbt.fetch_course_records("東京", "芝", 1600, 2023, 2026, max_pages=10)
+
+    assert calls == ["1", "2"]      # 2ページ目で新規0件と分かって打ち切る
+    assert len(records) == 2        # 1ページ目の勝ち馬2件だけ（重複は積まれない）
 
 
 def test_end_to_end_from_raw_produces_loadable_table(tmp_path):
