@@ -6,7 +6,9 @@ raw/{week_id}.json ビルドスクリプト（取得項目・共通内部フォ�
   → B（出馬表）で基本情報＋出走馬一覧
   → B2（オッズAPI）で単勝・複勝・人気を埋める
      ※ 出馬表HTMLのオッズ欄はJS描画のため空。内部AJAX API（b2_odds）を叩いて補完する
-  → C（馬戦績）で各出走馬の past_runs を埋める（同一週内キャッシュ）
+  → C2（出馬表の「過去5走」）で全出走馬の past_runs をまとめて埋める。
+     1レース1ページで済む。db.netkeiba.com が本番でbot判定されるため、
+     馬ごとの戦績ページ（C）はC2が空振りしたときの退避路に降格した（OPEN_QUESTIONS C-1 / C-9）
   → D（騎手LB）／E（厩舎LB）で jockey_stats／trainer_stats を埋める
   → 正規化（取得項目仕様§2.1）を通して raw/{week_id}.json に書き出す
 
@@ -53,6 +55,7 @@ from scraper.fetchers import (
     a_race_list,
     b_shutuba,
     b2_odds,
+    c2_shutuba_past,
     c_horse_history,
     d_jockey_leading,
     e_trainer_leading,
@@ -232,8 +235,25 @@ def build_race(list_entry: a_race_list.RaceListEntry, cache: dict[str, list[dict
     except RuntimeError:
         logger.warning("オッズを取得できませんでした（%s）。win_odds は null のまま続行します", race.get("id"))
 
-    # C：各出走馬の past_runs（週内キャッシュ経由）
+    # C2：出馬表の「過去5走」ページから全出走馬の past_runs をまとめて取る（OPEN_QUESTIONS C-9）
+    # 1レース1ページで済み、db.netkeiba.com を叩かずに race.netkeiba.com だけで完結する。
+    # 単勝オッズ・人気もこのページに載っているので、B2が取れなかったときの保険にもなる。
+    try:
+        by_horse = c2_shutuba_past.fetch_shutuba_past(list_entry.source_ref, n_runs=n_runs)
+        c2_shutuba_past.merge_into_race(race, by_horse)
+        for horse_ref, found in by_horse.items():
+            if found["past_runs"]:
+                cache[horse_ref] = found["past_runs"]   # 日曜の実行で再利用する
+    except RuntimeError:
+        logger.warning("過去5走ページを取得できませんでした（%s）。馬ごとの戦績ページに切り替えます",
+                       race.get("id"))
+
+    # C：過去5走ページで埋まらなかった馬だけ、馬ごとの戦績ページで補う（週内キャッシュ経由）。
+    # ※ db.netkeiba.com は本番でbot判定されるため、通常ここは空振りする（C-1）。
+    #    ページ構成の変更などでC2が使えなくなったときの退避路として残してある。
     for entry in race.get("entries", []):
+        if entry.get("past_runs"):
+            continue
         horse_ref = (entry.get("horse_ref") or {}).get("netkeiba")
         if not horse_ref:
             continue

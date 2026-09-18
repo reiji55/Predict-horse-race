@@ -30,3 +30,23 @@
 
 実サンプルHTMLはnetkeibaの著作物なので、**個人利用の範囲にとどめ、リポジトリを公開する場合は
 `.gitignore` でこのディレクトリを除外すること**。
+
+## shutuba_past_hanshin11.html（C2：出馬表の「過去5走」）
+
+```
+https://race.netkeiba.com/race/shutuba_past.html?race_id=202609040511
+```
+
+2026-09-19 阪神11R 大阪スポーツ杯（16頭）。Safariの「Webアーカイブ」で保存し、
+本文HTMLを取り出してこのファイル名で置く。**本番で実際に使う経路**なので、
+ページ構成が変わったときはここを更新して `tests/test_c2_shutuba_past.py` を通すこと。
+
+## horse_teiem.html（C：馬の戦績・退避路）
+
+```
+https://db.netkeiba.com/horse/2020101216/
+```
+
+テイエムヒショウ。上の過去5走ページと**同じ馬の同じ走**が載っているので、
+`test_c2_shutuba_past.py::test_matches_the_horse_page_for_the_same_runs` が
+2つのパーサーの結果を突き合わせる裏取りに使っている。2枚セットで置くこと。

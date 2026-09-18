@@ -45,11 +45,46 @@ CONDITION_GRADE_MAP = [
     ("３勝クラス", "3win"),
     ("3勝クラス", "3win"),
     ("オープン", "op"),
+    # 出馬表の「過去5走」ページ（c2_shutuba_past）はクラスをアイコンの短い文字で出す
+    # （"3勝クラス" ではなく "3勝"）。"3勝クラス" より後ろに置くことで、
+    # 長い表記が先に一致するようにしてある。
+    ("３勝", "3win"), ("3勝", "3win"),
+    ("２勝", "2win"), ("2勝", "2win"),
+    ("１勝", "1win"), ("1勝", "1win"),
 ]
 
 # 馬戦績ページのレース名列にある括弧内グレード表記（例"(GIII)" "(L)"）→クラスキー
 # "L"（Listed）はOPクラス内の重賞未満グレードのためopに丸める（買い目生成仕様のgrade定義にLは無い）
-GRADE_TAG_MAP = {"GI": "g1", "GII": "g2", "GIII": "g3", "L": "op"}
+# Jpn表記（地方交流重賞）も同格として扱う。"OP" は過去5走ページのアイコン文字。
+
+GRADE_TAG_MAP = {
+    "GI": "g1", "GII": "g2", "GIII": "g3", "L": "op",
+    "JpnI": "g1", "JpnII": "g2", "JpnIII": "g3",
+    "OP": "op",
+}
+
+
+def normalize_class_label(text: str) -> str | None:
+    """
+    クラス表記の文字列を class キー（mi/1win/…/g1）に正規化する。
+
+    グレード表記（GIII・JpnII・OP・L）を先に見て、次に条件文字列（未勝利・2勝クラス…）を見る。
+    どちらにも当てはまらなければ None（取得項目仕様§2.0「取れなかったらnull」）。
+
+    表記のゆれを吸収する場所をここ1箇所にまとめてある：
+    馬戦績ページ（c_horse_history）は括弧内の "(GIII)"、
+    出馬表の過去5走ページ（c2_shutuba_past）はアイコンの "3勝"、
+    出馬表（b_shutuba）は "3歳以上2勝クラス" のような条件文と、経路ごとに書き方が違う。
+    """
+    text = (text or "").strip()
+    if not text:
+        return None
+    if text in GRADE_TAG_MAP:
+        return GRADE_TAG_MAP[text]
+    for keyword, cls in CONDITION_GRADE_MAP:
+        if keyword in text:
+            return cls
+    return None
 
 # 券種（データスキーマ仕様§1 bets[].type／単勝・複勝は使わない）
 BET_TYPES = ["ワイド", "馬連", "3連複"]

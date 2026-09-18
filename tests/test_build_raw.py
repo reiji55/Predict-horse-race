@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scraper import build_raw
-from scraper.fetchers import b2_odds, b_shutuba, c_horse_history
+from scraper.fetchers import b2_odds, b_shutuba, c2_shutuba_past, c_horse_history
 from scraper.fetchers.a_race_list import RaceListEntry
 
 CONFIG = build_raw.load_config()
@@ -126,10 +126,16 @@ def test_load_week_cache_reads_existing_raw(tmp_dir: Path | None = None):
 # --- 1レース分の組み立て（フェッチャーを差し替え） --------------------
 
 class _FakeFetchers:
-    """B / B2 / C を差し替えて、ネットワーク無しで build_race を動かす。"""
+    """B / B2 / C2 / C を差し替えて、ネットワーク無しで build_race を動かす。
 
-    def __init__(self):
+    past5: C2（出馬表の過去5走）が返す {horse_ref: {...}}。
+           既定は空 ＝ C2 が空振りして C（馬ごとの戦績ページ）に落ちる経路を通す。
+    """
+
+    def __init__(self, past5: dict | None = None):
         self.horse_fetch_count = 0
+        self.past5_fetch_count = 0
+        self._past5 = past5 if past5 is not None else {}
         self._original = {}
 
     def __enter__(self):
@@ -137,16 +143,23 @@ class _FakeFetchers:
             "shutuba": b_shutuba.fetch_shutuba,
             "odds": b2_odds.fetch_odds,
             "history": c_horse_history.fetch_horse_history,
+            "past5": c2_shutuba_past.fetch_shutuba_past,
         }
         b_shutuba.fetch_shutuba = self._fake_shutuba
         b2_odds.fetch_odds = self._fake_odds
         c_horse_history.fetch_horse_history = self._fake_history
+        c2_shutuba_past.fetch_shutuba_past = self._fake_past5
         return self
 
     def __exit__(self, *_):
         b_shutuba.fetch_shutuba = self._original["shutuba"]
         b2_odds.fetch_odds = self._original["odds"]
         c_horse_history.fetch_horse_history = self._original["history"]
+        c2_shutuba_past.fetch_shutuba_past = self._original["past5"]
+
+    def _fake_past5(self, *args, **kwargs):  # noqa: D401 - テスト用スタブ
+        self.past5_fetch_count += 1
+        return dict(self._past5)
 
     def _fake_shutuba(self, *args, **kwargs):  # noqa: D401 - テスト用スタブ
         return {
@@ -205,6 +218,39 @@ def test_week_cache_avoids_refetching_the_same_horse():
         build_raw.build_race(_entry("福島", 11), cache, n_runs=5)
         assert fake.horse_fetch_count == 2           # キャッシュヒットで増えない
     print("test_week_cache_avoids_refetching_the_same_horse: OK")
+
+
+def test_past5_page_is_the_primary_route_and_skips_the_horse_pages():
+    """C2（1レース1ページ）が取れたら、馬ごとの戦績ページ（C）は1回も叩かないこと。"""
+    past5 = {
+        "H1": {"past_runs": [{"date": "2026-06-21", "finish": 1}], "win_odds": 7.7, "popularity": 3},
+        "H2": {"past_runs": [{"date": "2026-06-14", "finish": 5}], "win_odds": 12.0, "popularity": 6},
+    }
+    with _FakeFetchers(past5=past5) as fake:
+        race = build_raw.build_race(_entry("小倉", 11), {}, n_runs=5)
+
+    assert fake.past5_fetch_count == 1      # 1レース1ページ
+    assert fake.horse_fetch_count == 0      # 16頭ぶんのページを叩かない
+    assert race["entries"][0]["past_runs"] == past5["H1"]["past_runs"]
+    assert race["entries"][0]["win_odds"] == 3.2   # B2 APIの値が優先される
+    print("test_past5_page_is_the_primary_route_and_skips_the_horse_pages: OK")
+
+
+def test_past5_results_feed_the_week_cache():
+    """C2で取れた past_runs は週内キャッシュにも入り、日曜の実行で再利用できること。"""
+    past5 = {
+        "H1": {"past_runs": [{"date": "2026-06-21"}], "win_odds": None, "popularity": None},
+        "H2": {"past_runs": [], "win_odds": None, "popularity": None},   # 新馬など、過去走ゼロ
+    }
+    with _FakeFetchers(past5=past5) as fake:
+        cache: dict = {}
+        build_raw.build_race(_entry("小倉", 11), cache, n_runs=5)
+
+    assert cache["H1"] == [{"date": "2026-06-21"}]
+    # 過去走が空の馬はキャッシュに入れない（Cの退避路にもう一度チャンスを与えるため）
+    assert cache.get("H2") != []
+    assert fake.horse_fetch_count == 1   # H2 だけがCに落ちる
+    print("test_past5_results_feed_the_week_cache: OK")
 
 
 # --- D・E が取れなくても止まらないこと ---------------------------------
