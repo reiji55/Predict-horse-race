@@ -6,6 +6,8 @@
 - 取得項目_共通内部フォーマット仕様_v1.md §2.1（正規化ルール）
 """
 
+import re
+
 # JRA中央10場の日本語→ローマ字対応表（データスキーマ仕様 v1.2 §1で固定）
 VENUE_ROMAJI = {
     "札幌": "sapporo",
@@ -81,6 +83,16 @@ def normalize_class_label(text: str) -> str | None:
         return None
     if text in GRADE_TAG_MAP:
         return GRADE_TAG_MAP[text]
+
+    # 出馬表の「過去5走」ページは、省略したレース名にアイコンの文字をくっつけて
+    # "兵庫チャン JpnII" / "バイオレッ OP" のように出す。完全一致だけ見ていると
+    # これらを取りこぼす（2026-09-19 の実データで46走がクラス不明になっていた）。
+    # 空白・括弧で切ったトークンで照合する。**部分一致にしないのは "GIII" の中の "GI" や、
+    # レース名に紛れた "L" を誤って拾わないため。**
+    for token in re.split(r"[\s()（）\u3000]+", text):
+        if token in GRADE_TAG_MAP:
+            return GRADE_TAG_MAP[token]
+
     for keyword, cls in CONDITION_GRADE_MAP:
         if keyword in text:
             return cls

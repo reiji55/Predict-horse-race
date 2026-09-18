@@ -125,3 +125,33 @@ def test_class_labels_cover_both_icon_and_sentence_forms():
     assert constants.normalize_class_label("JpnII") == "g2"
     assert constants.normalize_class_label("GIII") == "g3"
     assert constants.normalize_class_label("") is None
+
+
+def test_class_labels_from_the_past5_page_icons():
+    """
+    過去5走ページは省略レース名 + アイコン文字で出る（"兵庫チャン JpnII"）。
+    完全一致だけ見ていた頃はここが全部 None になり、実データで46走が落ちていた。
+    """
+    from scraper.common import constants
+    assert constants.normalize_class_label("兵庫チャン JpnII") == "g2"
+    assert constants.normalize_class_label("バイオレッ OP") == "op"
+    assert constants.normalize_class_label("カトレアS OP") == "op"
+    assert constants.normalize_class_label("NHKマイルC(GI)") == "g1"
+    assert constants.normalize_class_label("ホープフル(GIII)") == "g3"   # GI を誤って拾わない
+    assert constants.normalize_class_label("リステッド (L)") == "op"
+    # クラスの手がかりが無いものは正直に None（推測しない）
+    assert constants.normalize_class_label("ブルートシ") is None
+
+
+def test_no_grade_tag_is_matched_inside_a_race_name():
+    """レース名に紛れた文字を拾わない（部分一致にしていない理由）。"""
+    from scraper.common import constants
+    assert constants.normalize_class_label("エルムステークス") is None   # "L" を拾わない
+    assert constants.normalize_class_label("ジャパンC") is None
+
+
+def test_past5_sample_has_no_unknown_class_except_nameless_rows(parsed):
+    """実サンプルで、クラスが取れない走が大きく減っていること。"""
+    runs = [r for v in parsed.values() for r in v["past_runs"]]
+    unknown = [r for r in runs if r["class"] is None]
+    assert len(unknown) <= 2, f"クラス不明が多すぎる: {len(unknown)}/{len(runs)}"

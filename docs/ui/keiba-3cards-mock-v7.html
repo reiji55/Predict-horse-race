@@ -74,11 +74,27 @@
   .distort.legend .d-val{color:var(--legend)}
 
   /* ===== レース一覧 ===== */
+  /* 開催日の見出し。「今日のレースがちゃんと入っている」が一目で分かることを優先し、
+     日付を主役にして大きく出す（曜日はその脇に小さく添える）。 */
   .day-label{
-    font-size:.78rem;font-weight:900;letter-spacing:.2em;color:var(--ink-soft);
-    margin:14px 4px 8px;display:flex;align-items:center;gap:8px;
+    margin:22px 2px 10px;display:flex;align-items:baseline;gap:10px;
   }
-  .day-label::after{content:"";flex:1;height:1px;background:var(--line)}
+  .day-label .dl-date{
+    font-size:1.5rem;font-weight:900;letter-spacing:.02em;color:var(--ink);
+    font-variant-numeric:tabular-nums;line-height:1.1;
+  }
+  .day-label .dl-dow{
+    font-size:.82rem;font-weight:800;letter-spacing:.14em;color:var(--ink-soft);
+  }
+  .day-label .dl-today{
+    font-size:.68rem;font-weight:900;letter-spacing:.12em;
+    color:#fff;background:var(--accent,#1b5e3a);
+    padding:3px 8px;border-radius:999px;white-space:nowrap;
+  }
+  .day-label .dl-count{
+    font-size:.74rem;font-weight:700;color:var(--ink-soft);white-space:nowrap;
+  }
+  .day-label::after{content:"";flex:1;height:2px;background:var(--line);border-radius:2px}
   .race-item{
     width:100%;text-align:left;position:relative;
     background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
@@ -658,12 +674,41 @@ function distortHtml(v){
 }
 
 /* ================= レース一覧 ================= */
+/* レースIDの先頭8桁(YYYYMMDD)が唯一の日付の出どころ。
+   以前は「土なら7/4、日なら7/5」とサンプル時代の日付を直書きしていて、
+   実データを表示しても見出しだけ 7/4 のままになっていた。 */
+const DOW_JA = ["日","月","火","水","木","金","土"];
+
+function ymdOf(race){
+  return (race.id && race.id.length >= 8) ? race.id.slice(0,8) : null;
+}
+
+function dayHeading(ymd, count){
+  const y = Number(ymd.slice(0,4)), m = Number(ymd.slice(4,6)), d = Number(ymd.slice(6,8));
+  const dow = DOW_JA[new Date(y, m-1, d).getDay()];
+  const today = new Date();
+  const isToday = today.getFullYear()===y && today.getMonth()===m-1 && today.getDate()===d;
+  return `<div class="day-label">
+    <span class="dl-date">${m}月${d}日</span>
+    <span class="dl-dow">${dow}曜</span>
+    ${isToday ? '<span class="dl-today">本日</span>' : ''}
+    <span class="dl-count">${count}レース</span>
+  </div>`;
+}
+
 function renderList(){
   let html = "";
-  ["土","日"].forEach(d=>{
-    const rs = RACES.filter(r=>r.day===d);
+  const byDay = new Map();
+  RACES.forEach(r=>{
+    const ymd = ymdOf(r) || "";
+    if(!byDay.has(ymd)) byDay.set(ymd, []);
+    byDay.get(ymd).push(r);
+  });
+
+  [...byDay.keys()].sort().forEach(ymd=>{
+    const rs = byDay.get(ymd);
     if(!rs.length) return;
-    html += `<div class="day-label">${d==="土"?"7/4 SATURDAY":"7/5 SUNDAY"}</div>`;
+    html += ymd ? dayHeading(ymd, rs.length) : "";
     rs.forEach(r=>{
       html += `
       <button class="race-item ${r.legendary?'legendary':''}" onclick="goDetail('${r.id}')">
