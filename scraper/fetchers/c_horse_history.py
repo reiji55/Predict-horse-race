@@ -42,6 +42,7 @@ Cページ：馬の戦績ページ（db.netkeiba.com/horse/）
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
@@ -49,6 +50,8 @@ from bs4 import BeautifulSoup
 
 from scraper.common import constants
 from scraper.common.http import get as http_get
+
+logger = logging.getLogger("scraper.c_horse_history")
 
 HORSE_URL_TMPL = "https://db.netkeiba.com/horse/{horse_id}"
 
@@ -181,6 +184,16 @@ def parse_horse_history_html(html: str, n_runs: int = 5) -> list[dict[str, Any]]
     soup = BeautifulSoup(html, "lxml")
     table = soup.select_one("table.db_h_race_results")
     if table is None:
+        # 200が返っているのに表が無い＝ページ構成の変更か、ボット判定ページ。
+        # 黙って空を返すと「全馬 past_runs=[]」のまま静かにパイプラインが通ってしまうので、
+        # 何が返ってきたのかを必ず残す（2026-09-19 の初回本番実行で実際にこれが起きた）。
+        title = soup.title.get_text(strip=True) if soup.title else "(titleなし)"
+        tables = [t.get("class") for t in soup.find_all("table")][:5]
+        logger.warning(
+            "戦績テーブル table.db_h_race_results が見つかりません。"
+            "title=%r / 本文%dバイト / 先頭のtable class=%s",
+            title, len(html), tables,
+        )
         return []
     rows = table.select("tbody tr")
     runs = []

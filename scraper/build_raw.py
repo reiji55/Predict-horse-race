@@ -321,6 +321,36 @@ def main() -> None:
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     logger.info("書き出し完了: %s（%d レース）", out_path, len(data["races"]))
+    report_coverage(data["races"])
+
+
+def report_coverage(races: list[dict[str, Any]]) -> None:
+    """
+    取れた項目のカバレッジをログに出す。
+
+    **HTTPが200でもパーサーが空を返せば、エラーにならないまま「中身の無い予想」が出来上がる。**
+    2026-09-19 の初回本番実行で実際にこれが起きた（過去走とオッズが全馬ゼロなのに run は success）。
+    項目が丸ごとゼロなら ERROR を出して、ログを見れば必ず気づけるようにする。
+    """
+    entries = [e for race in races for e in race.get("entries", [])]
+    if not entries:
+        logger.error("出走馬が1頭も取れていません。Bページ（出馬表）の取得・解析を確認してください")
+        return
+
+    fields = {
+        "過去走(C)": sum(1 for e in entries if e.get("past_runs")),
+        "単勝オッズ(B2)": sum(1 for e in entries if e.get("win_odds") is not None),
+        "騎手成績(D)": sum(1 for e in entries if e.get("jockey_stats")),
+        "厩舎成績(E)": sum(1 for e in entries if e.get("trainer_stats")),
+    }
+    total = len(entries)
+    logger.info("カバレッジ（%d頭中）: %s", total,
+                " / ".join(f"{k} {v}" for k, v in fields.items()))
+    for name, count in fields.items():
+        if count == 0:
+            logger.error(
+                "%s が %d頭中0頭です。取得は成功しているのに中身が空なので、"
+                "パーサーかページ構成の変更を疑ってください", name, total)
 
 
 if __name__ == "__main__":

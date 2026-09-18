@@ -276,9 +276,16 @@ def fetch_leading(category: str, year: str, *, bel: str = BEL_ALL,
                                   limit=limit, page=page)
         stats = parse_leading_html(html, category, year, bel=bel)
         new_keys = set(stats) - set(merged)
+        # ★ 2026-09-19 の初回本番実行で判明：同じ limit=100 を渡しているのに
+        #   jockey は1ページ20件・2ページ目で打ち切り（計40人）、trainer は100件/ページで221人。
+        #   カテゴリによって limit の効き方が違うらしく、jockey 側はページ間に
+        #   飛びがある可能性がある（＝上位40人ではなく「1〜20位と101〜120位」かもしれない）。
+        #   判定するために、各ページの先頭と末尾の名前を必ず残す。
+        names = [s.get("name") for s in stats.values()]
+        logger.info("%s リーディング %dページ目: %d件（うち新規 %d件・累計 %d件）先頭=%s 末尾=%s",
+                    category, page, len(stats), len(new_keys), len(merged) + len(new_keys),
+                    names[0] if names else None, names[-1] if names else None)
         merged.update(stats)
         if not new_keys:
             break   # 新しい行が無くなったら終わり
-        logger.info("%s リーディング %dページ目: %d件（累計 %d件）",
-                    category, page, len(stats), len(merged))
     return merged
