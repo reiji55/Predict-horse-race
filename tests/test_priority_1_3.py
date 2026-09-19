@@ -180,32 +180,82 @@ def _race_without_combo_odds() -> dict:
     }
 
 
+def _veto_config(**over):
+    config = json.loads(json.dumps(MYOMI_CONFIG))
+    config["card_ev"] = {**config["card_ev"], **over}
+    return config
+
+
 def test_meter_falls_back_to_the_old_one_when_market_odds_are_missing():
-    config = MYOMI_CONFIG
+    """式別オッズが無くても、表示は旧メーターを出す（0で潰さない）。"""
+    config = _veto_config(mode="meter")
     card_ev = myomi.compute_card_ev_myomi(
         {"complete": False, "coverage": 0.0, "expected_roi": None}, [5, 5, 5], config)
     disagreement = {"myomi": 87.5, "myomi_parts": {"umami": 0.8074, "conf": 0.9688},
                     "legendary": True}
 
-    resolved = myomi.resolve_myomi(card_ev, disagreement)
+    resolved = myomi.resolve_myomi(card_ev, disagreement, config)
 
     assert resolved["myomi"] == 87.5                     # 0で潰さない
     assert resolved["myomi_source"] == myomi.SOURCE_DISAGREEMENT_FALLBACK
     assert resolved["legendary"] is False                # ★ 降臨だけは退避させない
 
 
-def test_card_ev_wins_when_market_odds_are_available():
-    config = MYOMI_CONFIG
+def test_card_ev_drives_the_meter_only_in_meter_mode():
+    """較正が済んだら mode="meter" でカードEVの大きさを妙味にできる。"""
+    config = _veto_config(mode="meter")
     card_ev = myomi.compute_card_ev_myomi(
         {"complete": True, "coverage": 1.0, "expected_roi": 1.6}, [5, 5, 5], config)
     disagreement = {"myomi": 10.0, "myomi_parts": {"umami": 0.1, "conf": 1.0},
                     "legendary": False}
 
-    resolved = myomi.resolve_myomi(card_ev, disagreement)
+    resolved = myomi.resolve_myomi(card_ev, disagreement, config)
 
     assert resolved["myomi_source"] == myomi.SOURCE_CARD_EV
-    assert resolved["myomi"] == card_ev["myomi"]
     assert resolved["legendary"] is True                 # edge 0.6 > cap 0.5 で飽和
+
+
+# --- veto モード（現在の既定）------------------------------------------------
+#
+# 2026-09-20 の実測で、鳳が選ぶ5点はモデル確率が市場の4〜16倍（レース全体の中央値は
+# 1.15〜1.35倍）と判った。p×odds はこの比の最大値を取りに行くので、「旨みが大きい組」
+# ではなく「モデルの誤差が大きい組」を選ぶ。EVの**大きさ**は当てにできないので、
+# 較正が済むまでは符号（元本割れしていないか）だけを拒否権として使う。
+
+def test_veto_mode_shows_the_old_meter_and_requires_positive_card_ev():
+    config = _veto_config(mode="veto")
+    card_ev = myomi.compute_card_ev_myomi(
+        {"complete": True, "coverage": 1.0, "expected_roi": 4.97}, [5, 5, 5], config)
+    disagreement = {"myomi": 87.5, "myomi_parts": {"umami": 0.8, "conf": 0.97},
+                    "legendary": True}
+
+    resolved = myomi.resolve_myomi(card_ev, disagreement, config)
+
+    assert resolved["myomi"] == 87.5                     # 表示は旧メーター（EVの大きさは使わない）
+    assert resolved["myomi_source"] == myomi.SOURCE_DISAGREEMENT_WITH_EV_VETO
+    assert resolved["legendary"] is True
+
+
+def test_veto_blocks_otori_when_the_card_is_negative_ev_at_market_prices():
+    """旧メーターが閾値超えでも、実オッズで元本割れするカードなら降臨させない。"""
+    config = _veto_config(mode="veto")
+    card_ev = myomi.compute_card_ev_myomi(
+        {"complete": True, "coverage": 1.0, "expected_roi": 0.82}, [5, 5, 5], config)
+    disagreement = {"myomi": 87.5, "myomi_parts": {"umami": 0.8, "conf": 0.97},
+                    "legendary": True}
+
+    assert myomi.resolve_myomi(card_ev, disagreement, config)["legendary"] is False
+
+
+def test_veto_blocks_otori_when_any_leg_has_no_market_odds():
+    """5点のうち1点でも実オッズが無ければ降臨させない（都合の良い点だけ足さない）。"""
+    config = _veto_config(mode="veto")
+    card_ev = myomi.compute_card_ev_myomi(
+        {"complete": False, "coverage": 0.8, "expected_roi": None}, [5, 5, 5], config)
+    disagreement = {"myomi": 87.5, "myomi_parts": {"umami": 0.8, "conf": 0.97},
+                    "legendary": True}
+
+    assert myomi.resolve_myomi(card_ev, disagreement, config)["legendary"] is False
 
 
 def test_otori_never_appears_without_real_combination_odds():
@@ -215,6 +265,5 @@ def test_otori_never_appears_without_real_combination_odds():
     race = built["races"][0]
 
     assert race["myomi"] == race["model_disagreement_myomi"]["myomi"]
-    assert race["myomi_source"] == myomi.SOURCE_DISAGREEMENT_FALLBACK
     assert race["legendary"] is False
     assert [c["char"] for c in race["cards"]] == ["kei", "tetsu", "gen"]

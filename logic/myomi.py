@@ -118,6 +118,7 @@ def compute_myomi(p: list[float | None], q: list[float | None], n_usable_list: l
 SOURCE_CARD_EV = "otori_market_card_ev"                 # 鳳のカードを実オッズで評価できた
 SOURCE_CARD_EV_UNAVAILABLE = "otori_market_card_ev_unavailable"
 SOURCE_DISAGREEMENT_FALLBACK = "model_disagreement_fallback"   # 実オッズが無く旧メーターに退避
+SOURCE_DISAGREEMENT_WITH_EV_VETO = "model_disagreement_with_ev_veto"  # 旧メーター＋EVは拒否権のみ
 
 
 def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
@@ -166,31 +167,61 @@ def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
         "myomi_parts": {"umami": round(umami, 4), "conf": round(conf, 4)},
         "legendary": value > config["myomi_threshold"],
         "myomi_source": SOURCE_CARD_EV,
+        "expected_roi": float(roi),
     }
 
 
 def resolve_myomi(card_ev_result: dict[str, Any],
-                  disagreement_result: dict[str, Any]) -> dict[str, Any]:
+                  disagreement_result: dict[str, Any],
+                  config: dict[str, Any]) -> dict[str, Any]:
     """
-    **表示する**妙味メーターを決める。
+    **表示する**妙味メーターと、鳳の降臨可否を決める。
 
-    式別オッズ（馬連・ワイド・3連複）が揃っていれば、鳳が実際に買うカードの市場EVを使う。
-    揃わなければ旧来の「モデルと市場の乖離」メーターに退避する。
+    `config["card_ev"]["mode"]` で2つの使い方を切り替える。
 
-    なぜ退避するか：式別オッズの取得はnetkeibaのレスポンス構造に依存しており、
-    ここが崩れると**全レースの妙味が0で表示される**。「このレースに旨みは無い」と
+    --- mode="veto"（現在の既定） ---
+
+    表示は旧来の「モデルと市場の乖離」メーター。カードEVは**拒否権としてだけ**使い、
+    「旧メーターが閾値超え」かつ「鳳が買う5点すべてに実オッズがあり、その合計EVが
+    元本割れしていない」ときにだけ降臨させる。
+
+    **なぜEVの大きさを信用しないか（2026-09-20の実測）。**
+    式別オッズが取れるようになったので、モデル確率と市場の含み確率を全組で比べられた。
+    レース全体では中央値1.15〜1.35倍（＝だいたい市場と同じ見方）なのに、
+    **鳳が選んだ5点はどれも4〜16倍**だった。鳳の目的関数 p×odds はこの比の最大値を
+    取りに行くので、**「旨みが大きい組」ではなく「モデルの誤差が大きい組」を選ぶ**。
+    その結果、カードEVは期待回収率4〜5倍（＝+300〜400%のエッジ）という、
+    パリミュチュエル市場ではあり得ない値になる。この大きさで妙味を測ると常時振り切れ、
+    鳳が毎レース降臨する。確率の較正が済むまで、EVは**符号（元本割れしていないか）だけ**
+    使う。
+
+    --- mode="meter" ---
+
+    カードEVの大きさで妙味を測る（ChatGPT PR #1 の設計）。較正が済んだら切り替える。
+    式別オッズが欠けている場合は旧メーターに退避し、降臨はさせない：
+    ここが崩れると**全レースの妙味が0で表示される**ため。「このレースに旨みは無い」と
     「旨みを測れなかった」は全く違う話なので、0で潰さずに測れている方の指標を出す。
-
-    **`legendary`（鳳の降臨）はカードEVが揃ったときしか true にならない。**
-    退避中は降臨させない：鳳が実際に買う馬券が市場価格で割安だと確認できていないのに
-    降臨させるのが、初実戦で起きた不整合そのものだったため。
     """
-    if card_ev_result.get("myomi_source") == SOURCE_CARD_EV:
-        return card_ev_result
+    card_cfg = config.get("card_ev", {})
+    mode = card_cfg.get("mode", "veto")
+    measured = card_ev_result.get("myomi_source") == SOURCE_CARD_EV
 
+    if mode == "meter":
+        if measured:
+            return card_ev_result
+        return {
+            "myomi": disagreement_result["myomi"],
+            "myomi_parts": disagreement_result["myomi_parts"],
+            "legendary": False,
+            "myomi_source": SOURCE_DISAGREEMENT_FALLBACK,
+        }
+
+    # mode="veto"
+    min_roi = card_cfg.get("min_expected_roi", 1.0)
+    roi_ok = measured and card_ev_result.get("expected_roi", 0.0) >= min_roi
     return {
         "myomi": disagreement_result["myomi"],
         "myomi_parts": disagreement_result["myomi_parts"],
-        "legendary": False,
-        "myomi_source": SOURCE_DISAGREEMENT_FALLBACK,
+        "legendary": bool(disagreement_result["legendary"]) and roi_ok,
+        "myomi_source": SOURCE_DISAGREEMENT_WITH_EV_VETO,
     }

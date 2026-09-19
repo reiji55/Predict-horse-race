@@ -148,11 +148,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
     )
     # 式別オッズが取れなかった日に全レースの妙味が0で並ばないよう、旧メーターへ退避する。
     # **降臨だけは退避しない**（myomi.resolve_myomi の説明を参照）。
-    myomi_result = myomi.resolve_myomi(card_ev_myomi, disagreement_myomi)
-    if myomi_result["myomi_source"] != myomi.SOURCE_CARD_EV:
+    myomi_result = myomi.resolve_myomi(card_ev_myomi, disagreement_myomi, myomi_config)
+    if card_ev_myomi.get("myomi_source") != myomi.SOURCE_CARD_EV:
         logger.warning(
-            "%s: 式別オッズが揃わずカードEVを測れませんでした（coverage=%s）。"
-            "妙味は旧メーター（モデル-市場乖離）を表示し、鳳は降臨させません",
+            "%s: 式別オッズが揃わずカードEVを測れませんでした（coverage=%s）。鳳は降臨させません",
             race.get("id"), (otori_market_ev or {}).get("coverage"),
         )
 
