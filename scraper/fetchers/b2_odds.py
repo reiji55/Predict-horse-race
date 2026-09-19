@@ -76,6 +76,17 @@ ODDS_TYPE_UMAREN = "4"
 ODDS_TYPE_WIDE = "5"
 ODDS_TYPE_SANRENPUKU = "7"
 
+COMBO_TYPE_NAMES = {
+    ODDS_TYPE_UMAREN: "馬連",
+    ODDS_TYPE_WIDE: "ワイド",
+    ODDS_TYPE_SANRENPUKU: "3連複",
+}
+COMBO_TYPE_SIZE = {
+    ODDS_TYPE_UMAREN: 2,
+    ODDS_TYPE_WIDE: 2,
+    ODDS_TYPE_SANRENPUKU: 3,
+}
+
 
 def _unwrap_jsonp(text: str) -> str:
     """jsonp（callback({...})）なら外側を剥がす。生JSONならそのまま返す。"""
@@ -170,25 +181,87 @@ def extract_win_place_odds(body: dict[str, Any]) -> dict[int, dict[str, Any]]:
     return result
 
 
-def fetch_odds(race_source_ref: str) -> dict[str, Any]:
-    """
-    オッズAPIを叩いて {official_datetime, by_num} を返す。
-    by_num は 馬番 -> {win_odds, place_odds, popularity} のマップ。
+def _combo_key(raw_key: Any, size: int) -> str | None:
+    """netkeibaの組番キー（例 "0209", "020910"）を "2-9" / "2-9-10" に正規化する。"""
+    digits = re.sub(r"\D", "", str(raw_key))
+    if len(digits) != size * 2:
+        return None
+    nums = []
+    try:
+        for i in range(size):
+            num = int(digits[i * 2:(i + 1) * 2])
+            if num <= 0:
+                return None
+            nums.append(num)
+    except ValueError:
+        return None
+    return "-".join(str(n) for n in sorted(nums))
 
-    race_source_ref: netkeibaのレースID（12桁、例 "202605030611"）
+
+def _positive_float(value: Any) -> float | None:
+    try:
+        v = float(value)
+        return v if v > 0 else None
+    except (ValueError, TypeError):
+        return None
+
+
+def extract_combo_odds(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """
-    # ★ パラメータは netkeiba 自身の `jquery.odds_update.js`（`_getOdds()`）に合わせてある。
-    #   2026-09-19 の本番実行で単勝オッズが1件も取れず、そのJSを読み直して判明した差分：
-    #     type : "all" ではなく **"1"**（＝単勝。JSの既定 oddsType は 1）
-    #     sort : JSは常に送っている（既定 "odds"）。こちらは送っていなかった
-    #   compress=1 は「data が base64(zlib(JSON))」の意味で、_decode_payload が復元する。
+    馬連・ワイド・3連複の実オッズを共通形にする。
+
+    戻り値:
+      {
+        "馬連": {"2-9": 269.9},
+        "ワイド": {"2-9": [60.0, 66.9]},  # 幅がある券種は [下限, 上限]
+        "3連複": {"2-9-10": 2252.8}
+      }
+
+    鳳のEV判定ではワイドは下限を使う（過大評価を避けるため保守的）。
+    """
+    out: dict[str, dict[str, Any]] = {}
+    odds = body.get("odds", {})
+    if not isinstance(odds, dict):
+        return out
+
+    for type_code, type_name in COMBO_TYPE_NAMES.items():
+        table = odds.get(type_code)
+        if not isinstance(table, dict):
+            continue
+        size = COMBO_TYPE_SIZE[type_code]
+        parsed: dict[str, Any] = {}
+        for raw_key, arr in table.items():
+            if not isinstance(arr, (list, tuple)) or not arr:
+                continue
+            key = _combo_key(raw_key, size)
+            if key is None:
+                continue
+            if type_code == ODDS_TYPE_WIDE:
+                low = _positive_float(arr[0])
+                high = _positive_float(arr[1]) if len(arr) > 1 else low
+                if low is None:
+                    continue
+                if high is None:
+                    high = low
+                parsed[key] = [min(low, high), max(low, high)]
+            else:
+                value = _positive_float(arr[0])
+                if value is not None:
+                    parsed[key] = value
+        if parsed:
+            out[type_name] = parsed
+    return out
+
+
+def _fetch_type_body(race_source_ref: str, odds_type: str) -> dict[str, Any]:
+    """指定券種1つをnetkeibaのオッズAPIから取得する。"""
     params = {
         "pid": "api_get_jra_odds",
         "race_id": race_source_ref,
-        "type": ODDS_TYPE_TAN,
+        "type": odds_type,
         "action": "init",
         "sort": "odds",
-        "output": "json",   # jsonp剥がしを避けるため生JSONを要求
+        "output": "json",
         "compress": "1",
     }
     headers = {
@@ -198,22 +271,26 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
     }
     resp = http_get(ODDS_API_URL, params=params, headers=headers)
     if resp is None:
-        raise RuntimeError(f"オッズAPIの取得に失敗しました: race_id={race_source_ref}")
+        raise RuntimeError(
+            f"オッズAPIの取得に失敗しました: race_id={race_source_ref} type={odds_type}"
+        )
+    return parse_odds_response(resp.text)
 
-    body = parse_odds_response(resp.text)
+
+def fetch_odds(race_source_ref: str) -> dict[str, Any]:
+    """
+    単勝に加え、実際に購入する馬連・ワイド・3連複の市場オッズも取得する。
+
+    type=all は2026-09-19の本番で空を返したため、券種ごとに分けて取得する。
+    組み合わせオッズの取得失敗は単勝予想まで巻き込まず、combo_oddsを欠損として続行する。
+    """
+    body = _fetch_type_body(race_source_ref, ODDS_TYPE_TAN)
     by_num = extract_win_place_odds(body)
+
     if not any(v.get("win_odds") is not None for v in by_num.values()):
-        # 応答はあるのに単勝が1件も取れない＝パラメータかレスポンス構造の食い違い。
-        # 中身が分からないまま「オッズ全馬null」で通ってしまうのを防ぐため、手がかりを必ず残す
-        # （2026-09-19 の本番実行で実際にこれが起きた）。
         odds = body.get("odds")
         tan = odds.get(ODDS_TYPE_TAN) if isinstance(odds, dict) else None
-        if isinstance(tan, dict):
-            sample = list(tan.items())[:3]
-        elif isinstance(tan, list):
-            sample = tan[:3]
-        else:
-            sample = tan
+        sample = list(tan.items())[:3] if isinstance(tan, dict) else tan
         logger.warning(
             "単勝オッズが1件も取れませんでした race_id=%s / official_datetime=%r / "
             "oddsのキー=%s / odds['1'] の型=%s・件数=%s / 中身の先頭3件=%r",
@@ -221,9 +298,27 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
             sorted(odds)[:8] if isinstance(odds, dict) else type(odds).__name__,
             type(tan).__name__, len(tan) if hasattr(tan, "__len__") else None, sample,
         )
+
+    combo_odds: dict[str, dict[str, Any]] = {}
+    timestamps = [body.get("official_datetime")]
+    for type_code in (ODDS_TYPE_UMAREN, ODDS_TYPE_WIDE, ODDS_TYPE_SANRENPUKU):
+        try:
+            combo_body = _fetch_type_body(race_source_ref, type_code)
+            timestamps.append(combo_body.get("official_datetime"))
+            for type_name, table in extract_combo_odds(combo_body).items():
+                combo_odds.setdefault(type_name, {}).update(table)
+        except (RuntimeError, ValueError, json.JSONDecodeError):
+            logger.warning(
+                "式別オッズを取得できませんでした race_id=%s type=%s。"
+                "この券種は鳳の市場EV判定から欠損扱いにします",
+                race_source_ref, type_code, exc_info=True,
+            )
+
+    official = max((t for t in timestamps if t), default=None)
     return {
-        "official_datetime": body.get("official_datetime"),
+        "official_datetime": official,
         "by_num": by_num,
+        "combo_odds": combo_odds,
     }
 
 
@@ -243,6 +338,9 @@ def merge_odds_into_race(race: dict[str, Any], odds_result: dict[str, Any]) -> N
                 entry["place_odds"] = od["place_odds"]
             if od.get("popularity") is not None:
                 entry["popularity"] = od["popularity"]
-    # オッズ確定時刻を記録（取得項目仕様§2.3 odds_updated_at）
+    # 実際に買う券種の市場価格。鳳のカードEV計算ではこの値を使う。
+    race["combo_odds"] = odds_result.get("combo_odds") or {}
+
+    # オッズ観測時刻を記録（取得項目仕様§2.3 odds_updated_at）
     if odds_result.get("official_datetime"):
         race["odds_updated_at"] = odds_result["official_datetime"]
