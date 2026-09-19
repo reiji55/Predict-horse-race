@@ -66,7 +66,8 @@ def test_ev_falls_back_when_no_odds_were_fetched(caplog):
     horses = [{**h, "odds": None} for h in _horses()]
     cards.assign_character_ranks(horses, CONFIG, CONFIG["characters"]["gen"])
 
-    assert [h["sel_value_rank"] for h in horses] == [4, 2, 1, 3]   # ＝p−qの順位
+    # フォールバックしても源さん固有の適性重視pは維持する（共通pへ戻してはいけない）
+    assert [h["sel_value_rank"] for h in horses] == [4, 2, 3, 1]
     assert "切り替えます" in caplog.text
 
 
