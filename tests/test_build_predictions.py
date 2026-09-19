@@ -91,12 +91,12 @@ def test_cards_and_invariants():
     mark_nums = {m["num"] for m in race["marks"]}
     for card in race["cards"]:
         assert sum(b["amt"] for b in card["bets"]) == card["total"]
-        assert card["total"] == (1000 if card["char"] == "otori" else 500)
+        assert card["total"] == 500
         for bet in card["bets"]:
             assert bet["type"] in BET_TYPES
             assert len(bet["horses"]) == BET_SIZE[bet["type"]]
             assert set(bet["horses"]) <= mark_nums
-            assert bet["amt"] % 50 == 0
+            assert bet["amt"] % 100 == 0
         low, high = card["payout_range"]
         assert 0 < low <= high
         assert 0 <= card["hit_pct"] <= 100
