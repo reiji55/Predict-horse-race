@@ -1,0 +1,25 @@
+name: ChatGPT priority 1-3 CI
+
+on:
+  push:
+    branches:
+      - chatgpt/fix-priority-1-3-20260920
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Python tests
+        run: python -m pytest -q
+      - name: Node adapter tests
+        run: node tests/test_adapter.js
