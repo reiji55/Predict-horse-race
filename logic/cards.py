@@ -61,10 +61,7 @@ sel の高い順に軸・相手を組み、券種テンプレはキャラごと�
   4. horses の頭数が券種と一致（ワイド・馬連=2、3連複=3）
   5. horses の馬番が marks に存在する
 
-  ⚠ **amt_unit（要レビュー）**：仕様§5.5-1 は「100円単位」だが、サンプル（predictions/results とも）
-  の哲さんカードには `amt: 150` がある。500円を厚み付きで配分する自由度を優先し、
-  **既定を50円単位**（`config/cards.json` の `amt_unit`）とした。100に戻せば仕様の記述どおりになる。
-  **この判断は docs/OPEN_QUESTIONS.md B-4 に記録。**
+  **amt_unit は100円固定。** JRAで実際に購入できる単位に合わせ、50円・150円の仮想買い目は生成しない。
 """
 from __future__ import annotations
 
@@ -72,7 +69,7 @@ import itertools
 import logging
 from typing import Any
 
-from logic import base_score
+from logic import base_score, prob_model
 
 logger = logging.getLogger("logic.cards")
 
@@ -95,8 +92,8 @@ CARD_TEMPLATES: dict[str, list[dict[str, Any]]] = {
     ],
     # 哲さん：馬連＋ワイド＋3連複少点数。印軸＋少し妙味
     "tetsu": [
-        {"min_horses": 4, "bets": [(UMAREN, (0, 1), 150), (UMAREN, (0, 2), 100),
-                                   (SANRENPUKU, (0, 1, 2), 150), (WIDE, (0, 3), 100)]},
+        {"min_horses": 4, "bets": [(UMAREN, (0, 1), 200), (UMAREN, (0, 2), 100),
+                                   (SANRENPUKU, (0, 1, 2), 100), (WIDE, (0, 3), 100)]},
         {"min_horses": 3, "bets": [(UMAREN, (0, 1), 200), (UMAREN, (0, 2), 100),
                                    (SANRENPUKU, (0, 1, 2), 200)]},
     ],
@@ -112,12 +109,11 @@ CARD_TEMPLATES: dict[str, list[dict[str, Any]]] = {
     # 倍額を張って外れたため、鳳が「他と違う予想を出せている」と確認できるまで同額に落とした
     # （docs/OPEN_QUESTIONS.md B-8）。
     "otori": [
-        {"min_horses": 4, "bets": [(WIDE, (0, 1), 100), (WIDE, (0, 2), 50),
-                                   (UMAREN, (0, 1), 50), (UMAREN, (0, 2), 50),
-                                   (SANRENPUKU, (0, 1, 2), 100), (SANRENPUKU, (0, 1, 3), 50),
-                                   (SANRENPUKU, (0, 2, 3), 100)]},
-        {"min_horses": 3, "bets": [(WIDE, (0, 1), 150), (UMAREN, (0, 1), 100),
-                                   (SANRENPUKU, (0, 1, 2), 250)]},
+        {"min_horses": 4, "bets": [(WIDE, (0, 1), 100), (WIDE, (0, 2), 100),
+                                   (UMAREN, (0, 1), 100),
+                                   (SANRENPUKU, (0, 1, 2), 100), (SANRENPUKU, (0, 1, 3), 100)]},
+        {"min_horses": 3, "bets": [(WIDE, (0, 1), 200), (UMAREN, (0, 1), 100),
+                                   (SANRENPUKU, (0, 1, 2), 200)]},
     ],
 }
 
@@ -241,7 +237,7 @@ def _ranks_desc(values: list[float | None]) -> list[int | None]:
 
 
 def assign_character_ranks(horses: list[dict[str, Any]], config: dict[str, Any],
-                           char_config: dict[str, Any]) -> None:
+                           char_config: dict[str, Any], temperature: float = 10.0) -> None:
     """
     そのキャラ固有の「実力順（sel_base_rank）」と「歪み順（sel_value_rank）」を horses に書き込む。
 
@@ -253,34 +249,37 @@ def assign_character_ranks(horses: list[dict[str, Any]], config: dict[str, Any],
     「同じ新聞を見て、別の見方で買う3人」という建て付けは保たれる。
     """
     weights = char_config.get("score_weights")
-    # ①②③の生値が1つも無い（＝base_score を外から与えられている）場合は、
-    # キャラ固有の配分で測り直しようがないので共通の base_rank を使う。
-    # 仕様書の検算サンプルのように、スコアだけを直接与える呼び出しのため。
-    if weights and any(base_score.count_usable_factors(h) for h in horses):
-        base_ranks = _ranks_desc(base_score.composite_scores(horses, weights))
+    has_raw_factors = any(base_score.count_usable_factors(h) for h in horses)
+
+    # キャラ固有の能力配分を使うなら、順位だけでなく score → p まで同じ配分で再計算する。
+    # 以前は「適性重視の源さん」が、EVだけは共通45/30/25モデルのpを使っており内部矛盾があった。
+    if weights and has_raw_factors:
+        char_base_scores = base_score.composite_scores(horses, weights)
+        char_scores = [base_score.to_display_score(v, config) for v in char_base_scores]
+        char_p = prob_model.softmax_scores(char_scores, temperature)
+        base_ranks = _ranks_desc(char_base_scores)
     else:
+        char_scores = [h.get("score") for h in horses]
+        char_p = [h.get("p") for h in horses]
         base_ranks = [h.get("base_rank") for h in horses]
 
     objective = char_config.get("objective", DEFAULT_OBJECTIVE)
-    values = objective_values(
-        objective,
-        [h.get("p") for h in horses],
-        [h.get("q") for h in horses],
-        [h.get("odds") for h in horses],
-    )
+    q = [h.get("q") for h in horses]
+    odds = [h.get("odds") for h in horses]
+    values = objective_values(objective, char_p, q, odds)
     if not any(v is not None for v in values) and objective != DEFAULT_OBJECTIVE:
         # 単勝オッズが1頭も取れていないとEVが全滅する。無言で全馬を選定対象外にせず、
-        # 既定の尺度に落として買い目は出す（取得項目仕様§1.1と同じ「黙って消さない」方針）。
+        # 同じキャラ固有pのまま既定のp-q尺度へ落とす。
         logger.warning("目的関数 %s の値が1頭も計算できないため %s に切り替えます",
                        objective, DEFAULT_OBJECTIVE)
-        values = objective_values(DEFAULT_OBJECTIVE,
-                                  [h.get("p") for h in horses],
-                                  [h.get("q") for h in horses],
-                                  [h.get("odds") for h in horses])
+        values = objective_values(DEFAULT_OBJECTIVE, char_p, q, odds)
 
     value_ranks = _ranks_desc(values)
-    for horse, base_rank, value, value_rank in zip(horses, base_ranks, values, value_ranks):
+    for horse, base_rank, score, p_i, value, value_rank in zip(
+            horses, base_ranks, char_scores, char_p, values, value_ranks):
         horse["sel_base_rank"] = base_rank
+        horse["sel_score"] = score
+        horse["sel_p"] = p_i
         horse["sel_value"] = value
         horse["sel_value_rank"] = value_rank
 
@@ -377,17 +376,15 @@ def evaluate_card(bets: list[dict[str, Any]], p_by_num: dict[int, float],
     }
 
 
-PAYOUT_ROUND_UNIT = 50
+PAYOUT_ROUND_UNIT = 100
 
 
 def _round100(value: float) -> int:
     """
     払戻の概算値を丸める（あくまで目安の表示なので精度を主張しない）。
 
-    丸めの単位は50円。**100円単位だと、当たっているのに払戻0円と表示されることがある**：
-    的中確率の高いワイドを50円だけ買うと概算払戻が100円を下回り、0に丸められてしまう
-    （鳳の金額を半分にしたときに実際に起きた）。「当たったのに0円」は嘘なので、
-    正の値は最低でも1単位は残す。
+    丸めの単位は100円。JRAの購入単位と表示単位を一致させる。
+    正の概算払戻は最低でも1単位（100円）を残す。
     """
     if value <= 0:
         return 0
@@ -457,7 +454,8 @@ def select_horses(horses: list[dict[str, Any]], lam: float,
 
 
 def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
-                                config: dict[str, Any]) -> dict[str, Any] | None:
+                                config: dict[str, Any], temperature: float = 10.0,
+                                combo_odds: dict[str, Any] | None = None) -> dict[str, Any] | None:
     """
     1キャラ分のcards[]要素を生成する（買い目生成仕様§5）。
 
@@ -467,7 +465,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
     生成後に §5.5 の不変条件を検証し、崩れていれば ValueError を投げる。
     """
     char_config = config["characters"][char_id]
-    assign_character_ranks(horses, config, char_config)
+    assign_character_ranks(horses, config, char_config, temperature)
     ordered = select_horses(
         horses, char_config["lambda"], char_config.get("axis_base_rank_floor"),
         base_rank_key="sel_base_rank", value_rank_key="sel_value_rank",
@@ -495,8 +493,8 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         raise ValueError(f"{char_id} の点数がmax_pointsを超えています: {len(bets)} > {char_config['max_points']}")
 
     p_by_num = {
-        h["num"]: h["p"] for h in horses
-        if h.get("p") is not None and h.get("num") is not None
+        h["num"]: h["sel_p"] for h in horses
+        if h.get("sel_p") is not None and h.get("num") is not None
     }
     evaluation = evaluate_card(bets, p_by_num, config["combo_prob"]["takeout"])
 
@@ -512,7 +510,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
 
 
 def validate_card_invariants(card: dict[str, Any], marks: list[dict[str, Any]],
-                             amt_unit: int = 50) -> None:
+                             amt_unit: int = 100) -> None:
     """買い目生成仕様§5.5の5条件を検証。崩れていたら ValueError を投げる。"""
     mark_nums = {m["num"] for m in marks}
 
