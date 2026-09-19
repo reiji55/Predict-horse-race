@@ -4,7 +4,8 @@ results.json ビルドスクリプト（データスキーマ仕様_v1.2.md §5�
 流れ（引き継ぎ書v3 §4.1）：
   Fページ（scraper.fetchers.f_results）で確定着順・公式配当表を取得
   → dividends（買い目非依存の生データ）を保持
-  → predictions.json の cards[] と突き合わせて的中判定・payout計算
+  → **発走前に凍結した予想**（data/snapshots/・logic/snapshots.py）の cards[] と
+     突き合わせて的中判定・payout計算
   → 払戻の4不変条件を検証（データスキーマ仕様§5「払戻の計算ルール」）
   → results.json 書き出し
 
@@ -16,6 +17,17 @@ results.json ビルドスクリプト（データスキーマ仕様_v1.2.md §5�
   4. cards[].hit    = 1点でも bets[].hit=true があれば true
 
 この4条件を検証し、崩れていたらエラーにする（**スクレイプミス・配当の取り違えの早期検知**）。
+
+--- 何を採点するか（発走前の凍結） ---
+
+採点対象は `data/predictions.json`（毎回上書きされる最新版）**ではなく**、
+`data/snapshots/{race_id}.json`（発走前に観測した最後の予想）。理由は logic/snapshots.py 冒頭。
+
+--- 市場ベンチマーク ---
+
+モデルの成績は「買わなかった場合」ではなく「**何も考えずに人気どおり買った場合**」と
+比べないと意味がない。そこで各レースで「1番人気−2番人気のワイド1点」を同額買った場合の
+収支を併記する（`benchmark`）。**モデルがこれに勝てないなら、モデルは価値を生んでいない。**
 
 --- 的中判定について ---
 
@@ -38,6 +50,8 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+
+from logic import snapshots
 
 logger = logging.getLogger("results.build_results")
 
@@ -110,6 +124,32 @@ def validate_result_invariants(result_card: dict[str, Any], prediction_card: dic
         raise ValueError(f"cards[].hit が買い目の的中と一致しません: {result_card['char']}")
 
 
+BENCHMARK_AMT = 500          # 1カード分と同額。キャラ1人と正面から比べられるようにする
+BENCHMARK_TYPE = "ワイド"
+
+
+def market_benchmark(prediction_race: dict[str, Any], dividends: dict[str, Any],
+                     amt: int = BENCHMARK_AMT) -> dict[str, Any] | None:
+    """
+    「1番人気−2番人気のワイドを1点だけ買う」という**思考ゼロの基準戦略**の収支。
+
+    モデルが市場の歪みを突けているかは、この基準を上回れるかで判る。
+    人気順は marks[].odds（単勝オッズ）の昇順で決める。オッズが2頭ぶん揃わなければ None。
+    """
+    ranked = sorted(
+        (m for m in prediction_race.get("marks", [])
+         if m.get("odds") is not None and m.get("num") is not None),
+        key=lambda m: m["odds"],
+    )
+    if len(ranked) < 2:
+        return None
+
+    bet = {"type": BENCHMARK_TYPE, "horses": [ranked[0]["num"], ranked[1]["num"]], "amt": amt}
+    settled = settle_bet(bet, dividends)
+    settled["odds"] = [ranked[0]["odds"], ranked[1]["odds"]]
+    return settled
+
+
 def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, Any]) -> dict[str, Any]:
     """
     predictions.json の races[] 1件と、Fページ由来の {finish, dividends} から
@@ -122,12 +162,19 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
         validate_result_invariants(card, prediction_card, dividends)
         cards.append(card)
 
-    return {
+    result = {
         "race_id": prediction_race["id"],
         "finish": race_result.get("finish", []),
         "dividends": dividends,
         "cards": cards,
     }
+    benchmark = market_benchmark(prediction_race, dividends)
+    if benchmark is not None:
+        result["benchmark"] = benchmark
+    # いつのオッズで決めた買い目を採点したのか、結果側にも残す（logic/snapshots.py 参照）
+    if prediction_race.get("frozen_at"):
+        result["frozen_at"] = prediction_race["frozen_at"]
+    return result
 
 
 def build_results(predictions: dict[str, Any],
@@ -162,9 +209,18 @@ def summarize(results: dict[str, Any]) -> dict[str, Any]:
     overall = {"races": 0, "spent": 0, "payout": 0}
     by_char: dict[str, dict[str, Any]] = {}
     by_type: dict[str, dict[str, Any]] = {}
+    market = {"races": 0, "hits": 0, "spent": 0, "payout": 0}
 
     for race in results.get("results", []):
         overall["races"] += 1
+
+        benchmark = race.get("benchmark")
+        if benchmark:
+            market["races"] += 1
+            market["hits"] += 1 if benchmark["hit"] else 0
+            market["spent"] += benchmark["amt"]
+            market["payout"] += benchmark["payout"]
+
         for card in race.get("cards", []):
             overall["spent"] += card["spent"]
             overall["payout"] += card["payout"]
@@ -196,6 +252,8 @@ def summarize(results: dict[str, Any]) -> dict[str, Any]:
         "overall": overall,
         "by_char": {k: _finish(v, "cards") for k, v in by_char.items()},
         "by_type": {k: _finish(v, "bets") for k, v in by_type.items()},
+        # 1番人気−2番人気ワイドを買い続けた場合。**モデルの比較対象はこれ**
+        "market": _finish(market, "races"),
     }
 
 
@@ -203,13 +261,24 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="週末3CARDS results.json ビルド")
     parser.add_argument("--results", required=True,
                         help='Fページ取得結果のJSON（{race_id: {finish, dividends}}）')
-    parser.add_argument("--predictions", default=str(PREDICTIONS_PATH))
+    parser.add_argument(
+        "--predictions",
+        help="採点する予想のJSON。既定は data/snapshots/（発走前に凍結した予想）。"
+             "**data/predictions.json を直接渡すと、発走後に作り直された予想を採点してしまう**",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
 
-    with open(args.predictions, encoding="utf-8") as f:
-        predictions = json.load(f)
+    if args.predictions:
+        logger.warning("スナップショットではなく %s を採点します（発走後の再生成が混ざる恐れがあります）",
+                       args.predictions)
+        with open(args.predictions, encoding="utf-8") as f:
+            predictions = json.load(f)
+    else:
+        predictions = snapshots.as_predictions()
+        logger.info("発走前に凍結された予想 %d レースを採点します", len(predictions["races"]))
+
     with open(args.results, encoding="utf-8") as f:
         race_results = json.load(f)
 
@@ -219,10 +288,14 @@ def main() -> None:
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2)
 
-    summary = summarize(results)["overall"]
+    summary = summarize(results)
+    overall, market = summary["overall"], summary["market"]
     logger.info("書き出し完了: %s（%d レース／購入 %d円・払戻 %d円・収支 %+d円）",
-                OUTPUT_PATH, summary["races"], summary["spent"], summary["payout"],
-                summary["balance"])
+                OUTPUT_PATH, overall["races"], overall["spent"], overall["payout"],
+                overall["balance"])
+    logger.info("市場ベンチマーク（1-2番人気ワイド）: %d レース／収支 %+d円・回収率 %s",
+                market["races"], market["balance"],
+                f"{market['roi']:.0%}" if market["roi"] is not None else "—")
 
 
 if __name__ == "__main__":

@@ -68,6 +68,41 @@ def z_standardize(values: list[float | None]) -> list[float | None]:
     return [(v - mean) / sd if v is not None else None for v in values]
 
 
+def composite_scores(horses: list[dict[str, Any]],
+                     weights: dict[str, float]) -> list[float | None]:
+    """
+    指定した重みで①②③を合成した z 値を、horses と同じ並びで返す（**副作用なし**）。
+
+    `compute_base_scores` の中身をそのまま切り出したもの。キャラごとに違う重みで
+    並べ替えたい（買い目生成仕様§5 の拡張・OPEN_QUESTIONS B-9）ため、
+    「計算」と「horses への書き込み」を分けてある。
+
+    欠損ファクターは馬ごとに重みを再正規化する（§1.2）。全欠損なら None。
+    """
+    z_by_factor: dict[str, list[float | None]] = {}
+    for raw_key in FACTOR_KEYS:
+        z_by_factor[raw_key] = z_standardize([h.get(raw_key) for h in horses])
+
+    scores: list[float | None] = []
+    for i in range(len(horses)):
+        parts: list[tuple[float, float]] = []  # (重み, z値)
+        for raw_key, weight_key in FACTOR_KEYS.items():
+            z = z_by_factor[raw_key][i]
+            if z is not None:
+                parts.append((weights[weight_key], z))
+
+        weight_total = sum(w for w, _ in parts)
+        scores.append(
+            sum(w * z for w, z in parts) / weight_total if parts and weight_total > 0 else None
+        )
+    return scores
+
+
+def count_usable_factors(horse: dict[str, Any]) -> int:
+    """その馬で値が取れているファクターの数（欠損判定用）。"""
+    return sum(1 for raw_key in FACTOR_KEYS if horse.get(raw_key) is not None)
+
+
 def compute_base_scores(horses: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
     """
     レース1件分の出走馬リストから base_score を計算して付与する（買い目生成仕様§1）。
@@ -78,32 +113,22 @@ def compute_base_scores(horses: list[dict[str, Any]], config: dict[str, Any]) ->
 
     各要素に "base_score"（float|None）と "uncertain"（bool）を追加したリストを返す
     （入力のdictを破壊的に更新して返す）。
+
+    ここで使う重みは `config["score_weights"]` ＝**全キャラ共通**。印（新聞の見立て）は
+    キャラによって変わらないという仕様§2の建て付けを守るため。キャラ固有の重みは
+    買い目の選定順にだけ効く（logic/cards.py の `assign_character_ranks`）。
     """
-    weights = config["score_weights"]
+    scores = composite_scores(horses, config["score_weights"])
 
-    # ファクターごとにレース内z標準化
-    z_by_factor: dict[str, list[float | None]] = {}
-    for raw_key in FACTOR_KEYS:
-        z_by_factor[raw_key] = z_standardize([h.get(raw_key) for h in horses])
-
-    for i, horse in enumerate(horses):
-        parts: list[tuple[float, float]] = []  # (重み, z値)
-        for raw_key, weight_key in FACTOR_KEYS.items():
-            z = z_by_factor[raw_key][i]
-            if z is not None:
-                parts.append((weights[weight_key], z))
-
-        if not parts:
-            horse["base_score"] = None
+    for horse, base in zip(horses, scores):
+        horse["base_score"] = base
+        if base is None:
             horse["uncertain"] = True  # 評価材料が皆無＝最も不確実
             continue
-
-        weight_total = sum(w for w, _ in parts)
-        horse["base_score"] = (
-            sum(w * z for w, z in parts) / weight_total if weight_total > 0 else None
-        )
         # ファクターが1つでも欠けていれば不確実（呼び出し側が既に立てたフラグは尊重して合成）
-        horse["uncertain"] = bool(horse.get("uncertain")) or len(parts) < len(FACTOR_KEYS)
+        horse["uncertain"] = (
+            bool(horse.get("uncertain")) or count_usable_factors(horse) < len(FACTOR_KEYS)
+        )
 
     for horse in horses:
         horse["score"] = to_display_score(horse["base_score"], config)

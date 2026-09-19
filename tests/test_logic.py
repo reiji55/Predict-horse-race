@@ -12,6 +12,7 @@ logic/ のユニットテスト。
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -25,21 +26,11 @@ from logic import speed_index as speed_mod
 # --- 検算用の共通データ -------------------------------------------------
 
 SPEED_CONFIG = speed_mod.load_config()
-CARDS_CONFIG = {
-    "score_weights": {"speed": 0.45, "aptitude": 0.30, "human": 0.25},
-    "score_scale": {"base": 70, "unit": 10},
-    "aptitude": {"w_surface": 1.0, "b_dist": 0.6, "b_venue": 0.3, "b_going": 0.2, "dist_tol": 400},
-    "human": {"w_jockey": 0.6, "w_trainer": 0.4, "shrink_m": 10},
-    "marks": {"hon_rank": 1, "maru": 2, "sankaku": 3, "delta": [4, 5], "batsu": 6},
-    "characters": {
-        "kei": {"lambda": 0.15, "total": 500, "max_points": 6},
-        "tetsu": {"lambda": 0.40, "total": 500, "max_points": 6},
-        "gen": {"lambda": 0.75, "total": 500, "max_points": 8, "axis_base_rank_floor": 6},
-        "otori": {"lambda": 0.60, "total": 1000, "max_points": 12},
-    },
-    "combo_prob": {"method": "harville", "takeout": 0.20},
-    "amt_unit": 50,
-}
+# **本番の設定をそのまま読む。** ここに設定のコピーを置いていたら、
+# config/cards.json の total を変えたときにテストだけ古い値のまま通ってしまう
+# （実際 otori を1000→500にしたときにここが食い違った）。
+with (Path(__file__).resolve().parent.parent / "config" / "cards.json").open(encoding="utf-8") as _f:
+    CARDS_CONFIG = json.load(_f)
 MYOMI_CONFIG = {
     "prob_model": {"method": "softmax", "temperature": 10.0},
     "components": {"w_edge": 0.6, "w_breadth": 0.4, "edge_cap": 0.5, "breadth_cap": 0.4},

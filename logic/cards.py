@@ -24,6 +24,18 @@ base_score の降順に機械的に付ける。印は全キャラ共通の「新
 
 λ はキャラ別の「妙味寄せ係数」（ケイ0.15 / 哲0.40 / 源0.75 / 鳳0.60）。
 sel の高い順に軸・相手を組み、券種テンプレはキャラごとに固定（§5.1 の表）。
+
+--- キャラごとに「見方」を変える（仕様§5の拡張・OPEN_QUESTIONS B-9） ---
+
+λ だけを変えても、3人は**同じ実力順・同じ歪み尺度**を見ているので買い目が似通う。
+2026-09-19 はそれが露骨に出た（3人＋鳳の買い目がほぼ同じ馬で埋まり、全滅）。
+そこで config/cards.json の characters[] に2つの上書きを足した：
+
+    objective      … 歪みの測り方。"pq"（p−q・絶対エッジ）か "ev"（p×odds−1・相対エッジ）
+    score_weights  … そのキャラが実力を測るときの①②③の配分（省略時は共通の配分）
+
+これで各キャラが**別々の仮説**になる。どの仮説が正しいかは成績が溜まってから決める
+（いまの配分はどれも「正解」として入れていない。競わせるための散らし方）。
 源さんだけは `axis_base_rank_floor`（=6）があり、**base_score が下位すぎる馬は軸にしない**
 （妙味に振っても実力の裏づけは残す＝ただのギャンブルにしない・§5.2）。
 鳳のカードは `legendary=true` のレースのみ生成する（§5.4）。
@@ -60,6 +72,8 @@ import itertools
 import logging
 from typing import Any
 
+from logic import base_score
+
 logger = logging.getLogger("logic.cards")
 
 WIDE = "ワイド"
@@ -93,14 +107,17 @@ CARD_TEMPLATES: dict[str, list[dict[str, Any]]] = {
         {"min_horses": 3, "bets": [(SANRENPUKU, (0, 1, 2), 200), (WIDE, (0, 1), 200),
                                    (WIDE, (0, 2), 100)]},
     ],
-    # 鳳：全券種ミックス・点数増（降臨時のみ・total=1000）
+    # 鳳：全券種ミックス・点数増（降臨時のみ）
+    # **金額は他のキャラと同じ500円**。2026-09-19 の降臨（妙味87.5）が他3人とほぼ同じ買い目のまま
+    # 倍額を張って外れたため、鳳が「他と違う予想を出せている」と確認できるまで同額に落とした
+    # （docs/OPEN_QUESTIONS.md B-8）。
     "otori": [
-        {"min_horses": 4, "bets": [(WIDE, (0, 1), 200), (WIDE, (0, 2), 100),
-                                   (UMAREN, (0, 1), 100), (UMAREN, (0, 2), 100),
-                                   (SANRENPUKU, (0, 1, 2), 200), (SANRENPUKU, (0, 1, 3), 100),
-                                   (SANRENPUKU, (0, 2, 3), 200)]},
-        {"min_horses": 3, "bets": [(WIDE, (0, 1), 300), (UMAREN, (0, 1), 200),
-                                   (SANRENPUKU, (0, 1, 2), 500)]},
+        {"min_horses": 4, "bets": [(WIDE, (0, 1), 100), (WIDE, (0, 2), 50),
+                                   (UMAREN, (0, 1), 50), (UMAREN, (0, 2), 50),
+                                   (SANRENPUKU, (0, 1, 2), 100), (SANRENPUKU, (0, 1, 3), 50),
+                                   (SANRENPUKU, (0, 2, 3), 100)]},
+        {"min_horses": 3, "bets": [(WIDE, (0, 1), 150), (UMAREN, (0, 1), 100),
+                                   (SANRENPUKU, (0, 1, 2), 250)]},
     ],
 }
 
@@ -167,23 +184,105 @@ def compute_value_and_myomi_rank(p: list[float | None], q: list[float | None]) -
 
     value が正＝モデルが市場より高く見ている＝過小評価。myomi_rank は1位＝最も過小評価。
     p か q が欠損している馬は value=None・myomi_rank=None（順位付けの対象外）。
+
+    これは**表示・既定用**の歪み尺度。買い目の選定にどちらの尺度を使うかはキャラごとに
+    変わる（`assign_character_ranks` と OBJECTIVES を参照）。
     """
-    values = [
-        p_i - q_i if (p_i is not None and q_i is not None) else None
-        for p_i, q_i in zip(p, q)
+    values = objective_values(OBJECTIVE_PQ, p, q, [None] * len(p))
+    return [
+        {"value": value, "myomi_rank": rank}
+        for value, rank in zip(values, _ranks_desc(values))
     ]
 
+
+# ------------------------------------------- 歪みの測り方（目的関数）
+
+OBJECTIVE_PQ = "pq"   # 絶対エッジ：p − q。「確率で何ポイント得か」
+OBJECTIVE_EV = "ev"   # 相対エッジ：p × odds − 1。「1円が何円になるか」
+OBJECTIVES = (OBJECTIVE_PQ, OBJECTIVE_EV)
+
+DEFAULT_OBJECTIVE = OBJECTIVE_PQ
+
+
+def objective_values(objective: str, p: list[float | None], q: list[float | None],
+                     win_odds: list[float | None]) -> list[float | None]:
+    """
+    歪みの大きさを、指定した目的関数で測る。
+
+    **なぜ2種類あるか。** p−q は確率の差なので、人気馬のわずかな過小評価が上位に来やすい。
+    p×odds−1 は倍率込みなので、人気薄の大きな期待値を上位に出す。2026-09-19 の検証では
+    実際の上位3頭の順位和が p−q で最下位（63）、EV は荒れたレースで最良（24）だった。
+    どちらが正しいかはまだ判らないので、**キャラごとに別の尺度を持たせて競わせる**
+    （ケイ＝p−q／源さん・鳳＝EV。docs/OPEN_QUESTIONS.md B-9）。
+    """
+    if objective == OBJECTIVE_PQ:
+        return [
+            p_i - q_i if (p_i is not None and q_i is not None) else None
+            for p_i, q_i in zip(p, q)
+        ]
+    if objective == OBJECTIVE_EV:
+        return [
+            p_i * odds_i - 1.0
+            if (p_i is not None and odds_i is not None and odds_i > 0) else None
+            for p_i, odds_i in zip(p, win_odds)
+        ]
+    raise ValueError(f"未対応の目的関数です: {objective}（使えるのは {OBJECTIVES}）")
+
+
+def _ranks_desc(values: list[float | None]) -> list[int | None]:
+    """値の降順の順位（1始まり）。None は順位なし。"""
     order = sorted(
         (i for i, v in enumerate(values) if v is not None),
         key=lambda i: values[i],
         reverse=True,
     )
     ranks: dict[int, int] = {index: rank for rank, index in enumerate(order, start=1)}
+    return [ranks.get(i) for i in range(len(values))]
 
-    return [
-        {"value": values[i], "myomi_rank": ranks.get(i)}
-        for i in range(len(values))
-    ]
+
+def assign_character_ranks(horses: list[dict[str, Any]], config: dict[str, Any],
+                           char_config: dict[str, Any]) -> None:
+    """
+    そのキャラ固有の「実力順（sel_base_rank）」と「歪み順（sel_value_rank）」を horses に書き込む。
+
+    - `score_weights` の上書きがあれば、そのキャラは**違う指数配分で実力を測る**。
+      無ければ全キャラ共通の base_rank をそのまま使う。
+    - `objective` で歪みの測り方を切り替える（p−q か EV か）。
+
+    印（marks）は共通のまま。ここで変えるのは**買い目の選定順だけ**なので、
+    「同じ新聞を見て、別の見方で買う3人」という建て付けは保たれる。
+    """
+    weights = char_config.get("score_weights")
+    # ①②③の生値が1つも無い（＝base_score を外から与えられている）場合は、
+    # キャラ固有の配分で測り直しようがないので共通の base_rank を使う。
+    # 仕様書の検算サンプルのように、スコアだけを直接与える呼び出しのため。
+    if weights and any(base_score.count_usable_factors(h) for h in horses):
+        base_ranks = _ranks_desc(base_score.composite_scores(horses, weights))
+    else:
+        base_ranks = [h.get("base_rank") for h in horses]
+
+    objective = char_config.get("objective", DEFAULT_OBJECTIVE)
+    values = objective_values(
+        objective,
+        [h.get("p") for h in horses],
+        [h.get("q") for h in horses],
+        [h.get("odds") for h in horses],
+    )
+    if not any(v is not None for v in values) and objective != DEFAULT_OBJECTIVE:
+        # 単勝オッズが1頭も取れていないとEVが全滅する。無言で全馬を選定対象外にせず、
+        # 既定の尺度に落として買い目は出す（取得項目仕様§1.1と同じ「黙って消さない」方針）。
+        logger.warning("目的関数 %s の値が1頭も計算できないため %s に切り替えます",
+                       objective, DEFAULT_OBJECTIVE)
+        values = objective_values(DEFAULT_OBJECTIVE,
+                                  [h.get("p") for h in horses],
+                                  [h.get("q") for h in horses],
+                                  [h.get("odds") for h in horses])
+
+    value_ranks = _ranks_desc(values)
+    for horse, base_rank, value, value_rank in zip(horses, base_ranks, values, value_ranks):
+        horse["sel_base_rank"] = base_rank
+        horse["sel_value"] = value
+        horse["sel_value_rank"] = value_rank
 
 
 # ------------------------------------------- Harville近似（§5.3）
@@ -278,9 +377,22 @@ def evaluate_card(bets: list[dict[str, Any]], p_by_num: dict[int, float],
     }
 
 
+PAYOUT_ROUND_UNIT = 50
+
+
 def _round100(value: float) -> int:
-    """払戻の概算値は100円単位に丸める（あくまで目安の表示なので精度を主張しない）。"""
-    return int(round(value / 100.0) * 100)
+    """
+    払戻の概算値を丸める（あくまで目安の表示なので精度を主張しない）。
+
+    丸めの単位は50円。**100円単位だと、当たっているのに払戻0円と表示されることがある**：
+    的中確率の高いワイドを50円だけ買うと概算払戻が100円を下回り、0に丸められてしまう
+    （鳳の金額を半分にしたときに実際に起きた）。「当たったのに0円」は嘘なので、
+    正の値は最低でも1単位は残す。
+    """
+    if value <= 0:
+        return 0
+    return max(PAYOUT_ROUND_UNIT,
+               int(round(value / PAYOUT_ROUND_UNIT) * PAYOUT_ROUND_UNIT))
 
 
 # ------------------------------------------- キャラ別カード生成（§5）
@@ -295,33 +407,42 @@ def _rank_norm(rank: int | None, total: int) -> float | None:
 
 
 def select_horses(horses: list[dict[str, Any]], lam: float,
-                  axis_base_rank_floor: int | None = None) -> list[dict[str, Any]]:
+                  axis_base_rank_floor: int | None = None,
+                  base_rank_key: str = "base_rank",
+                  value_rank_key: str = "myomi_rank") -> list[dict[str, Any]]:
     """
-    sel = (1−λ)×base_rank_norm + λ×myomi_rank_norm の降順に馬を並べる（§5.1）。
+    sel = (1−λ)×base_rank_norm + λ×妙味rank_norm の降順に馬を並べる（§5.1）。
+
+    どの順位を使うかは *_rank_key で差し替えられる（キャラ固有の実力順・歪み順を渡すため。
+    `assign_character_ranks` 参照）。既定は全キャラ共通の base_rank / myomi_rank。
 
     axis_base_rank_floor が指定されている場合、**軸（先頭）だけ**は base_rank が
-    その値以下の馬に限る（§5.2 源さんの線引き）。条件を満たす馬が無ければ制約を諦める。
+    その値以下の馬に限る（§5.2 源さんの線引き）。ここは**共通の base_rank で見る**：
+    キャラ固有の重みで下駄を履かせた順位で線引きしたら、安全弁の意味が無くなるため。
+    条件を満たす馬が無ければ制約を諦める。
     """
     candidates = [
         h for h in horses
-        if h.get("base_rank") is not None and h.get("myomi_rank") is not None
+        if h.get(base_rank_key) is not None and h.get(value_rank_key) is not None
     ]
     if not candidates:
         return []
 
-    base_total = max(h["base_rank"] for h in candidates)
-    myomi_total = max(h["myomi_rank"] for h in candidates)
+    base_total = max(h[base_rank_key] for h in candidates)
+    myomi_total = max(h[value_rank_key] for h in candidates)
 
     for horse in candidates:
-        base_norm = _rank_norm(horse["base_rank"], base_total) or 0.0
-        myomi_norm = _rank_norm(horse["myomi_rank"], myomi_total) or 0.0
+        base_norm = _rank_norm(horse[base_rank_key], base_total) or 0.0
+        myomi_norm = _rank_norm(horse[value_rank_key], myomi_total) or 0.0
         horse["sel"] = (1.0 - lam) * base_norm + lam * myomi_norm
 
     ordered = sorted(candidates, key=lambda h: h["sel"], reverse=True)
 
     if axis_base_rank_floor is not None and ordered:
         eligible = next(
-            (h for h in ordered if h["base_rank"] <= axis_base_rank_floor), None
+            (h for h in ordered
+             if h.get("base_rank") is not None and h["base_rank"] <= axis_base_rank_floor),
+            None,
         )
         if eligible is not None and eligible is not ordered[0]:
             ordered.remove(eligible)
@@ -346,7 +467,11 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
     生成後に §5.5 の不変条件を検証し、崩れていれば ValueError を投げる。
     """
     char_config = config["characters"][char_id]
-    ordered = select_horses(horses, char_config["lambda"], char_config.get("axis_base_rank_floor"))
+    assign_character_ranks(horses, config, char_config)
+    ordered = select_horses(
+        horses, char_config["lambda"], char_config.get("axis_base_rank_floor"),
+        base_rank_key="sel_base_rank", value_rank_key="sel_value_rank",
+    )
 
     template = next(
         (t for t in CARD_TEMPLATES[char_id] if len(ordered) >= t["min_horses"]), None
@@ -377,6 +502,8 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
 
     return {
         "char": char_id,
+        # どの尺度で歪みを測って買ったか。あとで「どの見方が効いたか」を集計するために残す
+        "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
         "hit_pct": evaluation["hit_pct"],
         "payout_range": evaluation["payout_range"],
         "total": total,

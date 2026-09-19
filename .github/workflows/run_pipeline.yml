@@ -79,6 +79,8 @@ jobs:
         run: |
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add raw/ data/  # rawもコミット（後方検証＝重み再計算に past_runs 等の生データが必要）
+          # rawもコミット（後方検証＝重み再計算に past_runs 等の生データが必要）。
+          # data/ には発走前スナップショット（data/snapshots/）も含まれる。**採点の根拠はこれ**
+          git add raw/ data/
           git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 予想生成"
           git push

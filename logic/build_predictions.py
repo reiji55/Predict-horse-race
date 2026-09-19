@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from logic import base_score, cards, myomi, prob_model
+from logic import base_score, cards, myomi, prob_model, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
 from logic import speed_index as speed_mod
@@ -206,6 +206,12 @@ def main() -> None:
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(predictions, f, ensure_ascii=False, indent=2)
     logger.info("書き出し完了: %s（%d レース）", OUTPUT_PATH, len(predictions["races"]))
+
+    # 発走前の予想を凍結する（logic/snapshots.py の冒頭を参照）。
+    # predictions.json は毎回上書きされるので、採点に使えるのはこちらだけ。
+    report = snapshots.freeze(predictions)
+    for item in report:
+        logger.info("スナップショット %s: %s", item["action"], item["race_id"])
 
 
 if __name__ == "__main__":

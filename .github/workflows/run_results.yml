@@ -60,10 +60,12 @@ jobs:
 
       - name: results.json ビルド
         run: |
-          if [ -f data/race_results.json ] && [ -f data/predictions.json ]; then
+          # 採点するのは data/snapshots/（発走前に凍結した予想）。
+          # data/predictions.json は毎回上書きされるので、ここで渡してはいけない。
+          if [ -f data/race_results.json ] && [ -d data/snapshots ]; then
             python -m results.build_results --results data/race_results.json
           else
-            echo "結果か予想がまだ無いためスキップします"
+            echo "結果か発走前スナップショットがまだ無いためスキップします"
           fi
 
       - name: 生成物をコミット

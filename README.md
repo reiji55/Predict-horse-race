@@ -39,6 +39,7 @@
 │   ├── prob_model.py          # softmax p / 市場支持率q（妙味・買い目で共有）
 │   ├── myomi.py               # 妙味メーター
 │   ├── cards.py               # 印付与・キャラ別買い目生成
+│   ├── snapshots.py           # 発走前予想の凍結（**採点の根拠はこれ**）
 │   └── build_predictions.py   # raw → predictions.json オーケストレーター
 ├── scripts/
 │   └── build_base_times.py    # base_times.json 初期構築（1回きり）
@@ -47,8 +48,9 @@
 ├── raw/                       # フェッチャー出力（後方検証のためコミット対象）
 ├── data/
 │   ├── comments.json          # 運用者が手書きするセリフファイル
-│   ├── predictions.json       # build_predictions.py が生成（未生成）
-│   └── results.json           # build_results.py が生成（未生成）
+│   ├── predictions.json       # build_predictions.py が生成（**毎回上書きされる**）
+│   ├── snapshots/             # レースごとの発走前予想（一度固めたら書き換えない）
+│   └── results.json           # build_results.py が生成（snapshots/ を採点した結果）
 ├── tests/                     # パーサーのオフラインテスト（実サンプルHTMLは各自配置＝下記）
 ├── docs/                      # 仕様書・引き継ぎ書・サンプル・UIモック
 └── .github/workflows/run_pipeline.yml  # workflow_dispatch 手動トリガー
@@ -116,6 +118,16 @@ GitHub Actions の `週末3CARDS パイプライン` を workflow_dispatch で�
 python -m scraper.build_raw --week 2026-W27 --dates 2026-07-05   # netkeiba → raw/2026-W27.json
 python -m logic.build_predictions --week 2026-W27                # raw → data/predictions.json
 ```
+
+`build_predictions` は `data/predictions.json`（UIが読む最新版・毎回上書き）を書いたあと、
+レースごとに **発走前予想のスナップショット** を `data/snapshots/{race_id}.json` に固める。
+
+- 発走時刻より**前**のビルド … より新しいオッズなので上書きする
+- 発走時刻より**後**のビルド … 既存のスナップショットには**一切触らない**
+
+成績集計（`results/build_results.py`）が採点するのはこのスナップショットだけ。
+`predictions.json` を採点すると、**確定オッズで作り直した予想を採点する**ことになる
+（初実戦でこれが実際に起きた。`docs/OPEN_QUESTIONS.md` E-1）。
 
 対象レースは `config/scraper.json` の `main_race` で決まる（既定＝各開催場の11R）。
 `docs/samples/raw.sample.json` を `raw/` に置けば、スクレイピング無しで logic だけを試せる。

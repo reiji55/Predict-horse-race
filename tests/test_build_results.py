@@ -144,6 +144,43 @@ def test_summary_is_honest_about_losses():
           % (overall["balance"], overall["roi"] * 100))
 
 
+def test_market_benchmark_buys_the_two_favourites():
+    """
+    市場ベンチマーク：1番人気−2番人気のワイド1点。
+    サンプルは9番(3.1倍)と1番(5.6倍)が上位人気で、そのワイドは520円 → 500円買いで2600円。
+    """
+    predictions, _, race_results = _load()
+    race = predictions["races"][0]
+    dividends = race_results[race["id"]]["dividends"]
+
+    benchmark = build_results.market_benchmark(race, dividends)
+    assert benchmark["horses"] == [9, 1]          # 印の順ではなくオッズの順
+    assert benchmark["odds"] == [3.1, 5.6]
+    assert benchmark["hit"] is True
+    assert benchmark["payout"] == 2600
+    print("test_market_benchmark_buys_the_two_favourites: OK")
+
+
+def test_market_benchmark_needs_two_odds():
+    """オッズが揃っていなければ黙って0円と言わず、ベンチマーク自体を作らない。"""
+    race = {"marks": [{"num": 4, "odds": None}, {"num": 9, "odds": 3.1}]}
+    assert build_results.market_benchmark(race, {}) is None
+    print("test_market_benchmark_needs_two_odds: OK")
+
+
+def test_summary_reports_the_market_baseline_next_to_the_model():
+    """**モデルが人気どおり買うより良いか**を、同じ集計の中で比べられること。"""
+    predictions, _, race_results = _load()
+    built = build_results.build_results(predictions, race_results)
+    assert built["results"][0]["benchmark"]["payout"] == 2600
+
+    market = build_results.summarize(built)["market"]
+    assert market["races"] == 1 and market["spent"] == 500 and market["payout"] == 2600
+    assert market["balance"] == 2100
+    assert market["hit_rate"] == 1.0
+    print("test_summary_reports_the_market_baseline_next_to_the_model: OK")
+
+
 ALL_TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
 
 if __name__ == "__main__":

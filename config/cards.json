@@ -11,10 +11,17 @@
   },
   "marks": { "hon_rank": 1, "maru": 2, "sankaku": 3, "delta": [4, 5], "batsu": 6 },
   "characters": {
-    "kei":   { "lambda": 0.15, "total": 500, "max_points": 6 },
-    "tetsu": { "lambda": 0.40, "total": 500, "max_points": 6 },
-    "gen":   { "lambda": 0.75, "total": 500, "max_points": 8, "axis_base_rank_floor": 6 },
-    "otori": { "lambda": 0.60, "total": 1000, "max_points": 12 }
+    "kei":   { "lambda": 0.15, "total": 500, "max_points": 6,
+               "objective": "pq",
+               "score_weights": { "speed": 0.55, "aptitude": 0.25, "human": 0.20 } },
+    "tetsu": { "lambda": 0.40, "total": 500, "max_points": 6,
+               "objective": "pq" },
+    "gen":   { "lambda": 0.75, "total": 500, "max_points": 8, "axis_base_rank_floor": 6,
+               "objective": "ev",
+               "score_weights": { "speed": 0.25, "aptitude": 0.55, "human": 0.20 } },
+    "otori": { "lambda": 0.60, "total": 500, "max_points": 12,
+               "objective": "ev",
+               "score_weights": { "speed": 0.30, "aptitude": 0.65, "human": 0.05 } }
   },
   "combo_prob": { "method": "harville", "takeout": 0.20 },
   "amt_unit": 50
