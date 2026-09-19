@@ -20,6 +20,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
       - name: Python tests
-        run: python -m pytest -q
+        # 2ファイルはローカル保存HTML（未コミット）前提なのでCIでは除外。
+        run: python -m pytest -q --ignore=tests/test_a_race_list.py --ignore=tests/test_c_horse_history.py
       - name: Node adapter tests
         run: node tests/test_adapter.js
