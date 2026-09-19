@@ -379,6 +379,92 @@ def evaluate_card(bets: list[dict[str, Any]], p_by_num: dict[int, float],
 PAYOUT_ROUND_UNIT = 100
 
 
+def _combo_lookup_key(horses: list[int]) -> str:
+    """race.combo_odds と同じ、馬番昇順の "2-9[-10]" キー。"""
+    return "-".join(str(n) for n in sorted(horses))
+
+
+def market_odds_for_bet(bet: dict[str, Any], combo_odds: dict[str, Any] | None) -> float | None:
+    """
+    1点の実市場オッズ倍率を返す。
+
+    ワイドは発売中に下限〜上限の幅で提示されるため、鳳のEV判定では**下限**を使う。
+    これは高EVを誇張しないための保守的な選択。
+    """
+    if not combo_odds:
+        return None
+    table = combo_odds.get(bet["type"])
+    if not isinstance(table, dict):
+        return None
+    raw = table.get(_combo_lookup_key(bet["horses"]))
+    if isinstance(raw, (int, float)):
+        return float(raw) if raw > 0 else None
+    if isinstance(raw, (list, tuple)) and raw:
+        vals = [float(v) for v in raw if isinstance(v, (int, float)) and v > 0]
+        return min(vals) if vals else None
+    return None
+
+
+def evaluate_market_card(bets: list[dict[str, Any]], p_by_num: dict[int, float],
+                         combo_odds: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    カードを**実際の馬券オッズ**で評価する。
+
+    expected_payout = Σ(的中確率 × 市場オッズ倍率 × 購入額)
+    expected_roi    = expected_payout / 総購入額
+    edge            = expected_roi - 1
+
+    1点でも市場オッズが欠けたカードを「高EV」と判定すると、都合の良い点だけを
+    足し上げることになるため、complete=false のカードは鳳降臨判定には使わない。
+    """
+    spent = sum(b["amt"] for b in bets)
+    if spent <= 0:
+        return {"complete": False, "coverage": 0.0, "expected_payout": None,
+                "expected_roi": None, "edge": None, "bets": []}
+
+    rows = []
+    expected_payout = 0.0
+    known = 0
+    for bet in bets:
+        prob = bet_probability(bet, p_by_num)
+        odds = market_odds_for_bet(bet, combo_odds)
+        expected = None
+        if odds is not None:
+            known += 1
+            expected = prob * odds * bet["amt"]
+            expected_payout += expected
+        rows.append({
+            "type": bet["type"],
+            "horses": list(bet["horses"]),
+            "amt": bet["amt"],
+            "prob": round(prob, 8),
+            "market_odds": odds,
+            "expected_payout": round(expected, 2) if expected is not None else None,
+        })
+
+    coverage = known / len(bets) if bets else 0.0
+    complete = known == len(bets) and bool(bets)
+    if not complete:
+        return {
+            "complete": False,
+            "coverage": round(coverage, 4),
+            "expected_payout": None,
+            "expected_roi": None,
+            "edge": None,
+            "bets": rows,
+        }
+
+    roi = expected_payout / spent
+    return {
+        "complete": True,
+        "coverage": 1.0,
+        "expected_payout": round(expected_payout, 2),
+        "expected_roi": round(roi, 6),
+        "edge": round(roi - 1.0, 6),
+        "bets": rows,
+    }
+
+
 def _round100(value: float) -> int:
     """
     払戻の概算値を丸める（あくまで目安の表示なので精度を主張しない）。
@@ -497,6 +583,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         if h.get("sel_p") is not None and h.get("num") is not None
     }
     evaluation = evaluate_card(bets, p_by_num, config["combo_prob"]["takeout"])
+    market_ev = evaluate_market_card(bets, p_by_num, combo_odds)
 
     return {
         "char": char_id,
@@ -504,6 +591,11 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
         "hit_pct": evaluation["hit_pct"],
         "payout_range": evaluation["payout_range"],
+        "market_ev": market_ev,
+        "probability_model": {
+            "temperature": temperature,
+            "score_weights": char_config.get("score_weights", config["score_weights"]),
+        },
         "total": total,
         "bets": bets,
     }
