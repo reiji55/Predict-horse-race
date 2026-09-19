@@ -120,7 +120,9 @@ def build_race(race: dict, configs: dict, base_times: dict,
     p = prob_model.softmax_scores(scores, myomi_config["prob_model"]["temperature"])
     q = prob_model.market_support(win_odds)
 
-    myomi_result = myomi.compute_myomi(
+    # 旧妙味（単勝pと市場支持率の乖離）は診断値として残す。
+    # 鳳の降臨判定には使わない。初実戦で「高EVを作った馬を鳳が買っていない」矛盾が起きたため。
+    disagreement_myomi = myomi.compute_myomi(
         p, q, [h["n_usable"] for h in horses], win_odds, myomi_config
     )
 
@@ -131,16 +133,35 @@ def build_race(race: dict, configs: dict, base_times: dict,
         horse["value"] = info["value"]
         horse["myomi_rank"] = info["myomi_rank"]
 
-    char_ids = list(BASE_CHARACTERS)
-    if myomi_result["legendary"]:
-        char_ids.insert(0, LEGENDARY_CHARACTER)  # 降臨レースは鳳を先頭に
+    temperature = myomi_config["prob_model"]["temperature"]
+    combo_odds = race.get("combo_odds") or {}
+
+    # 鳳候補は降臨前でも一度生成する。これにより「鳳自身が実際に買うカード」の市場EVを
+    # 先に測り、そのEVでmyomi/legendaryを決められる（循環はしない）。
+    otori_candidate = cards.generate_card_for_character(
+        LEGENDARY_CHARACTER, horses, cards_config,
+        temperature=temperature, combo_odds=combo_odds,
+    )
+    otori_market_ev = otori_candidate.get("market_ev") if otori_candidate else None
+    myomi_result = myomi.compute_card_ev_myomi(
+        otori_market_ev, [h["n_usable"] for h in horses], myomi_config
+    )
 
     generated_cards = []
-    for char_id in char_ids:
-        card = cards.generate_card_for_character(char_id, horses, cards_config)
+    if myomi_result["legendary"] and otori_candidate is not None:
+        cards.validate_card_invariants(
+            otori_candidate, marks, cards_config.get("amt_unit", 100)
+        )
+        generated_cards.append(otori_candidate)
+
+    for char_id in BASE_CHARACTERS:
+        card = cards.generate_card_for_character(
+            char_id, horses, cards_config,
+            temperature=temperature, combo_odds=combo_odds,
+        )
         if card is None:
             continue
-        cards.validate_card_invariants(card, marks, cards_config.get("amt_unit", 50))
+        cards.validate_card_invariants(card, marks, cards_config.get("amt_unit", 100))
         generated_cards.append(card)
 
     return {
@@ -155,7 +176,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "course": course,
         "myomi": myomi_result["myomi"],
         "myomi_parts": myomi_result["myomi_parts"],
+        "myomi_source": myomi_result.get("myomi_source"),
         "legendary": myomi_result["legendary"],
+        "otori_card_ev": otori_market_ev,
+        "model_disagreement_myomi": disagreement_myomi,
         "marks": marks,
         "cards": generated_cards,
     }

@@ -112,3 +112,52 @@ def compute_myomi(p: list[float | None], q: list[float | None], n_usable_list: l
         "myomi_parts": {"umami": round(umami, 4), "conf": round(conf, 4)},
         "legendary": myomi > config["myomi_threshold"],
     }
+
+
+def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
+                          n_usable_list: list[int | None],
+                          config: dict[str, Any]) -> dict[str, Any]:
+    """
+    鳳が**実際に買うカード**の市場EVから、ユーザー向け妙味メーターを作る。
+
+    旧式の「レース内のどこかに高単勝EV馬がいれば妙味上昇」では、
+    その馬を鳳が1点も買っていないのに降臨できた。ここではその不整合を禁止する。
+
+    card_market_ev.expected_roi = Σ(P(的中) × 実オッズ × 購入額) / 総購入額
+    edge = expected_roi - 1
+    umami = clamp(edge / card_edge_cap, 0, 1)
+    myomi = 100 × umami × conf
+
+    式別オッズが1点でも欠けて complete=false の場合は、EVを都合よく過大評価しないため
+    myomi=0 / legendary=false とする。モデル確率p自体の較正は次フェーズの課題。
+    """
+    conf = compute_confidence(n_usable_list, config)
+    card_cfg = config.get("card_ev", {})
+    edge_cap = card_cfg.get("edge_cap", config["components"].get("edge_cap", 0.5))
+
+    if not card_market_ev or not card_market_ev.get("complete"):
+        return {
+            "myomi": 0.0,
+            "myomi_parts": {"umami": 0.0, "conf": round(conf, 4)},
+            "legendary": False,
+            "myomi_source": "otori_market_card_ev_unavailable",
+        }
+
+    roi = card_market_ev.get("expected_roi")
+    if roi is None:
+        return {
+            "myomi": 0.0,
+            "myomi_parts": {"umami": 0.0, "conf": round(conf, 4)},
+            "legendary": False,
+            "myomi_source": "otori_market_card_ev_unavailable",
+        }
+
+    edge = max(0.0, float(roi) - 1.0)
+    umami = min(edge / edge_cap, 1.0) if edge_cap > 0 else 0.0
+    value = round(_clamp(100.0 * umami * conf, 0.0, 100.0), 1)
+    return {
+        "myomi": value,
+        "myomi_parts": {"umami": round(umami, 4), "conf": round(conf, 4)},
+        "legendary": value > config["myomi_threshold"],
+        "myomi_source": "otori_market_card_ev",
+    }

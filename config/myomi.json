@@ -1,9 +1,21 @@
 {
-  "prob_model": { "method": "softmax", "temperature": 10.0 },
-  "components": {
-    "w_edge": 0.6, "w_breadth": 0.4,
-    "edge_cap": 0.5, "breadth_cap": 0.4
+  "prob_model": {
+    "method": "softmax",
+    "temperature": 10
   },
-  "confidence": { "conf_floor": 0.5, "usable_run_min": 3 },
-  "myomi_threshold": 80
+  "components": {
+    "w_edge": 0.6,
+    "w_breadth": 0.4,
+    "edge_cap": 0.5,
+    "breadth_cap": 0.4
+  },
+  "confidence": {
+    "conf_floor": 0.5,
+    "usable_run_min": 3
+  },
+  "myomi_threshold": 80,
+  "card_ev": {
+    "edge_cap": 0.5,
+    "require_complete": true
+  }
 }

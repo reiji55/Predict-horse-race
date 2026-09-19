@@ -44,7 +44,8 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 # スナップショットに写し取るレースの項目（predictions.json の races[] と同じ形にしておく）
 _RACE_FIELDS = (
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
-    "post_time", "course", "myomi", "myomi_parts", "legendary", "marks", "cards",
+    "post_time", "course", "myomi", "myomi_parts", "myomi_source", "legendary",
+    "otori_card_ev", "model_disagreement_myomi", "marks", "cards",
 )
 
 
