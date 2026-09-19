@@ -121,3 +121,47 @@ def test_unreadable_snapshot_is_skipped_with_a_warning(tmp_path, caplog):
     (tmp_path / "20260919-hanshin-11.json").write_text("{壊れている", encoding="utf-8")
     assert snapshots.load_all(tmp_path) == []
     assert "読めませんでした" in caplog.text
+
+
+def test_finished_races_are_shown_as_they_were_frozen(tmp_path):
+    """
+    ★ 発走後に走ったビルドが、画面の「今日の予想」を書き換えないこと。
+
+    採点はスナップショットを見るので記録は汚れないが、predictions.json は上書きされる。
+    2026-09-19 の17:42の実行では、確定オッズで作り直した予想（妙味87.5・鳳あり・
+    買い目も別物）がそのまま画面に出ていた。
+    """
+    snapshots.freeze(_predictions([_race(myomi=78.2, first_horse=4)]),
+                     now=_at(14, 14), directory=tmp_path)
+
+    after = _predictions([_race(myomi=87.5, legendary=True, first_horse=13)],
+                         generated_at="2026-09-19T17:42:29+09:00")
+    snapshots.freeze(after, now=_at(17, 42), directory=tmp_path)
+    restored = snapshots.restore_finished_races(after, now=_at(17, 42), directory=tmp_path)
+
+    assert restored == 1
+    race = after["races"][0]
+    assert race["myomi"] == 78.2 and race["legendary"] is False
+    assert race["cards"][0]["bets"][0]["horses"] == [4, 9]
+    assert race["frozen_at"] == "2026-09-19T14:14:00+09:00"
+
+
+def test_races_that_have_not_started_keep_the_latest_odds(tmp_path):
+    """発走前のレースは差し替えない（新しいオッズで作り直した方が良いので）。"""
+    snapshots.freeze(_predictions([_race(myomi=70.0)]), now=_at(7, 14), directory=tmp_path)
+
+    latest = _predictions([_race(myomi=78.2)], generated_at="2026-09-19T14:14:00+09:00")
+    snapshots.freeze(latest, now=_at(14, 14), directory=tmp_path)
+    restored = snapshots.restore_finished_races(latest, now=_at(14, 14), directory=tmp_path)
+
+    assert restored == 0
+    assert latest["races"][0]["myomi"] == 78.2
+
+
+def test_a_race_without_a_pre_race_snapshot_is_left_alone(tmp_path):
+    """発走後に初めて作られた予想（pre_race=false）は差し替え元にしない。"""
+    after = _predictions([_race(myomi=87.5)], generated_at="2026-09-19T17:42:29+09:00")
+    snapshots.freeze(after, now=_at(17, 42), directory=tmp_path)
+
+    assert snapshots.restore_finished_races(after, now=_at(17, 42), directory=tmp_path) == 0
+    assert after["races"][0]["myomi"] == 87.5

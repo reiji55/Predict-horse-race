@@ -143,6 +143,49 @@ def _write(path: Path, snapshot: dict[str, Any]) -> None:
         f.write("\n")
 
 
+def restore_finished_races(predictions: dict[str, Any], now: datetime.datetime | None = None,
+                           directory: Path | None = None) -> int:
+    """
+    **発走済みのレースは、凍結した予想に差し替える**（predictions.json を表示用に正す）。
+
+    パイプラインが発走後に走ると、predictions.json には確定オッズで作り直した予想が載る。
+    採点はスナップショットを見るので記録は汚れないが、**画面には出走後に作り直した
+    買い目が「今日の予想」として出てしまう**（2026-09-19 の17:42の実行で実際に起きた。
+    妙味が78.2→87.5に上がり鳳が後付けで現れ、買い目も変わった状態が表示されていた）。
+
+    そこで、発走時刻を過ぎたレースは凍結済みの内容で上書きして返す。
+    まだ発走前のレースは、より新しいオッズで作った最新版をそのまま使う。
+
+    戻り値は差し替えたレース数。
+    """
+    now = now or datetime.datetime.now(JST)
+    restored = 0
+    for i, race in enumerate(predictions.get("races", [])):
+        post_at = post_datetime(race)
+        if post_at is None or now < post_at:
+            continue
+        path = snapshot_path(race.get("id"), directory)
+        if not path.exists():
+            continue
+        try:
+            with path.open(encoding="utf-8") as f:
+                snapshot = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            logger.warning("スナップショットを読めませんでした: %s", path.name)
+            continue
+        if not snapshot.get("pre_race"):
+            continue
+
+        frozen = {k: snapshot.get(k) for k in _RACE_FIELDS if k != "id"}
+        frozen["id"] = snapshot.get("race_id")
+        frozen["frozen_at"] = snapshot.get("frozen_at")
+        predictions["races"][i] = frozen
+        restored += 1
+        logger.info("発走済みのため凍結した予想を表示します: %s（%s 時点）",
+                    frozen["id"], snapshot.get("frozen_at"))
+    return restored
+
+
 def load_all(directory: Path | None = None) -> list[dict[str, Any]]:
     """保存済みのスナップショットを race_id 順に読み込む。"""
     directory = directory or SNAPSHOT_DIR

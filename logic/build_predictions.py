@@ -236,16 +236,23 @@ def main() -> None:
 
     predictions = build_predictions(raw)
 
+    # 発走前の予想を凍結する（logic/snapshots.py の冒頭を参照）。
+    # predictions.json は毎回上書きされるので、採点に使えるのはこちらだけ。
+    # 先に凍結する（発走前のレースだけが更新される）。
+    report = snapshots.freeze(predictions)
+    for item in report:
+        logger.info("スナップショット %s: %s", item["action"], item["race_id"])
+
+    # そのうえで、発走済みのレースは凍結済みの内容に差し替えてから書き出す。
+    # 画面に出る「今日の予想」を、実際に発走前に出していた予想と一致させるため。
+    restored = snapshots.restore_finished_races(predictions)
+    if restored:
+        logger.info("発走済み %d レースを凍結済みの予想で表示します", restored)
+
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:
         json.dump(predictions, f, ensure_ascii=False, indent=2)
     logger.info("書き出し完了: %s（%d レース）", OUTPUT_PATH, len(predictions["races"]))
-
-    # 発走前の予想を凍結する（logic/snapshots.py の冒頭を参照）。
-    # predictions.json は毎回上書きされるので、採点に使えるのはこちらだけ。
-    report = snapshots.freeze(predictions)
-    for item in report:
-        logger.info("スナップショット %s: %s", item["action"], item["race_id"])
 
 
 if __name__ == "__main__":
