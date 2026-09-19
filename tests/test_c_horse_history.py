@@ -9,6 +9,8 @@ C（馬戦績）パーサーのオフラインテスト。
 from __future__ import annotations
 
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -18,9 +20,24 @@ from scraper.fetchers.c_horse_history import parse_horse_history_html
 SAMPLES = Path(__file__).resolve().parent / "samples"
 
 
+def _read_sample(name: str) -> str:
+    """
+    実サンプルHTMLを読む。無ければ**失敗ではなくスキップ**する。
+
+    サンプルHTMLはリポジトリにコミットしていない（tests/samples/README.md の入手方法を参照）。
+    CIでは存在しないので、FileNotFoundError で落とすとCI全体が赤のままになり、
+    本当の失敗が埋もれる。c2のテストと同じ扱いに揃えた。
+    """
+    path = SAMPLES / name
+    if not path.exists():
+        pytest.skip(f"実サンプルが無いのでスキップします: {name}"
+                    "（tests/samples/README.md の入手方法を参照）")
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def test_valkyrie_past_runs():
     """直近5走が新しい順に、型どおり（取得項目仕様§2.5）取れること。"""
-    html = (SAMPLES / "horse_valkyrie.html").read_text(encoding="utf-8", errors="replace")
+    html = _read_sample("horse_valkyrie.html")
     runs = parse_horse_history_html(html, n_runs=5)
 
     assert len(runs) == 5
@@ -59,7 +76,7 @@ def test_valkyrie_past_runs():
 
 def test_shinba_class_mapped_to_mi():
     """6走目（新馬戦）は未勝利と同じ mi に丸められること。n_runs=6で確認。"""
-    html = (SAMPLES / "horse_valkyrie.html").read_text(encoding="utf-8", errors="replace")
+    html = _read_sample("horse_valkyrie.html")
     runs = parse_horse_history_html(html, n_runs=6)
     assert len(runs) == 6
     assert runs[4]["class"] == "mi"  # "2歳未勝利"

@@ -143,9 +143,18 @@ def build_race(race: dict, configs: dict, base_times: dict,
         temperature=temperature, combo_odds=combo_odds,
     )
     otori_market_ev = otori_candidate.get("market_ev") if otori_candidate else None
-    myomi_result = myomi.compute_card_ev_myomi(
+    card_ev_myomi = myomi.compute_card_ev_myomi(
         otori_market_ev, [h["n_usable"] for h in horses], myomi_config
     )
+    # 式別オッズが取れなかった日に全レースの妙味が0で並ばないよう、旧メーターへ退避する。
+    # **降臨だけは退避しない**（myomi.resolve_myomi の説明を参照）。
+    myomi_result = myomi.resolve_myomi(card_ev_myomi, disagreement_myomi)
+    if myomi_result["myomi_source"] != myomi.SOURCE_CARD_EV:
+        logger.warning(
+            "%s: 式別オッズが揃わずカードEVを測れませんでした（coverage=%s）。"
+            "妙味は旧メーター（モデル-市場乖離）を表示し、鳳は降臨させません",
+            race.get("id"), (otori_market_ev or {}).get("coverage"),
+        )
 
     generated_cards = []
     if myomi_result["legendary"] and otori_candidate is not None:
@@ -179,7 +188,8 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "myomi_source": myomi_result.get("myomi_source"),
         "legendary": myomi_result["legendary"],
         "otori_card_ev": otori_market_ev,
-        "model_disagreement_myomi": disagreement_myomi,
+        "card_ev_myomi": card_ev_myomi,          # 実オッズで測れた場合の妙味（測れなければ0）
+        "model_disagreement_myomi": disagreement_myomi,   # 旧メーター（診断・退避用）
         "marks": marks,
         "cards": generated_cards,
     }

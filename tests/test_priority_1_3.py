@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from logic import base_score, cards, myomi, prob_model
+from logic import base_score, build_predictions, cards, myomi, prob_model
 from scraper.fetchers import b2_odds
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -145,3 +145,76 @@ def test_generated_character_card_records_its_own_probability_model():
     assert card is not None
     assert card["market_ev"]["complete"] is True
     assert card["probability_model"]["score_weights"] == CONFIG["characters"]["gen"]["score_weights"]
+
+
+# ---------------------------------------------- 式別オッズが取れなかった日の挙動
+#
+# 統合レビュー（2026-09-20）で足したぶん。
+# ChatGPT版は「式別オッズが無い＝妙味0」だったため、レスポンス構造の推測が外れていると
+# **全レースの妙味が0で並ぶ**。「旨みが無い」と「旨みを測れなかった」は別物なので、
+# 表示は旧メーターへ退避し、鳳の降臨だけは閉じたままにする。
+
+def _race_without_combo_odds() -> dict:
+    """式別オッズが1件も取れなかった raw のレース（combo_odds キーが無い）。"""
+    def entry(num, odds, time_sec):
+        return {
+            "num": num, "waku": num, "name": f"テスト馬{num}", "win_odds": odds,
+            "jockey_stats": {"starts": 100, "wins": 12, "seconds": 10, "thirds": 9},
+            "trainer_stats": {"starts": 80, "wins": 7, "seconds": 6, "thirds": 6},
+            "past_runs": [
+                {"date": "2026-08-01", "venue": "中山", "surface": "芝", "dist": 1600,
+                 "going": "良", "class": "3win", "heads": 12, "finish": num,
+                 "time_sec": time_sec, "last3f": 34.5, "margin_sec": 0.2,
+                 "impost": 55.0, "jockey_name": "テスト騎手", "note": None}
+            ] * 3,
+        }
+
+    return {
+        "id": "20260920-nakayama-11", "day": "日", "venue": "中山", "race_no": 11,
+        "name": "テストステークス", "grade": None, "post_time": "15:45",
+        "course": {"surface": "芝", "dist": 1600},
+        "going": "良",
+        "source_refs": {"netkeiba": "202606040911", "jravan": None},
+        "entries": [entry(1, 2.5, 94.0), entry(2, 6.0, 94.5),
+                    entry(3, 18.0, 95.2), entry(4, 30.0, 95.8)],
+    }
+
+
+def test_meter_falls_back_to_the_old_one_when_market_odds_are_missing():
+    config = MYOMI_CONFIG
+    card_ev = myomi.compute_card_ev_myomi(
+        {"complete": False, "coverage": 0.0, "expected_roi": None}, [5, 5, 5], config)
+    disagreement = {"myomi": 87.5, "myomi_parts": {"umami": 0.8074, "conf": 0.9688},
+                    "legendary": True}
+
+    resolved = myomi.resolve_myomi(card_ev, disagreement)
+
+    assert resolved["myomi"] == 87.5                     # 0で潰さない
+    assert resolved["myomi_source"] == myomi.SOURCE_DISAGREEMENT_FALLBACK
+    assert resolved["legendary"] is False                # ★ 降臨だけは退避させない
+
+
+def test_card_ev_wins_when_market_odds_are_available():
+    config = MYOMI_CONFIG
+    card_ev = myomi.compute_card_ev_myomi(
+        {"complete": True, "coverage": 1.0, "expected_roi": 1.6}, [5, 5, 5], config)
+    disagreement = {"myomi": 10.0, "myomi_parts": {"umami": 0.1, "conf": 1.0},
+                    "legendary": False}
+
+    resolved = myomi.resolve_myomi(card_ev, disagreement)
+
+    assert resolved["myomi_source"] == myomi.SOURCE_CARD_EV
+    assert resolved["myomi"] == card_ev["myomi"]
+    assert resolved["legendary"] is True                 # edge 0.6 > cap 0.5 で飽和
+
+
+def test_otori_never_appears_without_real_combination_odds():
+    """★ 鳳は「実際に買う馬券が市場価格で割安」と確認できたときだけ降臨する。"""
+    raw = {"week_id": "2026-W99", "races": [_race_without_combo_odds()]}
+    built = build_predictions.build_predictions(raw)
+    race = built["races"][0]
+
+    assert race["myomi"] == race["model_disagreement_myomi"]["myomi"]
+    assert race["myomi_source"] == myomi.SOURCE_DISAGREEMENT_FALLBACK
+    assert race["legendary"] is False
+    assert [c["char"] for c in race["cards"]] == ["kei", "tetsu", "gen"]

@@ -11,6 +11,8 @@ A（レース一覧）パーサーのオフラインテスト。
 from __future__ import annotations
 
 import sys
+
+import pytest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -20,9 +22,24 @@ from scraper.fetchers.a_race_list import parse_date_list_html, parse_race_list_s
 SAMPLES = Path(__file__).resolve().parent / "samples"
 
 
+def _read_sample(name: str) -> str:
+    """
+    実サンプルHTMLを読む。無ければ**失敗ではなくスキップ**する。
+
+    サンプルHTMLはリポジトリにコミットしていない（tests/samples/README.md の入手方法を参照）。
+    CIでは存在しないので、FileNotFoundError で落とすとCI全体が赤のままになり、
+    本当の失敗が埋もれる。c2のテストと同じ扱いに揃えた。
+    """
+    path = SAMPLES / name
+    if not path.exists():
+        pytest.skip(f"実サンプルが無いのでスキップします: {name}"
+                    "（tests/samples/README.md の入手方法を参照）")
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def test_parse_current_group():
     """日付タブ一覧から、指定日のgroup（=current_group）が取れること。"""
-    html = (SAMPLES / "race_list_get_date_list_20260620.html").read_text(encoding="utf-8")
+    html = _read_sample("race_list_get_date_list_20260620.html")
     group = parse_date_list_html(html, "20260620")
     assert group == "1020260620"
 
@@ -37,7 +54,7 @@ def test_parse_current_group():
 
 def test_race_list_sub_tokyo_races():
     """東京会場のレースが正しくパースされること（条件戦・特別戦・障害戦の3パターン網羅）。"""
-    html = (SAMPLES / "race_list_sub_20260620.html").read_text(encoding="utf-8")
+    html = _read_sample("race_list_sub_20260620.html")
     entries = parse_race_list_sub_html(html, "2026-06-20")
 
     tokyo = [e for e in entries if e.venue == "東京"]
@@ -81,7 +98,7 @@ def test_race_list_sub_tokyo_races():
 
 def test_race_list_sub_obstacle_race():
     """障害戦（class=""の無地span）でも距離・馬場面が正しく拾えること。"""
-    html = (SAMPLES / "race_list_sub_20260620.html").read_text(encoding="utf-8")
+    html = _read_sample("race_list_sub_20260620.html")
     entries = parse_race_list_sub_html(html, "2026-06-20")
 
     hanshin_1r = next(e for e in entries if e.venue == "阪神" and e.race_no == 1)
@@ -97,7 +114,7 @@ def test_race_list_sub_obstacle_race():
 
 def test_race_list_sub_all_venues_covered():
     """3場すべて・想定レース数が揃うこと（絞り込みなし＝全レース対象）。"""
-    html = (SAMPLES / "race_list_sub_20260620.html").read_text(encoding="utf-8")
+    html = _read_sample("race_list_sub_20260620.html")
     entries = parse_race_list_sub_html(html, "2026-06-20")
 
     venues = {e.venue for e in entries}

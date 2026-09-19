@@ -114,6 +114,12 @@ def compute_myomi(p: list[float | None], q: list[float | None], n_usable_list: l
     }
 
 
+# 妙味メーターの出どころ（predictions.json の myomi_source に入る）
+SOURCE_CARD_EV = "otori_market_card_ev"                 # 鳳のカードを実オッズで評価できた
+SOURCE_CARD_EV_UNAVAILABLE = "otori_market_card_ev_unavailable"
+SOURCE_DISAGREEMENT_FALLBACK = "model_disagreement_fallback"   # 実オッズが無く旧メーターに退避
+
+
 def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
                           n_usable_list: list[int | None],
                           config: dict[str, Any]) -> dict[str, Any]:
@@ -140,7 +146,7 @@ def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
             "myomi": 0.0,
             "myomi_parts": {"umami": 0.0, "conf": round(conf, 4)},
             "legendary": False,
-            "myomi_source": "otori_market_card_ev_unavailable",
+            "myomi_source": SOURCE_CARD_EV_UNAVAILABLE,
         }
 
     roi = card_market_ev.get("expected_roi")
@@ -149,7 +155,7 @@ def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
             "myomi": 0.0,
             "myomi_parts": {"umami": 0.0, "conf": round(conf, 4)},
             "legendary": False,
-            "myomi_source": "otori_market_card_ev_unavailable",
+            "myomi_source": SOURCE_CARD_EV_UNAVAILABLE,
         }
 
     edge = max(0.0, float(roi) - 1.0)
@@ -159,5 +165,32 @@ def compute_card_ev_myomi(card_market_ev: dict[str, Any] | None,
         "myomi": value,
         "myomi_parts": {"umami": round(umami, 4), "conf": round(conf, 4)},
         "legendary": value > config["myomi_threshold"],
-        "myomi_source": "otori_market_card_ev",
+        "myomi_source": SOURCE_CARD_EV,
+    }
+
+
+def resolve_myomi(card_ev_result: dict[str, Any],
+                  disagreement_result: dict[str, Any]) -> dict[str, Any]:
+    """
+    **表示する**妙味メーターを決める。
+
+    式別オッズ（馬連・ワイド・3連複）が揃っていれば、鳳が実際に買うカードの市場EVを使う。
+    揃わなければ旧来の「モデルと市場の乖離」メーターに退避する。
+
+    なぜ退避するか：式別オッズの取得はnetkeibaのレスポンス構造に依存しており、
+    ここが崩れると**全レースの妙味が0で表示される**。「このレースに旨みは無い」と
+    「旨みを測れなかった」は全く違う話なので、0で潰さずに測れている方の指標を出す。
+
+    **`legendary`（鳳の降臨）はカードEVが揃ったときしか true にならない。**
+    退避中は降臨させない：鳳が実際に買う馬券が市場価格で割安だと確認できていないのに
+    降臨させるのが、初実戦で起きた不整合そのものだったため。
+    """
+    if card_ev_result.get("myomi_source") == SOURCE_CARD_EV:
+        return card_ev_result
+
+    return {
+        "myomi": disagreement_result["myomi"],
+        "myomi_parts": disagreement_result["myomi_parts"],
+        "legendary": False,
+        "myomi_source": SOURCE_DISAGREEMENT_FALLBACK,
     }

@@ -301,13 +301,14 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
         )
 
     combo_odds: dict[str, dict[str, Any]] = {}
-    timestamps = [body.get("official_datetime")]
     for type_code in (ODDS_TYPE_UMAREN, ODDS_TYPE_WIDE, ODDS_TYPE_SANRENPUKU):
         try:
             combo_body = _fetch_type_body(race_source_ref, type_code)
-            timestamps.append(combo_body.get("official_datetime"))
-            for type_name, table in extract_combo_odds(combo_body).items():
+            parsed = extract_combo_odds(combo_body)
+            for type_name, table in parsed.items():
                 combo_odds.setdefault(type_name, {}).update(table)
+            if not parsed:
+                _warn_unparsed_combo(race_source_ref, type_code, combo_body)
         except (RuntimeError, ValueError, json.JSONDecodeError):
             logger.warning(
                 "式別オッズを取得できませんでした race_id=%s type=%s。"
@@ -315,12 +316,40 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
                 race_source_ref, type_code, exc_info=True,
             )
 
-    official = max((t for t in timestamps if t), default=None)
     return {
-        "official_datetime": official,
+        # 単勝の観測時刻をそのまま使う。p・q（＝予想の土台）はこの時点の単勝オッズで作るので、
+        # 式別の取得時刻を混ぜて max を取ると odds_updated_at が実態より後ろにずれる。
+        "official_datetime": body.get("official_datetime"),
         "by_num": by_num,
         "combo_odds": combo_odds,
     }
+
+
+def _warn_unparsed_combo(race_source_ref: str, type_code: str, body: dict[str, Any]) -> None:
+    """
+    応答はあったのに1組も読めなかったときに、**レスポンスの形を必ずログに残す**。
+
+    type=4/5/7 の中身の形（組番キーの書式・配列のどこが倍率か）は、単勝と違って
+    まだ実レスポンスで確認できていない（このリポジトリのネットワークからnetkeibaに
+    到達できないため）。読めなかったときに黙って空を返すと、次も同じ推測のまま直せない。
+    2026-09-19 の単勝の取りこぼしを解けたのは、この形の警告が手がかりを残していたから。
+    """
+    odds = body.get("odds")
+    table = odds.get(type_code) if isinstance(odds, dict) else None
+    if isinstance(table, dict):
+        sample = list(table.items())[:3]
+    elif isinstance(table, (list, tuple)):
+        sample = list(table[:3])
+    else:
+        sample = table
+    logger.warning(
+        "式別オッズを1組も読めませんでした race_id=%s type=%s（%s）/ "
+        "oddsのキー=%s / odds[%r] の型=%s・件数=%s / 中身の先頭3件=%r",
+        race_source_ref, type_code, COMBO_TYPE_NAMES.get(type_code, "?"),
+        sorted(odds)[:8] if isinstance(odds, dict) else type(odds).__name__,
+        type_code, type(table).__name__,
+        len(table) if hasattr(table, "__len__") else None, sample,
+    )
 
 
 def merge_odds_into_race(race: dict[str, Any], odds_result: dict[str, Any]) -> None:
