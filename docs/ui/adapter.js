@@ -158,8 +158,14 @@
         hit: racePayout > 0,
         name: (meta.venue || "") + (meta.race_no ? meta.race_no + "R" : "") +
               (meta.name ? "(" + meta.name + ")" : race.race_id),
-        // results.json の finish は着順どおりの馬番配列。直近結果で1〜3着をすぐ確認できるよう渡す。
-        top3: (race.finish || []).slice(0, 3),
+        // results.json の finish は着順どおりの馬番配列。
+        // 予想カードと同じ枠色チップで表示できるよう [枠番, 馬番] にして渡す。
+        top3: (function () {
+          var waku = wakuByNum(meta.marks || []);
+          return (race.finish || []).slice(0, 3).map(function (num) {
+            return [waku[num] || 0, num];
+          });
+        })(),
         meta: (meta.day ? meta.day + "曜・" : "") +
               (hitChars.length ? hitChars.join("・") + " が的中" : "全カード不的中"),
         pay: signedYen(racePayout - raceSpent),

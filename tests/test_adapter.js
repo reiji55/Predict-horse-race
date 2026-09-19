@@ -107,7 +107,12 @@ tests.test_stats_from_results = () => {
   assert.strictEqual(kei.roi, 588);                 // 2940 / 500
 
   // 直近結果のレース名エリアに1〜3着の馬番を表示するため、finish先頭3頭を渡す
-  assert.deepStrictEqual(stats.history[0].top3, results.results[0].finish.slice(0, 3));
+  const firstRace = predictions.races.find((r) => r.id === results.results[0].race_id);
+  const waku = Object.fromEntries(firstRace.marks.map((m) => [m.num, m.waku]));
+  assert.deepStrictEqual(
+    stats.history[0].top3,
+    results.results[0].finish.slice(0, 3).map((num) => [waku[num] || 0, num])
+  );
 };
 
 tests.test_stats_show_losses_honestly = () => {
