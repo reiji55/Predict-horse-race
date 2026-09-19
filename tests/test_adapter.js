@@ -105,6 +105,9 @@ tests.test_stats_from_results = () => {
 
   const kei = stats.chars.find((c) => c.id === "kei");
   assert.strictEqual(kei.roi, 588);                 // 2940 / 500
+
+  // 直近結果のレース名エリアに1〜3着の馬番を表示するため、finish先頭3頭を渡す
+  assert.deepStrictEqual(stats.history[0].top3, results.results[0].finish.slice(0, 3));
 };
 
 tests.test_stats_show_losses_honestly = () => {

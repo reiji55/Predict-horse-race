@@ -386,7 +386,10 @@
   .hit-mark.hit{color:var(--red-pen)}
   .hit-mark.miss{color:#9AA5A0}
   .hist-item .h-info{flex:1}
+  .hist-item .h-name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
   .hist-item .h-name{font-weight:900;font-size:.82rem}
+  .hist-item .h-top3{font-size:.64rem;font-weight:800;color:var(--ink-soft);white-space:nowrap}
+  .hist-item .h-top3 b{font-size:.72rem;color:var(--ink)}
   .hist-item .h-meta{font-size:.64rem;color:var(--ink-soft);margin-top:1px}
   .hist-item .h-pay{font-family:var(--mincho);font-weight:800;font-size:.95rem;text-align:right}
   .hist-item .h-pay small{display:block;font-family:var(--gothic);font-size:.58rem;font-weight:700;color:var(--ink-soft)}
@@ -862,7 +865,10 @@ function renderStats(){
     <div class="hist-item" ${h.legend?'style="border-color:var(--legend-bright);background:linear-gradient(150deg,#FFFDF4,#FBF3D9)"':''}>
       <span class="hit-mark ${h.hit?'hit':'miss'}">${h.hit?'◯':'✕'}</span>
       <span class="h-info">
-        <span class="h-name">${h.name}</span>
+        <span class="h-name-row">
+          <span class="h-name">${h.name}</span>
+          ${h.top3 && h.top3.length ? `<span class="h-top3">${h.top3.map((n,i)=>`<span>${i+1}着 <b>${n}</b></span>`).join(" ・ ")}</span>` : ""}
+        </span>
         <div class="h-meta">${h.meta}</div>
       </span>
       <span class="h-pay ${h.hit?'plus':''}">${h.pay}<small>収支</small></span>

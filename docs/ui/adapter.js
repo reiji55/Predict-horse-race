@@ -158,6 +158,8 @@
         hit: racePayout > 0,
         name: (meta.venue || "") + (meta.race_no ? meta.race_no + "R" : "") +
               (meta.name ? "(" + meta.name + ")" : race.race_id),
+        // results.json の finish は着順どおりの馬番配列。直近結果で1〜3着をすぐ確認できるよう渡す。
+        top3: (race.finish || []).slice(0, 3),
         meta: (meta.day ? meta.day + "曜・" : "") +
               (hitChars.length ? hitChars.join("・") + " が的中" : "全カード不的中"),
         pay: signedYen(racePayout - raceSpent),
