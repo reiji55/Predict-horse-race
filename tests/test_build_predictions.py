@@ -27,7 +27,7 @@ BASE_TIMES = ROOT / "tests" / "fixtures" / "base_times.sample.json"
 
 REQUIRED_RACE_KEYS = {
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
-    "post_time", "course", "myomi", "myomi_parts", "legendary", "marks", "cards",
+    "post_time", "course", "speed_quality", "myomi", "myomi_parts", "legendary", "marks", "cards",
 }
 
 
@@ -63,6 +63,10 @@ def test_race_shape_and_marks():
     scores = [m["score"] for m in marks]
     assert scores == sorted(scores, reverse=True)  # スコア降順
     assert all(m["odds"] is not None for m in marks)
+
+    quality = race["speed_quality"]
+    assert quality["used"] is True
+    assert quality["coverage"] >= quality["min_race_coverage"]
     print("test_race_shape_and_marks: OK")
 
 
@@ -125,7 +129,9 @@ def test_speed_index_actually_contributes():
 
     assert [m["score"] for m in with_times["races"][0]["marks"]] != \
         [m["score"] for m in without["races"][0]["marks"]]
-    # 基準タイム表が無い場合は信頼度が下限まで落ちる（data_cov=0）
+    # 基準タイム表が無い場合はspeed guardがレース全体をOFFにし、信頼度も下限まで落ちる。
+    assert without["races"][0]["speed_quality"]["used"] is False
+    assert without["races"][0]["speed_quality"]["coverage"] == 0.0
     assert without["races"][0]["myomi_parts"]["conf"] == 0.5
     print("test_speed_index_actually_contributes: OK")
 
