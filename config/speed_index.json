@@ -3,14 +3,47 @@
   "point_per_sec_at2000": 10,
   "scale_mode": "distance",
   "impost_ref": 55,
-  "k_impost": 0.10,
+  "k_impost": 0.1,
   "going_adj": {
-    "芝": {"良": 0, "稍重": 0.5, "重": 1.2, "不良": 1.8},
-    "ダ": {"良": 0, "稍重": -0.3, "重": -0.5, "不良": -0.2}
+    "芝": {
+      "良": 0,
+      "稍重": 0.5,
+      "重": 1.2,
+      "不良": 1.8
+    },
+    "ダ": {
+      "良": 0,
+      "稍重": -0.3,
+      "重": -0.5,
+      "不良": -0.2
+    }
   },
-  "class_offset": {"mi": 2.5, "1win": 1.5, "2win": 1.0, "3win": 0.5,
-                   "op": 0, "g3": -0.3, "g2": -0.6, "g1": -1.0},
-  "class_credit": 0.0,
-  "recency_weights": [1.0, 0.9, 0.8, 0.7, 0.6],
-  "agg": {"w_best": 0.6, "w_avg": 0.4}
+  "class_offset": {
+    "mi": 2.5,
+    "1win": 1.5,
+    "2win": 1,
+    "3win": 0.5,
+    "op": 0,
+    "g3": -0.3,
+    "g2": -0.6,
+    "g1": -1
+  },
+  "class_credit": 0,
+  "recency_weights": [
+    1,
+    0.9,
+    0.8,
+    0.7,
+    0.6
+  ],
+  "agg": {
+    "w_best": 0.6,
+    "w_avg": 0.4
+  },
+  "guard": {
+    "same_surface_only": true,
+    "min_usable_runs": 2,
+    "min_race_coverage": 0.5,
+    "neutral_impute_missing": true
+  }
 }
