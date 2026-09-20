@@ -183,7 +183,41 @@ Documentation:
 
 ---
 
-## 6. What this branch intentionally does NOT solve
+## 6. Verified branch CI / W38 diagnostic
+
+Verified GitHub Actions run: `35511988028`
+
+- Full Python suite: **147 passed, 13 skipped**
+- Node adapter suite: completed successfully
+- Offline rebuild of committed `raw/2026-W38.json`: completed successfully
+
+For `20260920-nakayama-11` (All Comers), the new diagnostic reported:
+
+```text
+raw_available_horses = 3
+qualified_horses     = 1
+total_horses         = 13
+coverage             = 0.0769
+min_race_coverage    = 0.5
+used                 = false
+reason               = insufficient_race_coverage
+```
+
+So the branch correctly refuses to use factor ① speed for that race.
+
+A useful regression observation:
+
+- Production frozen prediction: horse 4 ヴーレヴー score **63.8**, unmarked (11th area).
+- Offline rebuild with this guard: score **71.9**, mark **✕** (6th).
+
+This is **not** being used as proof that the new model would have predicted the race.
+It only shows that the specific artifact identified in review — strong penalty from the only indexable dirt losses while relevant turf runs were unindexable — is removed.
+
+Horse 8 and horse 1 are still not promoted into the top tier by this fix. That is desirable evidence that this branch is not simply fitting the 1-2-3 finish after seeing the result.
+
+---
+
+## 7. What this branch intentionally does NOT solve
 
 ### Base-time completeness
 
@@ -217,7 +251,7 @@ The known `note="ハンデ"` parsing error remains outside this branch.
 
 ---
 
-## 7. Claude review checklist
+## 8. Claude review checklist
 
 Please review the implementation, not just the intent.
 
@@ -244,7 +278,7 @@ The acceptance criterion is structural:
 
 ---
 
-## 8. Merge recommendation
+## 9. Merge recommendation
 
 Recommended sequence:
 
