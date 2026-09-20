@@ -39,6 +39,7 @@ jobs:
       - name: テスト
         run: |
           python tests/test_logic.py
+          python tests/test_speed_guard.py
           python tests/test_build_predictions.py
           python tests/test_build_raw.py
           python tests/test_build_results.py
