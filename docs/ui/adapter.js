@@ -29,6 +29,7 @@
   };
 
   var CHAR_ORDER = ["kei", "tetsu", "gen", "otori"];
+  var CHAR_LABEL = { chatgpt: "チャット予想" };
 
   function yen(value) {
     return Math.round(value).toLocaleString("ja-JP") + "円";
@@ -85,6 +86,8 @@
         myomi: race.myomi,                       // 生値も渡す（将来の2軸メーター用）
         myomi_parts: race.myomi_parts || null,
         legendary: !!race.legendary,
+        status: race.status || null,
+        status_note: race.status_note || "",
         // 無印（mk:""）の馬は表示しない。marks には後方検証のため全馬入っている（OPEN_QUESTIONS B-5）
         marks: (race.marks || []).filter(function (mark) {
           return mark.mk;
@@ -129,18 +132,21 @@
     var history = [];
 
     (results.results || []).forEach(function (race) {
-      overall.races += 1;
+      var isManualChat = race.evaluation_scope === "manual_chat";
+      if (!isManualChat) overall.races += 1;
       var raceSpent = 0;
       var racePayout = 0;
       var hitChars = [];
 
       (race.cards || []).forEach(function (card) {
-        overall.spent += card.spent;
-        overall.payout += card.payout;
         raceSpent += card.spent;
         racePayout += card.payout;
-        if (card.hit) hitChars.push(card.char);
+        if (card.hit) hitChars.push(CHAR_LABEL[card.char] || card.char);
 
+        if (isManualChat) return;
+
+        overall.spent += card.spent;
+        overall.payout += card.payout;
         var stats = byChar[card.char] || (byChar[card.char] = {
           cards: 0, hits: 0, spent: 0, payout: 0, hitPayout: 0,
         });
@@ -153,7 +159,7 @@
         }
       });
 
-      var meta = nameById[race.race_id] || {};
+      var meta = nameById[race.race_id] || race.meta || {};
       history.push({
         hit: racePayout > 0,
         name: (meta.venue || "") + (meta.race_no ? meta.race_no + "R" : "") +

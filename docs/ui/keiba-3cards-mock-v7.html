@@ -115,6 +115,14 @@
     padding:2px 10px;border-radius:999px;
     box-shadow:0 2px 6px rgba(140,110,20,.4);
   }
+  .schedule-flag{
+    position:absolute;top:-9px;left:14px;
+    background:#5F7468;color:#fff;font-size:.6rem;font-weight:900;letter-spacing:.08em;
+    padding:2px 10px;border-radius:999px;box-shadow:0 2px 6px rgba(40,70,55,.22);
+  }
+  .schedule-mini{font-size:.68rem;font-weight:900;color:#5F7468;border:1px solid #A8B8AF;border-radius:999px;padding:4px 8px;white-space:nowrap}
+  .scheduled-panel{background:#F5F8F6;border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;line-height:1.8}
+  .scheduled-panel b{color:var(--turf)}
   .race-item .venue{
     font-family:var(--mincho);font-weight:800;font-size:.82rem;color:var(--turf);
     writing-mode:vertical-rl;letter-spacing:.3em;
@@ -722,13 +730,13 @@ function renderList(){
     rs.forEach(r=>{
       html += `
       <button class="race-item ${r.legendary?'legendary':''}" onclick="goDetail('${r.id}')">
-        ${r.legendary?'<span class="legend-flag">鳳 降臨</span>':''}
+        ${r.status==='scheduled'?'<span class="schedule-flag">代替開催</span>':(r.legendary?'<span class="legend-flag">鳳 降臨</span>':'')}
         <span class="venue">${r.venue}</span>
         <span class="info">
           <span class="rname">${r.name} ${gradeBadge(r.grade)}</span>
           <span class="meta">${r.no}・${r.cond}・${r.time}発走</span>
         </span>
-        ${distortHtml(r.distort)}
+        ${r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort)}
       </button>`;
     });
   });
@@ -767,6 +775,21 @@ function cardHtml(c){
 }
 
 function renderDetail(r){
+  if(r.status === "scheduled"){
+    document.getElementById("scr-detail").innerHTML = `
+      <button class="back-btn" onclick="goList()">← レース一覧へ</button>
+      <div class="detail-head">
+        <div class="rname">${r.name} ${gradeBadge(r.grade)}</div>
+        <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
+      </div>
+      <div class="scheduled-panel">
+        <b>9月22日（火）代替開催</b><br>
+        ${r.status_note || "予想データを準備中です。"}
+      </div>
+      <p class="notice">出走馬・馬番は中止前の出馬表を引き継ぎます。実際の購入前にJRA公式の最新情報をご確認ください。</p>
+    `;
+    return;
+  }
   const marks = r.marks.map(m=>`
     <div class="mark-chip">
       <span class="mk ${m.hon?'hon':''}">${m.mk}</span>

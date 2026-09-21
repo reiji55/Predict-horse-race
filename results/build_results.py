@@ -167,8 +167,23 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
         "finish": race_result.get("finish", []),
         "dividends": dividends,
         "cards": cards,
+        "meta": {
+            "day": prediction_race.get("day"),
+            "venue": prediction_race.get("venue"),
+            "race_no": prediction_race.get("race_no"),
+            "name": prediction_race.get("name"),
+            "grade": prediction_race.get("grade"),
+            "marks": prediction_race.get("marks", []),
+        },
     }
-    benchmark = market_benchmark(prediction_race, dividends)
+    if prediction_race.get("evaluation_scope"):
+        result["evaluation_scope"] = prediction_race["evaluation_scope"]
+    if prediction_race.get("record_note"):
+        result["record_note"] = prediction_race["record_note"]
+
+    benchmark = None
+    if prediction_race.get("evaluation_scope") != "manual_chat":
+        benchmark = market_benchmark(prediction_race, dividends)
     if benchmark is not None:
         result["benchmark"] = benchmark
     # いつのオッズで決めた買い目を採点したのか、結果側にも残す（logic/snapshots.py 参照）
@@ -212,6 +227,9 @@ def summarize(results: dict[str, Any]) -> dict[str, Any]:
     market = {"races": 0, "hits": 0, "spent": 0, "payout": 0}
 
     for race in results.get("results", []):
+        if race.get("evaluation_scope") == "manual_chat":
+            continue
+
         overall["races"] += 1
 
         benchmark = race.get("benchmark")

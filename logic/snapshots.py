@@ -45,7 +45,7 @@ JST = datetime.timezone(datetime.timedelta(hours=9))
 _RACE_FIELDS = (
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
     "post_time", "course", "speed_quality", "myomi", "myomi_parts", "myomi_source", "legendary",
-    "otori_card_ev", "card_ev_myomi", "model_disagreement_myomi", "marks", "cards",
+    "otori_card_ev", "card_ev_myomi", "model_disagreement_myomi", "evaluation_scope", "record_note", "marks", "cards",
 )
 
 
