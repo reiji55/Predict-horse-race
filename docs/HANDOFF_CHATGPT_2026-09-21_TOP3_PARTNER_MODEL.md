@@ -628,3 +628,126 @@ An earlier red run was caused only by the existing top-level schema test not yet
 25. Should old Champion remain shadow-running for a mandatory probation period after promotion?
 
 Please review these operational risks before approving merge.
+
+
+---
+
+## 16. Champion / Challenger shadow-evaluation architecture
+
+This branch now also contains the infrastructure requested after the initial Top3 implementation.
+
+### Registry
+
+`config/models.json`
+
+Current roles:
+
+- Champion: `win-v1-speed-guard`
+  - `use_top3_partner=false`
+  - this remains the only model written to `data/predictions.json` and shown in the UI.
+- Challenger: `top3-partner-v1`
+  - `use_top3_partner=true`
+  - hidden from the UI and run only for prospective comparison.
+
+**Bug fixes are not registered as Challengers.**
+A bug/data-quality fix is shared by Champion and Challenger and therefore changes their common baseline, not the experimental variant.
+
+### Same-run generation
+
+`logic/build_predictions.py::main` loads raw/config/base-times once and uses the same `run_now` / `generated_at`.
+
+It then builds:
+
+Champion:
+- `data/predictions.json`
+- `data/snapshots/{race_id}.json`
+
+Challenger:
+- `data/challengers/top3-partner-v1/predictions.json`
+- `data/challengers/top3-partner-v1/snapshots/{race_id}.json`
+
+This is intentional: the comparison should differ by model variant, not by odds timestamp or raw-data refresh.
+
+### Reproducibility metadata
+
+Each race/snapshot records:
+
+- `model_id`
+- `model_role`
+- `git_commit`
+- `config_hash`
+
+`logic/model_registry.py` hashes the prediction-affecting configs, including `models.json`.
+
+### Same-result settlement
+
+`results/build_shadow_results.py` takes the already-fetched official `data/race_results.json`.
+
+It grades each enabled Challenger using **its own pre-race snapshots**, then writes:
+
+- `data/challengers/{model_id}/results.json`
+
+No second result fetch is needed and no post-race prediction is regenerated.
+
+`.github/workflows/run_results.yml` runs this after the normal Champion `results.json` build.
+
+### Apples-to-apples comparison
+
+`results/model_compare.py` produces:
+
+- `data/model_comparison.json`
+
+For each Challenger, it takes the **intersection of race_id values** present in Champion and Challenger results.
+
+Therefore:
+- old Champion-only races from before Challenger launch are excluded;
+- a race missing a valid pre-race snapshot on either side is excluded;
+- `evaluation_scope=manual_chat` is excluded;
+- both sides are evaluated on identical official race results.
+
+It records:
+- common race IDs / count
+- spent / payout / balance / ROI
+- card hit rate
+- by-character results
+- race-by-race balance delta
+
+### Promotion / rollback
+
+Human-readable history and rollback instructions live in:
+
+`docs/MODEL_HISTORY.md`
+
+Promotion should normally be a registry-role change, not deletion of the old model:
+
+- promote `top3-partner-v1` to Champion;
+- retain `win-v1-speed-guard` as a shadow Challenger for a period.
+
+If the new Champion later degrades, swap the roles back.
+
+Only revert code commits when the implementation itself is wrong; ordinary model preference changes should be handled through the registry.
+
+### Do not prematurely promote
+
+No fixed minimum sample size has been hard-coded yet.
+
+That is deliberate. With rare large payouts, a single race can dominate ROI.
+Collect paired prospective races first, then define promotion criteria **before** inspecting the deciding sample.
+
+---
+
+## 17. Additional files introduced for Champion / Challenger
+
+- `config/models.json`
+- `logic/model_registry.py`
+- `results/model_compare.py`
+- `results/build_shadow_results.py`
+- `tests/test_model_registry.py`
+- `tests/test_model_compare.py`
+- `docs/MODEL_HISTORY.md`
+- `.github/workflows/run_results.yml` (shadow settlement step)
+- `logic/snapshots.py` (model identity frozen)
+- `results/build_results.py` (model identity preserved)
+- `tests/test_build_predictions.py` (model metadata contract)
+
+Claude review must include these files as part of PR #3, not only the original Top3 scoring files.
