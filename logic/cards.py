@@ -154,6 +154,11 @@ def assign_marks(horses_with_base_score: list[dict[str, Any]], config: dict[str,
             "name": horse.get("name"),
             "odds": horse.get("odds"),
             "score": round(horse["score"], 1) if horse.get("score") is not None else None,
+            # Top3は勝率とは別の「3着以内に残る適性」。確率ではなく相手候補ランキング用。
+            "top3_score": round(horse["top3_raw"], 4) if horse.get("top3_raw") is not None else None,
+            "top3_rank": horse.get("top3_rank"),
+            "top3_same_dist_runs": horse.get("top3_same_dist_runs", 0),
+            "top3_same_dist_hits": horse.get("top3_same_dist_hits", 0),
         })
         marks.append(mark)
 
@@ -236,6 +241,109 @@ def _ranks_desc(values: list[float | None]) -> list[int | None]:
     )
     ranks: dict[int, int] = {index: rank for rank, index in enumerate(order, start=1)}
     return [ranks.get(i) for i in range(len(values))]
+
+
+def _ranks_asc(values: list[float | None]) -> list[int | None]:
+    """値の昇順の順位（1始まり）。単勝オッズの人気順などに使う。"""
+    order = sorted(
+        (i for i, v in enumerate(values) if v is not None),
+        key=lambda i: values[i],
+    )
+    ranks: dict[int, int] = {index: rank for rank, index in enumerate(order, start=1)}
+    return [ranks.get(i) for i in range(len(values))]
+
+
+def assign_place_partner_ranks(horses: list[dict[str, Any]]) -> None:
+    """
+    Top3生スコアと市場人気から、券種別の相手候補選定に必要な順位を付ける。
+
+    top3_rank       : Top3 Scoreの高い順
+    market_short_rank: 単勝オッズが低い順（保険型）
+    market_long_rank : 単勝オッズが高い順（妙味型）
+
+    Top3 Scoreが無い馬はtop3_rank=None。Win側のscore/pには一切影響しない。
+    """
+    top3 = [h.get("top3_raw") for h in horses]
+    odds = [h.get("odds") for h in horses]
+    top3_ranks = _ranks_desc(top3)
+    market_short = _ranks_asc(odds)
+    market_long = _ranks_desc(odds)
+    for horse, t_rank, short_rank, long_rank in zip(
+            horses, top3_ranks, market_short, market_long):
+        horse["top3_rank"] = t_rank
+        horse["market_short_rank"] = short_rank
+        horse["market_long_rank"] = long_rank
+
+
+def order_place_partners(horses: list[dict[str, Any]], mode: str,
+                         config: dict[str, Any],
+                         axis_num: int | None = None) -> list[dict[str, Any]]:
+    """
+    ワイド/3連複の相手候補をTop3 Score中心で並べる。
+
+    insurance: Top3再現性 + 市場人気（低オッズ）を少し重視
+    balanced : Top3再現性のみ
+    edge     : Top3再現性 + 市場不人気（高オッズ）を少し重視
+
+    ここでのmarket成分は**EVではない**。未校正Top3 Scoreを確率扱いしないため、
+    「相手候補の順位を散らす」用途だけに限定する。
+    """
+    mode_cfg = config.get("top3", {}).get("partner_modes", {}).get(mode)
+    if not mode_cfg:
+        return []
+
+    candidates = [
+        h for h in horses
+        if h.get("top3_rank") is not None and h.get("num") is not None
+        and h.get("num") != axis_num
+    ]
+    if not candidates:
+        return []
+
+    top3_total = max(h["top3_rank"] for h in candidates)
+    market_key = "market_long_rank" if mode == "edge" else "market_short_rank"
+    market_candidates = [h[market_key] for h in candidates if h.get(market_key) is not None]
+    market_total = max(market_candidates) if market_candidates else 0
+
+    for horse in candidates:
+        t = _rank_norm(horse["top3_rank"], top3_total) or 0.0
+        market = 0.0
+        if mode_cfg.get("market", 0) > 0 and horse.get(market_key) is not None and market_total:
+            market = _rank_norm(horse[market_key], market_total) or 0.0
+        horse["place_partner_sel"] = mode_cfg.get("top3", 1.0) * t + mode_cfg.get("market", 0.0) * market
+
+    return sorted(
+        candidates,
+        key=lambda h: (h["place_partner_sel"], h.get("top3_raw") or -1.0),
+        reverse=True,
+    )
+
+
+def _bet_horses_with_place_policy(
+        bet_type: str, indices: tuple[int, ...],
+        ordered: list[dict[str, Any]], place_pool: list[dict[str, Any]]) -> list[int]:
+    """
+    テンプレの0番をWin側の軸として残し、1番以降をTop3相手候補へ差し替える。
+
+    ワイド/3連複だけに適用する。候補不足や重複が起きる場合は従来のorderedへフォールバック。
+    """
+    original = [ordered[i]["num"] for i in indices]
+    if bet_type not in (WIDE, SANRENPUKU) or not place_pool:
+        return original
+
+    mapped: list[int] = []
+    for index in indices:
+        if index == 0:
+            mapped.append(ordered[0]["num"])
+            continue
+        pool_index = index - 1
+        if pool_index >= len(place_pool):
+            return original
+        mapped.append(place_pool[pool_index]["num"])
+
+    if len(set(mapped)) != len(mapped):
+        return original
+    return mapped
 
 
 def assign_character_ranks(horses: list[dict[str, Any]], config: dict[str, Any],
@@ -554,6 +662,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
     """
     char_config = config["characters"][char_id]
     assign_character_ranks(horses, config, char_config, temperature)
+    assign_place_partner_ranks(horses)
     ordered = select_horses(
         horses, char_config["lambda"], char_config.get("axis_base_rank_floor"),
         base_rank_key="sel_base_rank", value_rank_key="sel_value_rank",
@@ -566,8 +675,19 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         logger.warning("出走可能な馬が %d 頭しかなく、%s のカードを生成できません", len(ordered), char_id)
         return None
 
+    place_mode = char_config.get("place_partner_mode")
+    place_pool = order_place_partners(
+        horses, place_mode, config, axis_num=ordered[0]["num"]
+    ) if place_mode else []
+
     bets: list[dict[str, Any]] = [
-        {"type": bet_type, "horses": [ordered[i]["num"] for i in indices], "amt": amt}
+        {
+            "type": bet_type,
+            "horses": _bet_horses_with_place_policy(
+                bet_type, indices, ordered, place_pool
+            ),
+            "amt": amt,
+        }
         for bet_type, indices, amt in template["bets"]
     ]
 
@@ -591,6 +711,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         "char": char_id,
         # どの尺度で歪みを測って買ったか。あとで「どの見方が効いたか」を集計するために残す
         "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
+        "place_partner_mode": place_mode,
         "hit_pct": evaluation["hit_pct"],
         "payout_range": evaluation["payout_range"],
         "market_ev": market_ev,
