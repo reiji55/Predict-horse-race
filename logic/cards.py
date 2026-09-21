@@ -656,7 +656,10 @@ def select_horses(horses: list[dict[str, Any]], lam: float,
 
 def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
                                 config: dict[str, Any], temperature: float = 10.0,
-                                combo_odds: dict[str, Any] | None = None) -> dict[str, Any] | None:
+                                combo_odds: dict[str, Any] | None = None,
+                                use_place_model: bool = False,
+                                model_id: str | None = None,
+                                model_role: str | None = None) -> dict[str, Any] | None:
     """
     1キャラ分のcards[]要素を生成する（買い目生成仕様§5）。
 
@@ -680,7 +683,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         logger.warning("出走可能な馬が %d 頭しかなく、%s のカードを生成できません", len(ordered), char_id)
         return None
 
-    place_mode = char_config.get("place_partner_mode")
+    place_mode = char_config.get("place_partner_mode") if use_place_model else None
     place_pool = order_place_partners(
         horses, place_mode, config, axis_num=ordered[0]["num"]
     ) if place_mode else []
@@ -717,7 +720,8 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         # どの尺度で歪みを測って買ったか。あとで「どの見方が効いたか」を集計するために残す
         "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
         "place_partner_mode": place_mode,
-        "model_version": "top3-partner-v1",
+        "model_version": model_id,
+        "model_role": model_role,
         "hit_pct": evaluation["hit_pct"],
         "payout_range": evaluation["payout_range"],
         "market_ev": market_ev,
