@@ -717,6 +717,7 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
         # どの尺度で歪みを測って買ったか。あとで「どの見方が効いたか」を集計するために残す
         "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
         "place_partner_mode": place_mode,
+        "model_version": "top3-partner-v1",
         "hit_pct": evaluation["hit_pct"],
         "payout_range": evaluation["payout_range"],
         "market_ev": market_ev,
