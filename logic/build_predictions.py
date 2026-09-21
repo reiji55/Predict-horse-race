@@ -90,7 +90,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
     horses: list[dict[str, Any]] = []
     for entry in race.get("entries", []):
         past_runs = entry.get("past_runs") or []
-        speed = speed_mod.compute_horse_speed(past_runs, speed_config, base_times)
+        speed = speed_mod.compute_horse_speed(
+            past_runs, speed_config, base_times,
+            target_surface=today_course.get("surface"),
+        )
 
         horses.append({
             "num": entry.get("num"),
@@ -109,6 +112,19 @@ def build_race(race: dict, configs: dict, base_times: dict,
             # スピード指数仕様§3：n_usable ≤ 2 は値は使うが低信頼
             "uncertain": speed is None or speed["n_usable"] <= 2,
         })
+
+    # --- スピード指数のレース内品質ガード -----------------------------
+    # base_times が疎な段階で「一部の馬だけ悪い走が指数化される」非対称を防ぐ。
+    # coverage不足なら①をレース全体で切り、coverageを満たす場合の欠損は中立(z=0)補完する。
+    speed_quality = speed_mod.apply_race_speed_guard(horses, speed_config)
+    if not speed_quality["used"]:
+        logger.warning(
+            "%s: スピード指数をレース全体で無効化しました "
+            "(qualified=%s/%s coverage=%.3f < %.3f)",
+            race.get("id"),
+            speed_quality["qualified_horses"], speed_quality["total_horses"],
+            speed_quality["coverage"], speed_quality["min_race_coverage"],
+        )
 
     # --- 合成スコア → 印 ---------------------------------------------
     base_score.compute_base_scores(horses, cards_config)
@@ -182,6 +198,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "grade": race.get("grade"),
         "post_time": race.get("post_time"),
         "course": course,
+        "speed_quality": speed_quality,
         "myomi": myomi_result["myomi"],
         "myomi_parts": myomi_result["myomi_parts"],
         "myomi_source": myomi_result.get("myomi_source"),

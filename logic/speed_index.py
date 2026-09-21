@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import json
 import logging
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +140,8 @@ def compute_run_index(run: dict[str, Any], config: dict[str, Any],
 
 
 def compute_horse_speed(past_runs: list[dict[str, Any]], config: dict[str, Any] | None = None,
-                        base_times: dict[str, Any] | None = None) -> dict[str, Any] | None:
+                        base_times: dict[str, Any] | None = None,
+                        target_surface: str | None = None) -> dict[str, Any] | None:
     """
     馬1頭の past_runs（直近5走・新しい順）から speed 集約値を計算する（スピード指数仕様§3）。
 
@@ -154,8 +156,16 @@ def compute_horse_speed(past_runs: list[dict[str, Any]], config: dict[str, Any] 
     base_times = base_times if base_times is not None else load_base_times()
 
     weights = config["recency_weights"]
+    guard = config.get("guard", {})
+    same_surface_only = bool(guard.get("same_surface_only", False))
+
     scored: list[tuple[int, float]] = []  # (元の位置, 指数)
     for position, run in enumerate(past_runs):
+        # 基準タイム表が疎な段階で芝レースの評価に「たまたま表があるダート走」だけが残ると、
+        # その馬だけ不自然に減点される。予測対象の芝/ダが判る場合は同じsurfaceだけで指数を作る。
+        if (same_surface_only and target_surface in VALID_SURFACES
+                and run.get("surface") != target_surface):
+            continue
         index = compute_run_index(run, config, base_times)
         if index is not None:
             scored.append((position, index))
@@ -193,6 +203,92 @@ def speed_raw(speed: dict[str, Any] | None, config: dict[str, Any] | None = None
     return agg["w_best"] * speed["best"] + agg["w_avg"] * speed["avg"]
 
 
+def apply_race_speed_guard(horses: list[dict[str, Any]],
+                           config: dict[str, Any]) -> dict[str, Any]:
+    """
+    レース内で①スピード指数の**欠損が非対称に効く**のを防ぐ安全弁。
+
+    背景:
+      base_times が未充足だと「A馬は指数0本、B馬は悪い1走だけ指数あり」のようになる。
+      旧実装は A馬では speed を欠損として残りの要素へ重みを再配分する一方、
+      B馬ではその悪い1走を45%相当で使うため、**データがある馬だけが不利になる**ことがあった。
+
+    guard設定:
+      min_usable_runs:
+        これ未満しか指数化できない馬は speed を使わない（既定2）。
+      min_race_coverage:
+        上記を満たす馬の比率がこれ未満なら、そのレースではspeed要素を全馬一律で無効化。
+      neutral_impute_missing:
+        coverageを満たしたレースでは、speed欠損馬を観測馬の平均値で中立補完する。
+        z標準化の入力を平均で埋めるので、欠損馬のspeed寄与は**ちょうど z=0**になる。
+
+    この関数は「基準タイム不足を治す」ものではない。未充足の間にランキングを歪めないための
+    fail-safe。base_timesが十分埋まれば自然に coverage が上がり、speedが通常利用される。
+    """
+    guard = config.get("guard", {})
+    min_runs = max(1, int(guard.get("min_usable_runs", 1)))
+    min_coverage = float(guard.get("min_race_coverage", 0.0))
+    neutral_impute = bool(guard.get("neutral_impute_missing", False))
+
+    total = len(horses)
+    raw_available = sum(1 for h in horses if h.get("speed_raw") is not None)
+
+    qualified: list[float] = []
+    for horse in horses:
+        speed = horse.get("speed_raw")
+        n_usable = int(horse.get("n_usable") or 0)
+        if speed is None or n_usable < min_runs:
+            horse["speed_raw"] = None
+            horse["speed_imputed"] = False
+            horse["uncertain"] = True
+        else:
+            qualified.append(float(speed))
+            horse["speed_imputed"] = False
+
+    qualified_count = len(qualified)
+    coverage = qualified_count / total if total else 0.0
+
+    report: dict[str, Any] = {
+        "raw_available_horses": raw_available,
+        "qualified_horses": qualified_count,
+        "total_horses": total,
+        "coverage": round(coverage, 4),
+        "min_usable_runs": min_runs,
+        "min_race_coverage": min_coverage,
+        "same_surface_only": bool(guard.get("same_surface_only", False)),
+        "used": False,
+        "imputed_horses": 0,
+        "reason": None,
+    }
+
+    if total == 0:
+        report["reason"] = "no_horses"
+        return report
+
+    if not qualified or coverage < min_coverage:
+        for horse in horses:
+            horse["speed_raw"] = None
+            horse["speed_imputed"] = False
+        report["reason"] = "insufficient_race_coverage"
+        return report
+
+    if neutral_impute:
+        neutral = statistics.fmean(qualified)
+        imputed = 0
+        for horse in horses:
+            if horse.get("speed_raw") is None:
+                horse["speed_raw"] = neutral
+                horse["speed_imputed"] = True
+                horse["uncertain"] = True
+                imputed += 1
+        report["neutral_value"] = round(neutral, 4)
+        report["imputed_horses"] = imputed
+
+    report["used"] = True
+    report["reason"] = "ok"
+    return report
+
+
 def warn_if_base_times_empty(base_times: dict[str, Any]) -> None:
     """
     base_times が空だと usable判定の条件4で**全走が落ち**、エラーにならないまま
@@ -201,5 +297,5 @@ def warn_if_base_times_empty(base_times: dict[str, Any]) -> None:
     if not base_times:
         logger.warning(
             "config/base_times.json が空です。全ての過去走が usable 判定を通らないため、"
-            "スピード指数は全馬 None になります（scripts/build_base_times.py が未実装）。"
+            "スピード指数は全馬 None になります。run_base_times.yml で基準タイム表を埋めてください。"
         )
