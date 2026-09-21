@@ -459,3 +459,172 @@ Suggested order after this branch:
 2. collect prospective results
 3. probability calibration
 4. only then use true probability × actual Wide/Trio odds for stake optimization
+
+
+---
+
+# 16. Champion / Challenger shadow operation (added 2026-09-22)
+
+The user explicitly adopted a Champion/Challenger workflow so future model changes can be rolled back based on same-race evidence rather than memory or a few recent outcomes.
+
+This PR now includes that infrastructure.
+
+## Registry
+
+`config/models.json` is the operational source of truth.
+
+Current intended state:
+
+```text
+Champion   = win-v1-speed-guard
+Challenger = top3-partner-v1
+```
+
+Champion has `use_top3_partner=false`.
+Challenger has `use_top3_partner=true`.
+
+Therefore merging this PR **does not immediately replace the production prediction method**.
+
+The UI-facing `data/predictions.json` remains the Champion.
+
+## Same-run generation
+
+`logic.build_predictions.main()` captures one `run_now` and one raw input, then creates:
+
+Champion:
+- `data/predictions.json`
+- `data/snapshots/{race_id}.json`
+
+Challenger:
+- `data/challengers/top3-partner-v1/predictions.json`
+- `data/challengers/top3-partner-v1/snapshots/{race_id}.json`
+
+Both are frozen against the same `run_now`, which avoids a comparison where one model accidentally sees later odds.
+
+Challenger predictions are not shown in the UI.
+
+## Reproducibility fields
+
+Every generated prediction/race records:
+
+- `model_id`
+- `model_role`
+- `git_commit`
+- `config_hash`
+
+Each card records:
+- `model_version`
+- `model_role`
+- objective
+- place_partner_mode
+- probability_model
+
+`config_hash` is SHA-256 over:
+- cards.json
+- myomi.json
+- speed_index.json
+- models.json
+
+The hash is intentionally short-displayed (first 16 hex chars) but deterministic.
+
+## Shadow settlement
+
+After the normal results job builds `data/results.json`, it runs:
+
+`python -m results.build_shadow_results`
+
+This settles every enabled Challenger against the exact same `data/race_results.json`.
+
+Outputs:
+
+- `data/challengers/{model_id}/results.json`
+- `data/model_comparison.json`
+
+## Apples-to-apples comparison
+
+`results/model_compare.py` compares only the **intersection of race_ids** available to Champion and each Challenger.
+
+Example:
+
+```text
+Champion history   100 races
+Challenger history  20 races
+comparison          20 common races
+```
+
+The prior 80 Champion races do not enter the head-to-head.
+
+`manual_chat` special records are excluded.
+
+Comparison includes:
+- races
+- cards
+- hits
+- spend
+- payout
+- balance
+- ROI
+- card hit rate
+- by-character stats
+- per-race balance delta
+
+## Promotion and rollback
+
+See:
+- `docs/MODEL_HISTORY.md`
+- `docs/MODEL_OPERATIONS.md`
+
+Promotion is intended to be config-first:
+1. evaluate common-race evidence
+2. change `config/models.json`
+3. move challenger spec to Champion
+4. keep old Champion available as Challenger/Archived
+5. update MODEL_HISTORY
+6. PR + tests + review
+
+Rollback can therefore often be a small config restoration.
+If implementation code itself is wrong, use the recorded Git commit and Git revert.
+
+## Additional files added for this infrastructure
+
+- `config/models.json`
+- `logic/model_registry.py`
+- `results/build_shadow_results.py`
+- `results/model_compare.py`
+- `tests/test_model_registry.py`
+- `tests/test_model_compare.py`
+- `docs/MODEL_HISTORY.md`
+- `docs/MODEL_OPERATIONS.md`
+
+Also changed:
+- `logic/build_predictions.py`
+- `logic/cards.py`
+- `logic/snapshots.py`
+- `results/build_results.py`
+- `.github/workflows/run_pipeline.yml`
+- `.github/workflows/run_results.yml`
+- `tests/test_build_predictions.py`
+
+## Verified latest CI
+
+Run `35635019385`:
+- Python: **159 passed, 13 skipped**
+- focused Top3/build/results tests: **23 passed**
+- Node adapter tests: success
+
+An earlier red run was caused only by the existing top-level schema test not yet allowing the new `model` metadata field; the test contract was updated and the latest run is green.
+
+## Extra Claude review checklist for shadow operation
+
+16. Does using one captured `run_now` genuinely prevent timing advantage between Champion and Challenger?
+17. Can Champion/Challenger snapshot directories ever overwrite each other?
+18. Is `config_hash` sufficient to distinguish relevant runtime settings?
+19. Should Git SHA fallback be stronger than `unknown` outside GitHub Actions?
+20. Does common-race intersection prevent survivorship / history-window bias adequately?
+21. Should comparison also require matching odds/frozen timestamps explicitly?
+22. Could a Challenger build failure silently reduce the intersection and make results look better?
+23. Should missing Challenger races be reported as a coverage metric / failure count?
+24. Is config-only promotion safe given both model paths remain in the same codebase?
+25. Should old Champion remain shadow-running for a mandatory probation period after promotion?
+
+Please review these operational risks before approving merge.
