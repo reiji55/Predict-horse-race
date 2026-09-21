@@ -723,7 +723,8 @@ function renderList(){
     byDay.get(ymd).push(r);
   });
 
-  [...byDay.keys()].sort().forEach(ymd=>{
+  // 一覧は開催日の新しい順。直近・次回開催が常に上に来る。
+  [...byDay.keys()].sort((a,b)=>b.localeCompare(a)).forEach(ymd=>{
     const rs = byDay.get(ymd);
     if(!rs.length) return;
     html += ymd ? dayHeading(ymd, rs.length) : "";
