@@ -27,7 +27,8 @@ BASE_TIMES = ROOT / "tests" / "fixtures" / "base_times.sample.json"
 
 REQUIRED_RACE_KEYS = {
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
-    "post_time", "course", "speed_quality", "myomi", "myomi_parts", "legendary", "marks", "cards",
+    "post_time", "course", "model_id", "model_role", "git_commit", "config_hash",
+    "speed_quality", "myomi", "myomi_parts", "legendary", "marks", "cards",
 }
 
 
@@ -40,7 +41,9 @@ def _build():
 def test_top_level_shape():
     """トップレベル：generated_at / week_id / myomi_threshold / races（スキーマ§1）。"""
     predictions = _build()
-    assert set(predictions) == {"generated_at", "week_id", "myomi_threshold", "races"}
+    assert set(predictions) == {"generated_at", "week_id", "model", "myomi_threshold", "races"}
+    assert predictions["model"]["model_id"] == "win-v1-speed-guard"
+    assert predictions["model"]["model_role"] == "champion"
     assert predictions["week_id"] == "2026-W27"
     assert predictions["myomi_threshold"] == 80
     assert predictions["generated_at"].endswith("+09:00")
@@ -134,6 +137,47 @@ def test_speed_index_actually_contributes():
     assert without["races"][0]["speed_quality"]["coverage"] == 0.0
     assert without["races"][0]["myomi_parts"]["conf"] == 0.5
     print("test_speed_index_actually_contributes: OK")
+
+
+def test_challenger_changes_place_partners_without_replacing_champion_default():
+    """同じrawでChampionとTop3 Challengerを作り、役割と買い目差分を監査できること。"""
+    from logic import model_registry
+
+    raw = json.loads(RAW_SAMPLE.read_text(encoding="utf-8"))
+    base_times = json.loads(BASE_TIMES.read_text(encoding="utf-8"))
+    configs = build_predictions.load_configs()
+    registry = model_registry.load_registry()
+    challenger_spec = next(m for m in registry["challengers"] if m["id"] == "top3-partner-v1")
+
+    champion = build_predictions.build_predictions(
+        raw, configs, base_times, model_spec=registry["champion"],
+        generated_at="2026-09-22T02:00:00+09:00",
+    )
+    challenger = build_predictions.build_predictions(
+        raw, configs, base_times, model_spec=challenger_spec,
+        generated_at="2026-09-22T02:00:00+09:00",
+    )
+
+    assert champion["model"]["model_role"] == "champion"
+    assert challenger["model"]["model_role"] == "challenger"
+    assert champion["races"][0]["model_id"] == "win-v1-speed-guard"
+    assert challenger["races"][0]["model_id"] == "top3-partner-v1"
+
+    champ_cards = {x["char"]: x for x in champion["races"][0]["cards"]}
+    chall_cards = {x["char"]: x for x in challenger["races"][0]["cards"]}
+
+    # Championは旧方式、Challengerだけplace partner modeを持つ。
+    assert champ_cards["gen"]["place_partner_mode"] is None
+    assert chall_cards["gen"]["place_partner_mode"] == "edge"
+
+    champ_wide = [b["horses"] for b in champ_cards["gen"]["bets"] if b["type"] == "ワイド"]
+    chall_wide = [b["horses"] for b in chall_cards["gen"]["bets"] if b["type"] == "ワイド"]
+    assert champ_wide != chall_wide
+
+    # 馬連はTop3モデルの対象外なので、哲さんの馬連は同じWin側選定を維持する。
+    champ_umaren = [b["horses"] for b in champ_cards["tetsu"]["bets"] if b["type"] == "馬連"]
+    chall_umaren = [b["horses"] for b in chall_cards["tetsu"]["bets"] if b["type"] == "馬連"]
+    assert champ_umaren == chall_umaren
 
 
 def test_failed_race_does_not_stop_the_week():
