@@ -1,0 +1,27 @@
+name: ChatGPT Top3 partner model CI
+
+on:
+  push:
+    branches:
+      - chatgpt/top3-place-model-20260921
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Full Python tests
+        run: python -m pytest -q
+      - name: Node adapter tests
+        run: node tests/test_adapter.js
+      - name: Top3 focused tests
+        run: python -m pytest tests/test_top3_score.py tests/test_build_predictions.py tests/test_build_results.py -q
