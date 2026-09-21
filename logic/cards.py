@@ -300,13 +300,18 @@ def order_place_partners(horses: list[dict[str, Any]], mode: str,
     if not candidates:
         return []
 
-    top3_total = max(h["top3_rank"] for h in candidates)
+    top3_values = [float(h["top3_raw"]) for h in candidates]
+    top3_min, top3_max = min(top3_values), max(top3_values)
     market_key = "market_long_rank" if mode == "edge" else "market_short_rank"
     market_candidates = [h[market_key] for h in candidates if h.get(market_key) is not None]
     market_total = max(market_candidates) if market_candidates else 0
 
     for horse in candidates:
-        t = _rank_norm(horse["top3_rank"], top3_total) or 0.0
+        # 順位ではなく生スコアの差を使う。Top3適性が僅差ならmarket側の差が効く。
+        if top3_max > top3_min:
+            t = (float(horse["top3_raw"]) - top3_min) / (top3_max - top3_min)
+        else:
+            t = 1.0
         market = 0.0
         if mode_cfg.get("market", 0) > 0 and horse.get(market_key) is not None and market_total:
             market = _rank_norm(horse[market_key], market_total) or 0.0
