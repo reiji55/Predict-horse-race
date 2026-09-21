@@ -32,6 +32,7 @@ from logic import base_score, cards, myomi, prob_model, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
 from logic import speed_index as speed_mod
+from logic import top3_score as top3_mod
 
 logger = logging.getLogger("logic.build_predictions")
 
@@ -94,6 +95,9 @@ def build_race(race: dict, configs: dict, base_times: dict,
             past_runs, speed_config, base_times,
             target_surface=today_course.get("surface"),
         )
+        top3 = top3_mod.compute_top3_profile(
+            past_runs, today_course, cards_config["top3"]
+        )
 
         horses.append({
             "num": entry.get("num"),
@@ -108,6 +112,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
                 entry.get("jockey_stats"), entry.get("trainer_stats"),
                 overall_jockey_rate, overall_trainer_rate, cards_config["human"],
             ),
+            "top3_raw": top3["raw"] if top3 else None,
+            "top3_n_usable": top3["n_usable"] if top3 else 0,
+            "top3_same_dist_runs": top3["same_dist_runs"] if top3 else 0,
+            "top3_same_dist_hits": top3["same_dist_top3"] if top3 else 0,
             "n_usable": speed["n_usable"] if speed else 0,
             # スピード指数仕様§3：n_usable ≤ 2 は値は使うが低信頼
             "uncertain": speed is None or speed["n_usable"] <= 2,
@@ -126,8 +134,11 @@ def build_race(race: dict, configs: dict, base_times: dict,
             speed_quality["coverage"], speed_quality["min_race_coverage"],
         )
 
-    # --- 合成スコア → 印 ---------------------------------------------
+    # --- Win Score と Top3 Score を分離 -------------------------------
+    # ①②③のbase_scoreは「勝ち切る力」のまま。Top3はワイド/3連複の相手候補専用で、
+    # win probability p や妙味EVには混ぜない。
     base_score.compute_base_scores(horses, cards_config)
+    cards.assign_place_partner_ranks(horses)
     marks = cards.assign_marks(horses, cards_config)
 
     # --- p / q → 妙味 -------------------------------------------------
