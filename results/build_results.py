@@ -89,13 +89,18 @@ def settle_bet(bet: dict[str, Any], dividends: dict[str, Any]) -> dict[str, Any]
 def settle_card(card: dict[str, Any], dividends: dict[str, Any]) -> dict[str, Any]:
     """1カード分の的中判定・払戻（不変条件2〜4）。"""
     bets = [settle_bet(bet, dividends) for bet in card["bets"]]
-    return {
+    result = {
         "char": card["char"],
         "hit": any(bet["hit"] for bet in bets),
         "spent": sum(bet["amt"] for bet in bets),
         "payout": sum(bet["payout"] for bet in bets),
         "bets": bets,
     }
+    # モデル比較のため、予想時のレンズ/バージョンを結果側にも残す。
+    for key in ("objective", "place_partner_mode", "model_version", "probability_model"):
+        if card.get(key) is not None:
+            result[key] = card[key]
+    return result
 
 
 def validate_result_invariants(result_card: dict[str, Any], prediction_card: dict[str, Any],
