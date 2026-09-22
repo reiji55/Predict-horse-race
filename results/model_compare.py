@@ -5,6 +5,9 @@ from typing import Any
 
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
+# Champion/Challengerは固定モデル同士の比較。Chappy/Otoriは独立した統合レイヤーなので除外。
+MODEL_COMPARE_CHARS = {"kei", "tetsu", "gen"}
+
 
 def _eligible(result: dict[str, Any]) -> bool:
     return result.get("evaluation_scope") != "manual_chat"
@@ -15,6 +18,8 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     by_char: dict[str, dict[str, int]] = {}
     for race in results:
         for card in race.get("cards", []):
+            if card.get("char") not in MODEL_COMPARE_CHARS:
+                continue
             cards += 1
             hits += 1 if card.get("hit") else 0
             spent += int(card.get("spent") or 0)
@@ -74,10 +79,14 @@ def compare(champion: dict[str, Any],
         head_to_head = []
         for rid in common_ids:
             c1, c2 = champion_map[rid], challenger_map[rid]
-            c1_spent = sum(int(x.get("spent") or 0) for x in c1.get("cards", []))
-            c1_pay = sum(int(x.get("payout") or 0) for x in c1.get("cards", []))
-            c2_spent = sum(int(x.get("spent") or 0) for x in c2.get("cards", []))
-            c2_pay = sum(int(x.get("payout") or 0) for x in c2.get("cards", []))
+            c1_spent = sum(int(x.get("spent") or 0) for x in c1.get("cards", [])
+                           if x.get("char") in MODEL_COMPARE_CHARS)
+            c1_pay = sum(int(x.get("payout") or 0) for x in c1.get("cards", [])
+                         if x.get("char") in MODEL_COMPARE_CHARS)
+            c2_spent = sum(int(x.get("spent") or 0) for x in c2.get("cards", [])
+                           if x.get("char") in MODEL_COMPARE_CHARS)
+            c2_pay = sum(int(x.get("payout") or 0) for x in c2.get("cards", [])
+                         if x.get("char") in MODEL_COMPARE_CHARS)
             head_to_head.append({
                 "race_id": rid,
                 "champion_balance": c1_pay - c1_spent,
