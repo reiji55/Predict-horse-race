@@ -28,7 +28,7 @@ BASE_TIMES = ROOT / "tests" / "fixtures" / "base_times.sample.json"
 REQUIRED_RACE_KEYS = {
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
     "post_time", "course", "model_id", "model_role", "git_commit", "config_hash",
-    "speed_quality", "myomi", "myomi_parts", "legendary", "marks", "cards",
+    "speed_quality", "myomi", "myomi_parts", "legendary", "chappy_decision", "marks", "cards",
 }
 
 
@@ -80,7 +80,10 @@ def test_myomi_and_parts():
 
     assert 0 <= race["myomi"] <= 100
     assert abs(100 * parts["umami"] * parts["conf"] - race["myomi"]) < 0.1
-    assert race["legendary"] == (race["myomi"] > 80)
+    # 鳳は今や「myomi>80」だけではなく、Chappy high-conviction gateで決まる。
+    assert race["legendary"] == bool(
+        (race.get("chappy_decision") or {}).get("otori_gate", {}).get("passed", False)
+    )
     print("test_myomi_and_parts: OK (myomi %.1f / umami %.3f / conf %.3f)"
           % (race["myomi"], parts["umami"], parts["conf"]))
 
@@ -91,14 +94,19 @@ def test_cards_and_invariants():
     chars = [c["char"] for c in race["cards"]]
 
     if race["legendary"]:
-        assert chars == ["otori", "kei", "tetsu", "gen"]  # 降臨時は鳳が先頭
+        assert chars == ["otori", "kei", "tetsu", "gen"]  # Chappy枠が鳳へ置換され先頭
+        assert "chappy" not in chars
     else:
-        assert chars == ["kei", "tetsu", "gen"]           # 通常は3枚
+        assert chars == ["kei", "tetsu", "gen", "chappy"] # 通常3人+Chappy1000円
+        assert "otori" not in chars
 
     mark_nums = {m["num"] for m in race["marks"]}
     for card in race["cards"]:
         assert sum(b["amt"] for b in card["bets"]) == card["total"]
-        assert card["total"] == 500
+        if card["char"] in ("chappy", "otori"):
+            assert card["total"] == 1000
+        else:
+            assert card["total"] == 500
         for bet in card["bets"]:
             assert bet["type"] in BET_TYPES
             assert len(bet["horses"]) == BET_SIZE[bet["type"]]
