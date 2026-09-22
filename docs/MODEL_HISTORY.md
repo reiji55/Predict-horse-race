@@ -8,7 +8,8 @@
 | Model ID | Status | Introduced | Main change | Rollback / source |
 |---|---|---|---|---|
 | `win-v1-speed-guard` | Champion | 2026-09-21 | sparse base-times による非対称なspeed減点を防止。ワイド/3連複の相手は従来Win側選定。 | PR #2 / merge `ce1afd0f` |
-| `top3-partner-v1` | Challenger | PR #3 review | Win Scoreを変えず、ワイド/3連複の相手だけTop3適性で選ぶ。Kei=insurance, Tetsu=balanced, Gen/Otori=edge。 | branch `chatgpt/top3-place-model-20260921` / PR #3 |
+| `top3-partner-v1` | Challenger | PR #3 review | Win Scoreを変えず、ワイド/3連複の相手だけTop3適性で選ぶ。Kei=insurance, Tetsu=balanced, Gen=edge。 | branch `chatgpt/top3-place-model-20260921` / PR #3 |
+| `chappy-signal-v1` | Integration layer | PR #3 review | Win/Top3/条件/近況/市場を動的統合する1000円枠。手動ChatGPTカードで上書き可能。高確信時は同じ枠が鳳へ昇格。 | branch `chatgpt/top3-place-model-20260921` / PR #3 |
 | pre-speed-guard | Archived reference | before 2026-09-21 | sparse base-times のままspeedを部分利用。データ欠損の非対称問題あり。 | commit before `ce1afd0f` |
 
 ## Change log
@@ -58,3 +59,24 @@ Status:
 8. 採用判断に使う比較期間・指標
 
 **数レースの勝ち負けだけでChampionを入れ替えない。**
+
+
+### 2026-09-22 — Chappy 1000円統合判断 / 鳳state
+
+Motivation:
+- 9/22 JRAアニバーサリーSの発走前手動分析で、12をWin軸、14をTop3妙味軸、3を能力側補助軸として1000円を配分。
+- 実結果14→3→12となり、事前提示カードは1000円→11280円相当。
+- ただしこのレースは設計の発想元なので、検証データには使わない。強い初期シグナル/要件定義例としてのみ記録。
+
+Decision:
+- Chappyを固定weightキャラではなく、複数シグナルの動的統合レイヤーにする。
+- 通常1000円。保険・本線・Edge Wide・3連複を併存。
+- 強い同コース同距離反復実績がある時だけcondition weightを動的boost。
+- ChatGPT会話で作った発走前manual cardをruntime override可能にする。
+- 鳳は別モデル/別追加カードではなく、Chappyのhigh-conviction state。
+- 鳳gateは妙味・conviction・data quality・参考hit proxy・式別オッズcomplete・market ROI vetoを全て要求。
+- Chappy/Otoriは固定モデルChampion/Challenger比較から除外し、独立成績として追う。
+
+Status:
+- PR #3でClaudeレビュー待ち。
+- 本番未マージ。
