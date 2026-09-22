@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-20T18:11:40+09:00",
+  "generated_at": "2026-09-22T21:05:00+09:00",
   "week_id": "2026-W38",
   "myomi_threshold": 80,
   "races": [
@@ -1690,9 +1690,9 @@
     {
       "id": "20260922-nakayama-11",
       "source_refs": {
-        "netkeiba": null,
+        "netkeiba": "202606040711",
         "jravan": null,
-        "jra": "2026-09-22 4回中山7日"
+        "jra": "2026-09-22 4回中山7日 11R"
       },
       "day": "火",
       "venue": "中山",
@@ -1703,20 +1703,241 @@
       "course": {
         "surface": "ダ",
         "dist": 1800,
-        "heads": null,
+        "heads": 16,
         "note": "ハンデ"
       },
-      "status": "scheduled",
-      "status_note": "9月21日の中山競馬中止に伴う代替競馬です。出走馬・馬番は変更なし。オッズ取得後に通常の予想カードへ差し替えます。",
-      "myomi": 0,
-      "myomi_parts": {
-        "umami": 0,
-        "conf": 0
-      },
-      "myomi_source": "scheduled",
+      "status": "manual_record",
+      "status_note": "発走前にこのChatGPTチャットで提示した1000円予想の記録。ケイ・哲さん・源さんは発走前生成が無いため表示していません。",
+      "myomi": null,
+      "myomi_parts": null,
+      "myomi_source": "manual_chat_record",
       "legendary": false,
-      "marks": [],
-      "cards": []
+      "evaluation_scope": "manual_chat",
+      "record_note": "2026-09-22 12:44頃、発走前にChatGPTチャットで提示した1000円案。正式な自動モデルsnapshotではないため通常モデル成績・A/B比較から除外。",
+      "marks": [
+        {
+          "mk": "",
+          "num": 1,
+          "waku": 1,
+          "name": "マーシヴィガラス",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 2,
+          "waku": 1,
+          "name": "キョウエイフロイデ",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "○",
+          "num": 3,
+          "waku": 2,
+          "name": "ディーズゴールド",
+          "odds": 5.6,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 4,
+          "waku": 2,
+          "name": "グレイテストソング",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "△",
+          "num": 5,
+          "waku": 3,
+          "name": "サノノワンダー",
+          "odds": 6.3,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 6,
+          "waku": 3,
+          "name": "タンゴバイラリン",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 7,
+          "waku": 4,
+          "name": "オレデイイノカ",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 8,
+          "waku": 4,
+          "name": "ブロッケンボウ",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 9,
+          "waku": 5,
+          "name": "ラオラシオン",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "☆",
+          "num": 10,
+          "waku": 5,
+          "name": "ブルータス",
+          "odds": 9,
+          "score": null
+        },
+        {
+          "mk": "穴",
+          "num": 11,
+          "waku": 6,
+          "name": "ダカラフェスティヴ",
+          "odds": 25.4,
+          "score": null
+        },
+        {
+          "mk": "◎",
+          "hon": true,
+          "num": 12,
+          "waku": 6,
+          "name": "リフレックス",
+          "odds": 7.2,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 13,
+          "waku": 7,
+          "name": "ハッスルダンク",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "★",
+          "num": 14,
+          "waku": 7,
+          "name": "レディーフランシス",
+          "odds": 10.4,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 15,
+          "waku": 8,
+          "name": "ゲキザル",
+          "odds": null,
+          "score": null
+        },
+        {
+          "mk": "",
+          "num": 16,
+          "waku": 8,
+          "name": "ルーラーリッチ",
+          "odds": null,
+          "score": null
+        }
+      ],
+      "cards": [
+        {
+          "char": "chappy",
+          "objective": "manual_dynamic_signal_integration",
+          "place_partner_mode": "dynamic_manual",
+          "model_version": "manual-chappy-20260922",
+          "model_role": "manual_chat",
+          "portfolio_style": "balanced_edge_1000",
+          "source": "manual_chat",
+          "conviction": null,
+          "hit_pct": null,
+          "payout_range": null,
+          "total": 1000,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                14
+              ],
+              "amt": 200
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                3,
+                12
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                3,
+                14
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                14
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                11,
+                12
+              ],
+              "amt": 100
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                3,
+                12
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                3,
+                12,
+                14
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                5,
+                12,
+                14
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                12,
+                14
+              ],
+              "amt": 100
+            }
+          ],
+          "say": "12をWin軸、14をTop3妙味本命、3を能力側の相手軸。保険を薄く残し、14絡みのワイドと3連複へ1000円を広げた発走前チャット予想。"
+        }
+      ]
     }
   ]
 }
