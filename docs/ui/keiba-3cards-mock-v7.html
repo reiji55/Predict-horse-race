@@ -123,6 +123,10 @@
   .schedule-mini{font-size:.68rem;font-weight:900;color:#5F7468;border:1px solid #A8B8AF;border-radius:999px;padding:4px 8px;white-space:nowrap}
   .scheduled-panel{background:#F5F8F6;border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;line-height:1.8}
   .scheduled-panel b{color:var(--turf)}
+  .manual-flag{position:absolute;top:-9px;left:14px;background:#334155;color:#fff;font-size:.6rem;font-weight:900;letter-spacing:.08em;padding:2px 10px;border-radius:999px}
+  .manual-mini{font-size:.68rem;font-weight:900;color:#334155;border:1px solid #94A3B8;border-radius:999px;padding:4px 8px;white-space:nowrap}
+  .manual-panel{background:#F8FAFC;border:1px solid #CBD5E1;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:.72rem;line-height:1.75;color:#475569}
+  .manual-panel b{color:#1E293B}
   .race-item .venue{
     font-family:var(--mincho);font-weight:800;font-size:.82rem;color:var(--turf);
     writing-mode:vertical-rl;letter-spacing:.3em;
@@ -757,13 +761,13 @@ function renderList(){
     rs.forEach(r=>{
       html += `
       <button class="race-item ${r.legendary?'legendary':''}" onclick="goDetail('${r.id}')">
-        ${r.status==='scheduled'?'<span class="schedule-flag">代替開催</span>':(r.legendary?'<span class="legend-flag">鳳 降臨</span>':'')}
+        ${r.status==='manual_record'?'<span class="manual-flag">発走前チャット記録</span>':(r.status==='scheduled'?'<span class="schedule-flag">代替開催</span>':(r.legendary?'<span class="legend-flag">鳳 降臨</span>':''))}
         <span class="venue">${r.venue}</span>
         <span class="info">
           <span class="rname">${r.name} ${gradeBadge(r.grade)}</span>
           <span class="meta">${r.no}・${r.cond}・${r.time}発走</span>
         </span>
-        ${r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort)}
+        ${r.status==='manual_record'?'<span class="manual-mini">記録済み</span>':(r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort))}
       </button>`;
     });
   });
@@ -791,7 +795,7 @@ function cardHtml(c){
       </span>
       <span class="rc-hit">${(c.char==="chappy"||c.char==="otori")?"参考的中率":"想定的中率"}<b>${c.hit}</b></span>
     </div>
-    <div class="rc-range"><span>${c.total}円 → 想定払戻レンジ</span><b>${c.range}</b></div>
+    <div class="rc-range"><span>${c.total}円 → ${c.range==="—"?"事前数値化なし":"想定払戻レンジ"}</span><b>${c.range}</b></div>
     ${bets}
     <div class="rc-total">合計 <b>${c.total}円</b></div>
     <div class="rc-say">
@@ -823,9 +827,10 @@ function renderDetail(r){
       ${umaChip(m.waku,m.num)}
       <span class="hname">${m.name}</span>
     </div>`).join("");
-  const dcolor = r.distort>=80 ? "linear-gradient(90deg,#8A6A12,#D4AF37)" : r.distort>=60 ? "linear-gradient(90deg,#C23028,#E8762C)" : "#8CA894";
+  const dcolor = r.distort==null ? "#8CA894" : (r.distort>=80 ? "linear-gradient(90deg,#8A6A12,#D4AF37)" : r.distort>=60 ? "linear-gradient(90deg,#C23028,#E8762C)" : "#8CA894");
   document.getElementById("scr-detail").innerHTML = `
     <button class="back-btn" onclick="goList()">← レース一覧へ</button>
+    ${r.status==="manual_record" ? `<div class="manual-panel"><b>発走前チャット予想の記録</b><br>${r.status_note || "このレースは自動モデルの発走前snapshotが無いため、実際に発走前チャットで提示した買い目だけを表示しています。"}</div>` : ""}
     ${r.legendary ? `
     <div class="kakuhen">
       <div class="kk-tag">◆ 確 変 ◆</div>
@@ -835,10 +840,10 @@ function renderDetail(r){
     <div class="detail-head">
       <div class="rname">${r.name} ${gradeBadge(r.grade)}</div>
       <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
-      <div class="d-inline">妙味メーター
+      ${r.distort==null ? "" : `<div class="d-inline">妙味メーター
         <span class="d-bar"><i style="width:${r.distort}%;background:${dcolor}"></i></span>
         <b>${r.distort}</b>
-      </div>
+      </div>`}
       <div class="marks-row">${marks}</div>
     </div>
     ${r.cards.map(cardHtml).join("")}
