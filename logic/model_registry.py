@@ -9,7 +9,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
 MODELS_PATH = CONFIG_DIR / "models.json"
-HASH_CONFIGS = ("cards.json", "myomi.json", "speed_index.json", "models.json")
+HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json")
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
