@@ -28,8 +28,8 @@
     "3win": "3勝クラス", "2win": "2勝クラス", "1win": "1勝クラス", mi: "未勝利",
   };
 
-  var CHAR_ORDER = ["kei", "tetsu", "gen", "otori"];
-  var CHAR_LABEL = { chatgpt: "チャット予想" };
+  var CHAR_ORDER = ["kei", "tetsu", "gen", "chappy", "otori"];
+  var CHAR_LABEL = { chatgpt: "チャット予想", chappy: "チャッピー", otori: "鳳" };
 
   function yen(value) {
     return Math.round(value).toLocaleString("ja-JP") + "円";
@@ -107,7 +107,11 @@
                 amt: bet.amt,
               };
             }),
-            say: say[card.char] || "",
+            say: say[card.char] || card.say || "",
+            conviction: card.conviction == null ? null : card.conviction,
+            portfolio_style: card.portfolio_style || null,
+            source: card.source || null,
+            decision_log: card.decision_log || null,
           };
         }),
       };
