@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from logic import base_score, cards, model_registry, myomi, prob_model, snapshots
+from logic import base_score, cards, chappy, model_registry, myomi, prob_model, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
 from logic import speed_index as speed_mod
@@ -57,7 +57,9 @@ def load_configs() -> dict:
         myomi_config = json.load(f)
     with (CONFIG_DIR / "speed_index.json").open(encoding="utf-8") as f:
         speed_config = json.load(f)
-    return {"cards": cards_config, "myomi": myomi_config, "speed": speed_config}
+    with (CONFIG_DIR / "chappy.json").open(encoding="utf-8") as f:
+        chappy_config = json.load(f)
+    return {"cards": cards_config, "myomi": myomi_config, "speed": speed_config, "chappy": chappy_config}
 
 
 def _overall_rates(raw: dict) -> tuple[float, float]:
@@ -81,6 +83,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
     cards_config = configs["cards"]
     myomi_config = configs["myomi"]
     speed_config = configs["speed"]
+    chappy_config = configs["chappy"]
     model_spec = model_spec or model_registry.load_registry()["champion"]
     runtime = model_registry.runtime_metadata(model_spec)
     use_top3_partner = bool(model_spec.get("use_top3_partner", False))
@@ -101,11 +104,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
             past_runs, speed_config, base_times,
             target_surface=today_course.get("surface"),
         )
-        top3 = (
-            top3_mod.compute_top3_profile(
-                past_runs, today_course, cards_config["top3"]
-            )
-            if use_top3_partner else None
+        # ChappyはChampion/ChallengerどちらでもTop3シグナルを監査用に見る。
+        # 固定3キャラの買い目へ使うかどうかだけ use_top3_partner で分ける。
+        top3 = top3_mod.compute_top3_profile(
+            past_runs, today_course, cards_config["top3"]
         )
 
         horses.append({
@@ -125,6 +127,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
             "top3_n_usable": top3["n_usable"] if top3 else 0,
             "top3_same_dist_runs": top3["same_dist_runs"] if top3 else 0,
             "top3_same_dist_hits": top3["same_dist_top3"] if top3 else 0,
+            "_past_runs": past_runs,
             "n_usable": speed["n_usable"] if speed else 0,
             # スピード指数仕様§3：n_usable ≤ 2 は値は使うが低信頼
             "uncertain": speed is None or speed["n_usable"] <= 2,
@@ -173,33 +176,16 @@ def build_race(race: dict, configs: dict, base_times: dict,
     temperature = myomi_config["prob_model"]["temperature"]
     combo_odds = race.get("combo_odds") or {}
 
-    # 鳳候補は降臨前でも一度生成する。これにより「鳳自身が実際に買うカード」の市場EVを
-    # 先に測り、そのEVでmyomi/legendaryを決められる（循環はしない）。
-    otori_candidate = cards.generate_card_for_character(
-        LEGENDARY_CHARACTER, horses, cards_config,
-        temperature=temperature, combo_odds=combo_odds,
-        use_place_model=use_top3_partner,
-        model_id=runtime["model_id"], model_role=runtime["model_role"],
-    )
-    otori_market_ev = otori_candidate.get("market_ev") if otori_candidate else None
-    card_ev_myomi = myomi.compute_card_ev_myomi(
-        otori_market_ev, [h["n_usable"] for h in horses], myomi_config
-    )
-    # 式別オッズが取れなかった日に全レースの妙味が0で並ばないよう、旧メーターへ退避する。
-    # **降臨だけは退避しない**（myomi.resolve_myomi の説明を参照）。
-    myomi_result = myomi.resolve_myomi(card_ev_myomi, disagreement_myomi, myomi_config)
-    if card_ev_myomi.get("myomi_source") != myomi.SOURCE_CARD_EV:
-        logger.warning(
-            "%s: 式別オッズが揃わずカードEVを測れませんでした（coverage=%s）。鳳は降臨させません",
-            race.get("id"), (otori_market_ev or {}).get("coverage"),
-        )
+    # 表示する妙味は従来の市場乖離メーターを維持する。
+    # 鳳はここではまだ決めない。Chappy統合判断の high-conviction gate が唯一の降臨条件。
+    myomi_result = {
+        "myomi": disagreement_myomi["myomi"],
+        "myomi_parts": disagreement_myomi["myomi_parts"],
+        "legendary": False,
+        "myomi_source": myomi.SOURCE_DISAGREEMENT_WITH_EV_VETO,
+    }
 
     generated_cards = []
-    if myomi_result["legendary"] and otori_candidate is not None:
-        cards.validate_card_invariants(
-            otori_candidate, marks, cards_config.get("amt_unit", 100)
-        )
-        generated_cards.append(otori_candidate)
 
     for char_id in BASE_CHARACTERS:
         card = cards.generate_card_for_character(
@@ -212,6 +198,34 @@ def build_race(race: dict, configs: dict, base_times: dict,
             continue
         cards.validate_card_invariants(card, marks, cards_config.get("amt_unit", 100))
         generated_cards.append(card)
+
+    # --- Chappy 1000円統合判断 ---------------------------------------
+    # 固定3キャラとは別レイヤー。Win/Top3/条件/近況/市場を動的に統合し、
+    # ChatGPT会話で作った手動カードがあればそれを最優先する。
+    manual_override = chappy.load_manual_override(race.get("id"), chappy_config)
+    chappy_card, chappy_decision = chappy.generate_card(
+        horses, race, chappy_config,
+        myomi_value=disagreement_myomi["myomi"],
+        speed_quality=speed_quality,
+        combo_odds=combo_odds,
+        model_id=runtime["model_id"], model_role=runtime["model_role"],
+        manual_override=manual_override,
+    )
+    cards.validate_card_invariants(
+        chappy_card, marks, cards_config.get("amt_unit", 100)
+    )
+
+    # 鳳はChappyの上位互換state。別カードを追加せず、Chappyカードそのものが鳳へ変わる。
+    legendary = chappy_card["char"] == LEGENDARY_CHARACTER
+    if legendary:
+        generated_cards.insert(0, chappy_card)
+    else:
+        generated_cards.append(chappy_card)
+
+    chappy_market_ev = chappy_card.get("market_ev")
+    card_ev_myomi = myomi.compute_card_ev_myomi(
+        chappy_market_ev, [h["n_usable"] for h in horses], myomi_config
+    )
 
     return {
         "id": race.get("id"),
@@ -231,8 +245,9 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "myomi": myomi_result["myomi"],
         "myomi_parts": myomi_result["myomi_parts"],
         "myomi_source": myomi_result.get("myomi_source"),
-        "legendary": myomi_result["legendary"],
-        "otori_card_ev": otori_market_ev,
+        "legendary": legendary,
+        "chappy_decision": chappy_decision,
+        "otori_card_ev": chappy_market_ev if legendary else None,
         "card_ev_myomi": card_ev_myomi,          # 実オッズで測れた場合の妙味（測れなければ0）
         "model_disagreement_myomi": disagreement_myomi,   # 旧メーター（診断・退避用）
         "marks": marks,
