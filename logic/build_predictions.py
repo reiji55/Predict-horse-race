@@ -150,8 +150,9 @@ def build_race(race: dict, configs: dict, base_times: dict,
     # ①②③のbase_scoreは「勝ち切る力」のまま。Top3はワイド/3連複の相手候補専用で、
     # win probability p や妙味EVには混ぜない。
     base_score.compute_base_scores(horses, cards_config)
-    if use_top3_partner:
-        cards.assign_place_partner_ranks(horses)
+    # 順位付けは Champion/Challenger 両方で行う（marks に top3_rank を残して後から比較するため）。
+    # 実際に買い目の相手へ使うかどうかだけを use_top3_partner で分ける。
+    cards.assign_place_partner_ranks(horses)
     marks = cards.assign_marks(horses, cards_config)
 
     # --- p / q → 妙味 -------------------------------------------------
@@ -207,7 +208,13 @@ def build_race(race: dict, configs: dict, base_times: dict,
     chappy_decision: dict[str, Any] = {"status": "insufficient_horses"}
     legendary = False
     if len(horses) >= 4:
-        manual_override = chappy.load_manual_override(race.get("id"), chappy_config)
+        # 手動カードは「発走前に作られたと検証できたもの」だけ採用する。
+        # 発走時刻を渡さないと検証できないので、ここで必ず渡す。
+        manual_override = chappy.load_manual_override(
+            race.get("id"), chappy_config,
+            post_at=snapshots.post_datetime({"id": race.get("id"),
+                                             "post_time": race.get("post_time")}),
+        )
         chappy_card, chappy_decision = chappy.generate_card(
             horses, race, chappy_config,
             myomi_value=disagreement_myomi["myomi"],
@@ -215,6 +222,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
             combo_odds=combo_odds,
             model_id=runtime["model_id"], model_role=runtime["model_role"],
             manual_override=manual_override,
+            takeout=cards_config["combo_prob"]["takeout"],
         )
         cards.validate_card_invariants(
             chappy_card, marks, cards_config.get("amt_unit", 100)

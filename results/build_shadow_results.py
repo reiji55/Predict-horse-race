@@ -46,6 +46,17 @@ def build_all(race_results: dict[str, Any],
         logger.info("%s: %d races settled", model_id, len(result.get("results", [])))
 
     comparison = model_compare.compare(champion_results, challenger_results)
+    for row in comparison["comparisons"]:
+        cov = row["coverage"]
+        if cov["missing_in_challenger"]:
+            # Challengerのビルドが失敗したレースは比較から消える。黙って消すと
+            # 「勝てたレースだけ残った」状態に気づけないので必ず警告する。
+            logger.warning(
+                "%s: Championにあって Challenger に無いレースが %d 件あります（%s）。"
+                "比較は共通 %d レースのみです",
+                row["challenger_model_id"], len(cov["missing_in_challenger"]),
+                ", ".join(cov["missing_in_challenger"][:5]), cov["common_races"],
+            )
     _write(COMPARISON_PATH, comparison)
     return comparison
 

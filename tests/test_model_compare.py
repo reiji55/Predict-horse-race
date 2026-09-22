@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# run_pipeline.yml / run_results.yml は `python tests/xxx.py` と**単体スクリプトとして**呼ぶ。
+# リポジトリルートを import パスに入れておかないと本番パイプラインのテスト段階で
+# ModuleNotFoundError になる（PR #2 でも同じ事故があった）。
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from results import model_compare
 
 
@@ -60,3 +68,34 @@ def test_chappy_and_otori_are_excluded_from_fixed_model_comparison():
     assert row["challenger"]["spent"] == 1000
     assert row["champion"]["payout"] == 1000
     assert row["challenger"]["payout"] == 1000
+
+def test_missing_challenger_races_are_reported_not_hidden():
+    """
+    ★ Challenger側で落ちたレースを黙って比較から外さない。
+
+    共通部分だけ集計する設計は正しいが、欠けた件数を出さないと
+    「Challengerがこけたレースが消えて、勝てたレースだけ残った」状態に気づけない。
+    """
+    champion = {"results": [_race(rid, 0, "champ") for rid in ("R1", "R2", "R3")]}
+    challenger = {"results": [_race("R1", 2000, "chall")]}
+
+    out = model_compare.compare(champion, {"m": challenger})
+    cov = out["comparisons"][0]["coverage"]
+
+    assert cov["champion_races"] == 3
+    assert cov["challenger_races"] == 1
+    assert cov["common_races"] == 1
+    assert cov["missing_in_challenger"] == ["R2", "R3"]
+    assert cov["coverage_rate"] == round(1 / 3, 4)
+
+
+if __name__ == "__main__":
+    test_compare_uses_only_common_races()
+    print("test_compare_uses_only_common_races: OK")
+    test_manual_chat_is_excluded_from_model_comparison()
+    print("test_manual_chat_is_excluded_from_model_comparison: OK")
+    test_chappy_and_otori_are_excluded_from_fixed_model_comparison()
+    print("test_chappy_and_otori_are_excluded_from_fixed_model_comparison: OK")
+    test_missing_challenger_races_are_reported_not_hidden()
+    print("test_missing_challenger_races_are_reported_not_hidden: OK")
+    print("\nすべてのテストが通りました（4件）。")

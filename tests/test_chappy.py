@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# run_pipeline.yml / run_results.yml は `python tests/xxx.py` と**単体スクリプトとして**呼ぶ。
+# リポジトリルートを import パスに入れておかないと本番パイプラインのテスト段階で
+# ModuleNotFoundError になる（PR #2 でも同じ事故があった）。
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import copy
 import json
 from pathlib import Path
@@ -30,6 +38,19 @@ def _race():
         "id": "20260922-nakayama-11", "venue": "中山", "going": "不良",
         "course": {"surface": "ダ", "dist": 1800},
     }
+
+
+def _horses():
+    """4役ぶんの候補が揃った最小の出走馬リスト。"""
+    strong = [_run(1), _run(2), _run(1), _run(3)]
+    weak = [_run(9, venue="東京", dist=1600), _run(11, venue="東京", dist=1600)]
+    return [
+        _horse(1, 82.0, 0.85, 2.6, 0.06, strong, 0.34),
+        _horse(2, 76.0, 0.70, 6.2, 0.02, strong[:3], 0.22),
+        _horse(3, 71.0, 0.62, 18.0, 0.04, weak, 0.15),
+        _horse(4, 66.0, 0.48, 55.0, 0.01, weak, 0.09),
+        _horse(5, 60.0, 0.30, 90.0, -0.02, weak, 0.05),
+    ]
 
 
 def test_condition_profile_rewards_repeat_same_course_distance():
@@ -155,3 +176,83 @@ def test_otori_is_chappy_state_not_second_card():
     assert card["char"] == "otori"
     assert card["total"] == 1000
     assert sum(b["amt"] for b in card["bets"]) == 1000
+
+
+# --- 統合レビュー（2026-09-22）で足した検査 ---------------------------------
+
+def test_manual_override_after_post_time_is_refused(tmp_path, caplog):
+    """
+    ★ 結果を見たあとに置かれた手動カードを採点させない。
+
+    docs/CHAPPY_MANUAL_OVERRIDE.md は「必ず発走前に作る」と運用ルールで書いていたが、
+    コード側に検査が無かった。運用ルールだけに頼ると、2026-09-19 に発走後の再生成を
+    採点した事故と同じ構造の穴が残る。
+    """
+    import datetime
+
+    race_id = "20260927-nakayama-11"
+    directory = tmp_path / "data" / "chappy_manual"
+    directory.mkdir(parents=True)
+    post_at = datetime.datetime(2026, 9, 27, 15, 45, tzinfo=chappy.JST)
+    config = {"manual_override_dir": "data/chappy_manual", "total": 1000}
+
+    def write(created_at):
+        payload = {"race_id": race_id, "created_at": created_at,
+                   "bets": [{"type": "ワイド", "horses": [1, 2], "amt": 1000}]}
+        (directory / f"{race_id}.json").write_text(
+            json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    write("2026-09-27T13:45:00+09:00")                       # 発走前 → 採用
+    accepted = chappy.load_manual_override(race_id, config, root=tmp_path, post_at=post_at)
+    assert accepted is not None and accepted["_verified_pre_race"] is True
+
+    for created in ("2026-09-27T15:45:00+09:00", "2026-09-27T17:30:00+09:00"):
+        write(created)                                        # 発走時刻以降 → 不採用
+        assert chappy.load_manual_override(race_id, config, root=tmp_path, post_at=post_at) is None
+    assert "結果を見たあとの買い目" in caplog.text
+
+    for created in (None, "きのう"):                           # 時刻が無い/壊れている → 不採用
+        write(created)
+        assert chappy.load_manual_override(race_id, config, root=tmp_path, post_at=post_at) is None
+
+    write("2026-09-27T13:45:00+09:00")                        # 発走時刻が不明 → 不採用
+    assert chappy.load_manual_override(race_id, config, root=tmp_path, post_at=None) is None
+
+
+def test_chappy_and_otori_are_never_both_present():
+    """★ 1レースに統合レイヤーの枠はひとつだけ。char がどちらかに定まる設計。"""
+    card, _ = chappy.generate_card(
+        _horses(), _race(), CONFIG, myomi_value=95.0,
+        speed_quality={"coverage": 1.0}, combo_odds=None,
+        model_id="m", model_role="champion",
+    )
+    assert card["char"] in ("chappy", "otori")
+
+
+def test_otori_stays_closed_without_complete_market_odds():
+    """式別オッズが1点でも欠けたら、他が全部強くても鳳にしない（fail-closed）。"""
+    card, log = chappy.generate_card(
+        _horses(), _race(), CONFIG, myomi_value=100.0,
+        speed_quality={"coverage": 1.0}, combo_odds=None,
+        model_id="m", model_role="champion",
+    )
+    assert log["otori_gate"]["checks"]["combo_odds"] is False
+    assert card["char"] == "chappy"
+
+
+if __name__ == "__main__":
+    test_condition_profile_rewards_repeat_same_course_distance()
+    print("test_condition_profile_rewards_repeat_same_course_distance: OK")
+    test_signal_board_dynamically_boosts_exceptional_course_repeatability()
+    print("test_signal_board_dynamically_boosts_exceptional_course_repeatability: OK")
+    test_auto_chappy_portfolio_is_1000_and_not_legendary_without_combo_odds()
+    print("test_auto_chappy_portfolio_is_1000_and_not_legendary_without_combo_odds: OK")
+    test_manual_override_wins_over_auto_portfolio()
+    print("test_manual_override_wins_over_auto_portfolio: OK")
+    test_otori_is_chappy_state_not_second_card()
+    print("test_otori_is_chappy_state_not_second_card: OK")
+    test_chappy_and_otori_are_never_both_present()
+    print("test_chappy_and_otori_are_never_both_present: OK")
+    test_otori_stays_closed_without_complete_market_odds()
+    print("test_otori_stays_closed_without_complete_market_odds: OK")
+    print("\nすべてのテストが通りました（7件）。")

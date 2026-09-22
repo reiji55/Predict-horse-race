@@ -96,8 +96,25 @@ def compare(champion: dict[str, Any],
 
         champ_stats = _aggregate(champ_rows)
         chall_stats = _aggregate(chall_rows)
+        # ★ 欠けたレースを必ず表に出す。
+        # 共通部分だけ集計すると、Challenger側がこけたレースが黙って比較から消え、
+        # 「都合の良いレースだけで勝っている」状態に気づけない。
+        missing_in_challenger = sorted(set(champion_map) - set(challenger_map))
+        missing_in_champion = sorted(set(challenger_map) - set(champion_map))
+        coverage = {
+            "champion_races": len(champion_map),
+            "challenger_races": len(challenger_map),
+            "common_races": len(common_ids),
+            "missing_in_challenger": missing_in_challenger,
+            "missing_in_champion": missing_in_champion,
+            "coverage_rate": (
+                round(len(common_ids) / len(champion_map), 4) if champion_map else None
+            ),
+        }
+
         comparisons.append({
             "challenger_model_id": model_id,
+            "coverage": coverage,
             "common_race_ids": common_ids,
             "common_races": len(common_ids),
             "champion": champ_stats,

@@ -14,12 +14,18 @@ Chappy 1000円統合判断レイヤー。
 """
 from __future__ import annotations
 
+import datetime
 import json
+import logging
 import math
 from pathlib import Path
 from typing import Any
 
 from logic import cards
+
+logger = logging.getLogger("logic.chappy")
+
+JST = datetime.timezone(datetime.timedelta(hours=9))
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH = ROOT / "config" / "chappy.json"
@@ -226,7 +232,23 @@ def build_portfolio(roles: dict[str, dict[str, Any]], config: dict[str, Any]) ->
 
 
 def load_manual_override(race_id: str, config: dict[str, Any],
-                         root: Path | None = None) -> dict[str, Any] | None:
+                         root: Path | None = None,
+                         post_at: "datetime.datetime | None" = None) -> dict[str, Any] | None:
+    """
+    手動カードを読む。**発走前に作られたと機械的に確認できたものだけ**を採用する。
+
+    docs/CHAPPY_MANUAL_OVERRIDE.md は「必ず発走前に作る」「発走後に過去レースへ
+    追加しない」と運用ルールで書いているが、コード側に検査が無かった。
+    運用ルールだけに頼ると、結果を見たあとに置かれたファイルを
+    「発走前の予想」として採点してしまう余地が残る（2026-09-19 に
+    発走後の再生成を採点した事故と同じ構造）。
+
+    そこで機械的に閉じる：
+      - `created_at` が無い / 読めない → 採用しない
+      - `created_at` が発走時刻以降 → 採用しない
+    どちらも例外にせず警告して「手動カードは無い」ものとして扱う（自動Chappyが出る）。
+    発走時刻が判らない場合は判定できないので、**保守側に倒して採用しない**。
+    """
     base = root or ROOT
     path = base / config["manual_override_dir"] / f"{race_id}.json"
     if not path.exists():
@@ -235,6 +257,36 @@ def load_manual_override(race_id: str, config: dict[str, Any],
         payload = json.load(f)
     if payload.get("race_id") != race_id:
         raise ValueError(f"Chappy manual override race_id mismatch: {path}")
+
+    created_raw = payload.get("created_at")
+    created_at = None
+    if created_raw:
+        try:
+            created_at = datetime.datetime.fromisoformat(str(created_raw))
+        except ValueError:
+            created_at = None
+    if created_at is None:
+        logger.warning(
+            "%s: 手動Chappyカードの created_at が無い/読めないため採用しません（%r）",
+            race_id, created_raw,
+        )
+        return None
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=JST)
+
+    if post_at is None:
+        logger.warning("%s: 発走時刻が判らないため手動Chappyカードを採用しません", race_id)
+        return None
+    if created_at >= post_at:
+        logger.error(
+            "%s: 手動Chappyカードが発走時刻以降に作られています（created_at=%s / 発走=%s）。"
+            "**結果を見たあとの買い目になりうるので採用しません。**",
+            race_id, created_at.isoformat(timespec="minutes"),
+            post_at.isoformat(timespec="minutes"),
+        )
+        return None
+
+    payload["_verified_pre_race"] = True
     return payload
 
 
@@ -249,7 +301,8 @@ def _decision_summary(roles: dict[str, dict[str, Any]]) -> str:
 
 def _apply_manual(override: dict[str, Any], roles: dict[str, dict[str, Any]],
                   config: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    bets = [dict(b) for b in override.get("bets", [])]
+    bets = [{k: v for k, v in b.items() if not k.startswith("_")}
+            for b in override.get("bets", [])]
     if sum(int(b.get("amt") or 0) for b in bets) != config["total"]:
         raise ValueError("manual Chappy card must total 1000 yen")
     log = {
@@ -257,6 +310,7 @@ def _apply_manual(override: dict[str, Any], roles: dict[str, dict[str, Any]],
         "author": override.get("author", "ChatGPT"),
         "created_at": override.get("created_at"),
         "rationale": override.get("rationale", []),
+        "verified_pre_race": bool(override.get("_verified_pre_race")),
         "roles": override.get("roles") or {k: v["num"] for k, v in roles.items()},
     }
     return bets, log
@@ -267,7 +321,8 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
                   speed_quality: dict[str, Any] | None,
                   combo_odds: dict[str, Any] | None,
                   model_id: str | None, model_role: str | None,
-                  manual_override: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+                  manual_override: dict[str, Any] | None = None,
+                  takeout: float = 0.2) -> tuple[dict[str, Any], dict[str, Any]]:
     board = build_signal_board(horses, race, config, speed_quality)
     roles = choose_roles(board)
 
@@ -283,7 +338,7 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
         h["num"]: h["p"] for h in horses
         if h.get("p") is not None and h.get("num") is not None
     }
-    evaluation = cards.evaluate_card(bets, p_by_num, 0.2)
+    evaluation = cards.evaluate_card(bets, p_by_num, takeout)
     market_ev = cards.evaluate_market_card(bets, p_by_num, combo_odds)
 
     selected = list(roles.values())
@@ -320,7 +375,7 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
                 core["amt"] += shift
                 insurance["amt"] -= shift
                 bets = [b for b in bets if b["amt"] > 0]
-                evaluation = cards.evaluate_card(bets, p_by_num, 0.2)
+                evaluation = cards.evaluate_card(bets, p_by_num, takeout)
                 market_ev = cards.evaluate_market_card(bets, p_by_num, combo_odds)
 
     decision_log = {

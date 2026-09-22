@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# run_pipeline.yml / run_results.yml は `python tests/xxx.py` と**単体スクリプトとして**呼ぶ。
+# リポジトリルートを import パスに入れておかないと本番パイプラインのテスト段階で
+# ModuleNotFoundError になる（PR #2 でも同じ事故があった）。
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import json
 from pathlib import Path
 
@@ -89,3 +97,16 @@ def test_no_top3_data_falls_back_to_old_template_order():
     assert cards._bet_horses_with_place_policy(
         cards.WIDE, (0, 1), ordered, []
     ) == [1, 2]
+
+if __name__ == "__main__":
+    test_top3_score_rewards_repeat_same_distance_place_form()
+    print("test_top3_score_rewards_repeat_same_distance_place_form: OK")
+    test_top3_score_ignores_other_surface()
+    print("test_top3_score_ignores_other_surface: OK")
+    test_insurance_and_edge_wide_roles_choose_different_partners()
+    print("test_insurance_and_edge_wide_roles_choose_different_partners: OK")
+    test_place_policy_changes_wide_and_trio_but_not_umaren()
+    print("test_place_policy_changes_wide_and_trio_but_not_umaren: OK")
+    test_no_top3_data_falls_back_to_old_template_order()
+    print("test_no_top3_data_falls_back_to_old_template_order: OK")
+    print("\nすべてのテストが通りました（5件）。")
