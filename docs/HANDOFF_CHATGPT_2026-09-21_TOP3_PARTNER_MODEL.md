@@ -159,7 +159,9 @@ New config:
   kei   -> "insurance"
   tetsu -> "balanced"
   gen   -> "edge"
-  otori -> "edge"
+
+# Otori is no longer a fixed-character Top3 mode.
+# It is Chappy's high-conviction state; see section 17.
 ```
 
 ### Kei: insurance
@@ -186,7 +188,7 @@ Purpose:
 
 Select the strongest place candidates without deliberately chasing or avoiding price.
 
-### Gen / Otori: edge
+### Gen: edge
 
 Uses:
 
@@ -521,6 +523,7 @@ Each card records:
 
 `config_hash` is SHA-256 over:
 - cards.json
+- chappy.json
 - myomi.json
 - speed_index.json
 - models.json
@@ -751,3 +754,231 @@ Collect paired prospective races first, then define promotion criteria **before*
 - `tests/test_build_predictions.py` (model metadata contract)
 
 Claude review must include these files as part of PR #3, not only the original Top3 scoring files.
+
+
+---
+
+# 17. Chappy 1000-yen integration layer + new Otori semantics (added 2026-09-22)
+
+This section **supersedes any earlier wording in this document that described Otori as an independent fixed character.**
+
+## Why this was added
+
+On 2026-09-22, before the JRA Anniversary Stakes, ChatGPT manually applied the new model's ideas but did not simply execute the fixed Top3 formula.
+
+The reasoning separated:
+
+- Win anchor
+- Top3 value anchor
+- ability-side support
+- higher-price edge candidates
+- insurance stake
+- edge-wide stake
+- trio expansion made possible by a 1000-yen budget
+
+The pre-race manual card centered on horse 14 as the Top3/value signal; the actual finish was 14 -> 3 -> 12 and several proposed combinations hit.
+
+This is a **strong initial product/model-design signal**, not validation:
+that race directly motivated this implementation and must not be counted as prospective evidence for Chappy/Top3 effectiveness.
+
+## Chappy is not a fourth fixed-weight model
+
+Chappy is an integration layer implemented in:
+
+- `logic/chappy.py`
+- `config/chappy.json`
+
+It combines:
+
+- Win score
+- Top3 score
+- same-course / same-distance repeatability
+- recent same-surface form
+- market unpopularity
+- current model-vs-market value signal
+- data quality
+
+The default weights are not claimed to be statistically optimal.
+
+### Dynamic condition boost
+
+A horse gets a per-horse condition-weight boost only when:
+
+- same course + same distance evidence has at least 3 runs, and
+- Top3 rate in that exact condition is at least 75%.
+
+When this fires, condition weight rises and win/recent weights are reduced.
+
+This is intended to represent the kind of signal that made the 2026-09-22 horse 14 interesting:
+repeated, highly specific condition success can deserve more attention than a fixed global weight would allow.
+
+Claude must review whether this thresholding is too brittle or too easy to overfit.
+
+## Role assignment
+
+Chappy picks four distinct roles:
+
+- `win_anchor`
+- `support`
+- `top3_edge`
+- `long_edge`
+
+Each role has its own signal blend.
+
+The resulting default 1000-yen portfolio contains:
+
+- one 200-yen core Wide
+- insurance Wide
+- additional Edge Wide(s)
+- one Quinella
+- several Trio combinations
+
+All stakes remain 100-yen executable units.
+
+The intent is explicitly different from merely doubling a 500-yen card:
+the extra 500 yen buys **coverage of additional asymmetric outcomes**, not only more stake on the safest pair.
+
+## Manual ChatGPT override
+
+Automatic Chappy output can be overridden by a pre-race file:
+
+`data/chappy_manual/{race_id}.json`
+
+Specification:
+
+`docs/CHAPPY_MANUAL_OVERRIDE.md`
+
+This exists because some context-sensitive reasoning is difficult to reduce immediately to a fixed formula.
+
+Rules:
+
+- override must be created before post time;
+- it must total exactly 1000 yen;
+- it is frozen like every other prediction;
+- `source=manual_chat` is preserved in results;
+- retroactive post-result overrides are prohibited.
+
+The runtime directory contains a README warning against post-hoc insertion.
+
+## Otori is now Chappy's high-conviction state
+
+There is only one integration-layer slot per race:
+
+- normal state: `char = chappy`
+- high-conviction state: `char = otori`
+
+**There must never be both Chappy and Otori cards in the same race.**
+
+The old independent 500-yen Otori generation path is removed from `build_predictions.py`.
+
+Current Otori gate requires all of:
+
+1. minimum displayed myomi
+2. minimum Chappy conviction
+3. minimum data quality
+4. minimum **uncalibrated** hit-rate proxy
+5. complete market odds for every ticket on the card
+6. market-EV sign/veto condition (expected ROI must not be below 1.0)
+
+The EV magnitude is still not trusted before probability calibration.
+
+If the gate passes, the automatic Chappy portfolio becomes slightly more concentrated by shifting 100 yen from insurance to the core edge Wide.
+
+Claude should review whether any concentration change is justified before calibration.
+
+## Audit trail
+
+Each Chappy/Otori card preserves:
+
+- `source` (signal_engine / manual_chat)
+- `portfolio_style`
+- `conviction`
+- `decision_log`
+- signal board for every horse
+- role assignments
+- dynamic weights
+- exact-condition evidence
+- Otori gate checks
+- model / config provenance already used by the broader pipeline
+
+The pre-race race snapshot also freezes `chappy_decision`.
+
+Settled results preserve the decision log.
+
+## Fixed-model A/B excludes Chappy/Otori
+
+`results/model_compare.py` now explicitly compares only:
+
+- kei
+- tetsu
+- gen
+
+Chappy/Otori is a separate experimental track.
+
+Reason:
+the same integration overlay exists around both fixed-model variants and would dilute the Champion-vs-Challenger comparison.
+
+## UI
+
+The UI adds:
+
+- Chappy as a 1000-yen predictor
+- a monochrome six-loop knot-style inline mark reminiscent of the familiar ChatGPT visual language, implemented locally as SVG with no external asset dependency
+- a distinct dark card
+- "参考的中率" rather than implying calibrated probability
+- Chappy in the predictor directory
+- Otori replacing Chappy rather than appearing alongside it
+
+The race list also retains the production "newest date first" ordering.
+
+## Additional files / changes for Chappy
+
+Added:
+- `config/chappy.json`
+- `logic/chappy.py`
+- `tests/test_chappy.py`
+- `docs/CHAPPY_MANUAL_OVERRIDE.md`
+- `data/chappy_manual/README.md`
+
+Updated:
+- `logic/build_predictions.py`
+- `logic/model_registry.py`
+- `logic/snapshots.py`
+- `results/build_results.py`
+- `results/model_compare.py`
+- `docs/ui/adapter.js`
+- `docs/ui/keiba-3cards-mock-v7.html`
+- relevant tests / CI
+- MODEL_HISTORY / MODEL_OPERATIONS
+
+## Additional Claude review questions
+
+26. Is Chappy genuinely adding a useful integration layer, or just hidden hand-tuned complexity?
+27. Are dynamic per-horse weight shifts principled enough to keep, or should they only be logged first?
+28. Is exact course+distance 3 runs / 75% Top3 too strong a trigger for condition boosting?
+29. Does market-unpopularity enter too strongly in `top3_edge` / `long_edge`?
+30. Is the 1000-yen portfolio construction sufficiently diversified rather than simply higher variance?
+31. Should manual overrides be permitted in official performance statistics, or reported in a separate track?
+32. Is the manual override audit trail sufficient to prove it was created pre-race?
+33. Should manual Chappy cards ever be allowed to trigger Otori, or should Otori be auto-only?
+34. Is the current conviction formula meaningful enough to gate Otori?
+35. Should incomplete combo odds always close Otori even when all other signals are very strong?
+36. Is shifting 100 yen from insurance to the core Wide on Otori promotion defensible pre-calibration?
+37. Are Chappy and Otori correctly excluded from fixed-model Champion/Challenger comparisons everywhere?
+38. Are Chappy result statistics separately recoverable by source / portfolio_style / conviction?
+39. Does the UI clearly communicate 500-yen fixed predictors vs 1000-yen Chappy/Otori?
+40. Does the knot-style Chappy icon avoid external runtime dependencies and render correctly in the PWA?
+41. Are there any post-race leakage paths through `data/chappy_manual` that need a stronger automated guard?
+
+## Merge recommendation
+
+Do not merge solely because the 2026-09-22 manual card hit.
+
+Review this as two independent hypotheses:
+
+A. Top3 partner Challenger is a better fixed-model variant.
+B. Chappy dynamic integration is useful as a separate 1000-yen portfolio layer.
+
+Both should be logged prospectively after merge.
+
+Probability calibration remains the next major statistical priority.
