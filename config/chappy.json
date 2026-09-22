@@ -1,0 +1,120 @@
+{
+  "version": "chappy-signal-v1",
+  "total": 1000,
+  "base_weights": {
+    "win": 0.3,
+    "top3": 0.25,
+    "condition": 0.2,
+    "recent": 0.15,
+    "market": 0.1
+  },
+  "condition_boost": {
+    "min_same_course_distance_runs": 3,
+    "min_top3_rate": 0.75,
+    "add_condition": 0.15,
+    "subtract_win": 0.1,
+    "subtract_recent": 0.05
+  },
+  "role_weights": {
+    "win_anchor": {
+      "win": 0.65,
+      "top3": 0.15,
+      "recent": 0.1,
+      "value": 0.1
+    },
+    "support": {
+      "win": 0.4,
+      "top3": 0.25,
+      "condition": 0.2,
+      "recent": 0.15
+    },
+    "top3_edge": {
+      "top3": 0.35,
+      "condition": 0.3,
+      "recent": 0.15,
+      "market": 0.15,
+      "value": 0.05
+    },
+    "long_edge": {
+      "top3": 0.25,
+      "condition": 0.25,
+      "recent": 0.1,
+      "market": 0.35,
+      "value": 0.05
+    }
+  },
+  "portfolio": {
+    "core_wide": 200,
+    "unit": 100,
+    "pattern": [
+      [
+        "ワイド",
+        "win_anchor",
+        "top3_edge",
+        "core"
+      ],
+      [
+        "ワイド",
+        "win_anchor",
+        "support",
+        "insurance"
+      ],
+      [
+        "ワイド",
+        "support",
+        "top3_edge",
+        "edge"
+      ],
+      [
+        "ワイド",
+        "win_anchor",
+        "long_edge",
+        "edge"
+      ],
+      [
+        "馬連",
+        "win_anchor",
+        "support",
+        "win"
+      ],
+      [
+        "3連複",
+        "win_anchor",
+        "support",
+        "top3_edge",
+        "core"
+      ],
+      [
+        "3連複",
+        "win_anchor",
+        "top3_edge",
+        "long_edge",
+        "edge"
+      ],
+      [
+        "3連複",
+        "support",
+        "top3_edge",
+        "long_edge",
+        "edge"
+      ],
+      [
+        "3連複",
+        "win_anchor",
+        "support",
+        "long_edge",
+        "edge"
+      ]
+    ]
+  },
+  "otori_gate": {
+    "min_myomi": 80,
+    "min_conviction": 0.72,
+    "min_data_quality": 0.55,
+    "min_hit_pct_proxy": 20,
+    "require_complete_combo_odds": true,
+    "min_market_roi_veto": 1,
+    "concentration_shift": 0
+  },
+  "manual_override_dir": "data/chappy_manual"
+}

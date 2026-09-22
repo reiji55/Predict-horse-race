@@ -115,6 +115,50 @@ def test_spent_must_match_predictions_total():
     print("test_spent_must_match_predictions_total: OK")
 
 
+def test_settled_card_preserves_model_provenance():
+    """Top3相手選びを後から比較できるよう、予想時のレンズとバージョンを結果へ残す。"""
+    card = {
+        "char": "gen",
+        "total": 100,
+        "objective": "ev",
+        "place_partner_mode": "edge",
+        "model_version": "top3-partner-v1",
+        "probability_model": {"temperature": 10, "score_weights": {"speed": .25}},
+        "bets": [{"type": "ワイド", "horses": [1, 8], "amt": 100}],
+    }
+    dividends = {"ワイド": [{"horses": [1, 8], "pay": 2180}]}
+    settled = build_results.settle_card(card, dividends)
+
+    assert settled["objective"] == "ev"
+    assert settled["place_partner_mode"] == "edge"
+    assert settled["model_version"] == "top3-partner-v1"
+    assert settled["probability_model"] == card["probability_model"]
+
+
+def test_settled_chappy_preserves_decision_log():
+    card = {
+        "char": "chappy",
+        "total": 1000,
+        "objective": "dynamic_signal_integration",
+        "place_partner_mode": "dynamic",
+        "model_version": "chappy-signal-v1",
+        "model_role": "champion",
+        "portfolio_style": "balanced_edge_1000",
+        "source": "manual_chat",
+        "conviction": 0.81,
+        "decision_log": {"roles":{"win_anchor":{"num":12}}, "rationale":["test"]},
+        "probability_model": {"source":"common_win_p_un-calibrated"},
+        "bets": [{"type":"ワイド","horses":[12,14],"amt":1000}],
+    }
+    dividends = {"ワイド":[{"horses":[12,14],"pay":1450}]}
+    settled = build_results.settle_card(card, dividends)
+
+    assert settled["source"] == "manual_chat"
+    assert settled["portfolio_style"] == "balanced_edge_1000"
+    assert settled["conviction"] == 0.81
+    assert settled["decision_log"] == card["decision_log"]
+
+
 def test_unfinished_races_are_skipped():
     """結果がまだ出ていないレースは results に載せない（土曜の時点で日曜ぶんは未確定）。"""
     predictions, _, race_results = _load()

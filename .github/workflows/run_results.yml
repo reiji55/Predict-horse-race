@@ -37,7 +37,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_fetch_week_results.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py -q
 
       - name: 対象の週を決める
         id: target
@@ -66,6 +66,16 @@ jobs:
             python -m results.build_results --results data/race_results.json
           else
             echo "結果か発走前スナップショットがまだ無いためスキップします"
+          fi
+
+      - name: Challengerも同じ結果で採点
+        run: |
+          if [ -f data/race_results.json ] && [ -f data/results.json ]; then
+            python -m results.build_shadow_results \
+              --results data/race_results.json \
+              --champion-results data/results.json
+          else
+            echo "Champion結果が無いためChallenger比較をスキップします"
           fi
 
       - name: 生成物をコミット

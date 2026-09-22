@@ -89,6 +89,35 @@ tests.test_comments_are_merged = () => {
   assert.strictEqual(noComments[0].cards[0].say, "");
 };
 
+tests.test_chappy_card_uses_embedded_say_and_1000_yen = () => {
+  const data = JSON.parse(JSON.stringify(predictions));
+  data.races[0].cards.push({
+    char:"chappy", hit_pct:31, payout_range:[1400,12000], total:1000,
+    say:"勝ち軸は12番。Top3妙味は14番を最重視。",
+    source:"signal_engine", conviction:0.81, portfolio_style:"balanced_edge_1000",
+    decision_log:{roles:{win_anchor:{num:12},top3_edge:{num:14}}},
+    bets:[
+      {type:"ワイド",horses:[4,9],amt:200},
+      {type:"ワイド",horses:[4,1],amt:100},
+      {type:"ワイド",horses:[9,1],amt:100},
+      {type:"ワイド",horses:[4,11],amt:100},
+      {type:"馬連",horses:[4,9],amt:100},
+      {type:"3連複",horses:[4,9,1],amt:100},
+      {type:"3連複",horses:[4,1,11],amt:100},
+      {type:"3連複",horses:[9,1,11],amt:100},
+      {type:"3連複",horses:[4,9,11],amt:100},
+    ],
+  });
+
+  const race = adapter.toRaces(data, {});
+  const chappy = race[0].cards.find((x)=>x.char==="chappy");
+  assert.strictEqual(chappy.total, 1000);
+  assert.strictEqual(chappy.say, "勝ち軸は12番。Top3妙味は14番を最重視。");
+  assert.strictEqual(chappy.source, "signal_engine");
+  assert.strictEqual(chappy.conviction, 0.81);
+};
+
+
 tests.test_stats_from_results = () => {
   const stats = adapter.toStats(results, predictions);
 
