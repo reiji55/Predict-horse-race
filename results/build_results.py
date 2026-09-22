@@ -97,7 +97,10 @@ def settle_card(card: dict[str, Any], dividends: dict[str, Any]) -> dict[str, An
         "bets": bets,
     }
     # モデル比較のため、予想時のレンズ/バージョンを結果側にも残す。
-    for key in ("objective", "place_partner_mode", "model_version", "model_role", "probability_model"):
+    for key in (
+        "objective", "place_partner_mode", "model_version", "model_role",
+        "probability_model", "portfolio_style", "source", "conviction", "decision_log",
+    ):
         if card.get(key) is not None:
             result[key] = card[key]
     return result
