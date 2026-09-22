@@ -23,5 +23,5 @@ jobs:
         run: python -m pytest -q
       - name: Node adapter tests
         run: node tests/test_adapter.js
-      - name: Top3 focused tests
-        run: python -m pytest tests/test_top3_score.py tests/test_build_predictions.py tests/test_build_results.py -q
+      - name: Top3 + Chappy focused tests
+        run: python -m pytest tests/test_top3_score.py tests/test_chappy.py tests/test_build_predictions.py tests/test_build_results.py tests/test_model_compare.py tests/test_build_shadow_results.py -q
