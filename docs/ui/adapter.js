@@ -82,7 +82,7 @@
         grade: race.grade,
         time: race.post_time,
         cond: conditionText(race),
-        distort: Math.round(race.myomi),        // モックのメーターは distort という名前のまま
+        distort: race.myomi == null ? null : Math.round(race.myomi),
         myomi: race.myomi,                       // 生値も渡す（将来の2軸メーター用）
         myomi_parts: race.myomi_parts || null,
         legendary: !!race.legendary,
@@ -97,8 +97,10 @@
         cards: (race.cards || []).map(function (card) {
           return {
             char: card.char,
-            hit: percent(card.hit_pct),
-            range: yen(card.payout_range[0]).replace("円", "") + "〜" + yen(card.payout_range[1]),
+            hit: card.hit_pct == null ? "—" : percent(card.hit_pct),
+            range: (card.payout_range && card.payout_range.length >= 2)
+              ? yen(card.payout_range[0]).replace("円", "") + "〜" + yen(card.payout_range[1])
+              : "—",
             total: card.total,
             bets: (card.bets || []).map(function (bet) {
               return {
