@@ -48,20 +48,44 @@ FACTOR_KEYS = {
     "human_raw": "human",
 }
 
+# 生値のキー → 「その値は観測ではなく中立補完だ」と示すフラグのキー。
+# 補完値を平均・標準偏差の計算に入れないために使う（z_standardize の説明を参照）。
+IMPUTED_FLAGS = {
+    "speed_raw": "speed_imputed",
+}
 
-def z_standardize(values: list[float | None]) -> list[float | None]:
+
+def z_standardize(values: list[float | None],
+                  stat_mask: list[bool] | None = None) -> list[float | None]:
     """
     レース内 z標準化。Noneはそのまま伝播させる（買い目生成仕様§1.1）。
     有効値が1件以下、または全馬同値（sd=0）の場合は 0.0 を返す（ゼロ除算回避）。
+
+    `stat_mask` は「平均・標準偏差を計算するのに使ってよい馬」を指す真偽値リスト。
+    **補完値を統計量に混ぜないため**に要る。スピード指数の欠損馬は観測平均で補完するが
+    （logic/speed_index.apply_race_speed_guard）、その値を母集団に入れると
+    平均ちょうどの点が増えて**sdが縮み、観測できている馬のzが逆に増幅される**。
+    例：観測7頭のsd 6.07 → 補完6頭を足すと 4.45 になり、観測馬のzが1.36倍になる。
+    データが薄いレースほど①の影響が強まるという、直そうとした非対称と逆向きの歪みが出る。
+    マスクを渡せば統計量は観測馬だけで決まり、補完馬はちょうど z=0 に落ちる。
     """
     usable = [v for v in values if v is not None]
     if not usable:
         return [None] * len(values)
-    if len(usable) == 1:
+
+    if stat_mask is None:
+        population = usable
+    else:
+        population = [v for v, keep in zip(values, stat_mask) if v is not None and keep]
+        if not population:
+            population = usable
+
+    if len(population) == 1:
+        # 統計量を決められる馬が1頭だけなら、その馬を基準にして全馬 z=0 扱い
         return [0.0 if v is not None else None for v in values]
 
-    mean = statistics.fmean(usable)
-    sd = statistics.pstdev(usable)  # レース内の全出走馬＝母集団なので pstdev
+    mean = statistics.fmean(population)
+    sd = statistics.pstdev(population)  # レース内の全出走馬＝母集団なので pstdev
     if sd == 0:
         return [0.0 if v is not None else None for v in values]
 
@@ -78,10 +102,15 @@ def composite_scores(horses: list[dict[str, Any]],
     「計算」と「horses への書き込み」を分けてある。
 
     欠損ファクターは馬ごとに重みを再正規化する（§1.2）。全欠損なら None。
+
+    中立補完された値（`speed_imputed` など）は**平均・標準偏差の計算から外す**。
+    理由は `z_standardize` の説明を参照。
     """
     z_by_factor: dict[str, list[float | None]] = {}
     for raw_key in FACTOR_KEYS:
-        z_by_factor[raw_key] = z_standardize([h.get(raw_key) for h in horses])
+        flag = IMPUTED_FLAGS.get(raw_key)
+        mask = None if flag is None else [not h.get(flag) for h in horses]
+        z_by_factor[raw_key] = z_standardize([h.get(raw_key) for h in horses], mask)
 
     scores: list[float | None] = []
     for i in range(len(horses)):

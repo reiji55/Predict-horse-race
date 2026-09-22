@@ -103,8 +103,38 @@ def test_odds_decode_and_merge():
     print("test_odds_decode_and_merge: OK")
 
 
+# --- 負担重量条件（2026-09-21 の修正）----------------------------------------
+
+def test_weight_rule_recognises_all_four_jra_conditions():
+    """
+    JRAの負担重量条件は ハンデ / 別定 / 定量 / 馬齢 の4つ。
+    以前は「ハンデ」だけを見ていたので、別定戦の答えが None（＝不明）になり、
+    Aページのアイコン推定に上書きされて**全レースがハンデ表示**になっていた。
+    """
+    from scraper.fetchers.b_shutuba import _parse_weight_rule
+
+    assert _parse_weight_rule("3回 東京 6日目 サラ系３歳以上 オープン (国際) 牝(特指) ハンデ 16頭") == "ハンデ"
+    assert _parse_weight_rule("4回 中山 7日目 サラ系3歳以上 オープン (国際) 別定 13頭") == "別定"
+    assert _parse_weight_rule("5回 阪神 2日目 サラ系3歳以上 3勝クラス (混合) 定量 16頭") == "定量"
+    assert _parse_weight_rule("1回 福島 3日目 サラ系2歳 新馬 馬齢 12頭") == "馬齢"
+    # 判らないときは推測しない（取得項目仕様§2.0）
+    assert _parse_weight_rule("4回 中山 7日目 サラ系3歳以上 オープン 13頭") is None
+    assert _parse_weight_rule("") is None
+
+
+def test_the_real_sample_is_a_handicap():
+    """実サンプル（府中牝馬S）はハンデ戦。RaceData02 に独立したspanで載っている。"""
+    files = _require("shutuba_fuchu.html")
+    if files is None:
+        return
+    race = parse_shutuba_html(files[0], "202605030611")
+    assert race["course"]["note"] == "ハンデ"
+
+
 if __name__ == "__main__":
     test_shutuba_confirmed()
     test_shutuba_unconfirmed()
     test_odds_decode_and_merge()
+    test_weight_rule_recognises_all_four_jra_conditions()
+    test_the_real_sample_is_a_handicap()
     print("すべてのテストが通りました。")

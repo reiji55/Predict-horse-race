@@ -221,9 +221,24 @@ def build_race(list_entry: a_race_list.RaceListEntry, cache: dict[str, list[dict
         race["grade"] = list_entry.grade
     course = race.setdefault("course", {})
     for key, value in (("surface", list_entry.surface), ("dist", list_entry.dist),
-                       ("heads", list_entry.heads), ("note", list_entry.note)):
+                       ("heads", list_entry.heads)):
         if course.get(key) is None and value is not None:
             course[key] = value
+
+    # --- 負担重量条件（note）は B だけを信じる -------------------------
+    # 以前はここに ("note", list_entry.note) が並んでいたが、それが 2026-09 に
+    # **全レースが「ハンデ」と表示される**バグの原因だった。B は RaceData02 を読んで
+    # 「別定」なら note=None を返していたので、「Bが別定と判定した」と「Bが読めなかった」を
+    # 区別できず、A（レース一覧のアイコン推定）が必ず上書きしていた。
+    # 実データでは A のアイコン推定自体も外れている：オールカマー(GII・別定)と
+    # 道頓堀S も「ハンデ」になっていた（斤量が57×9/55×2/56×1/58×1 と 56×12/58×4 で、
+    # ハンデ戦の刻みではない）。よって A のフラグは採用しない。
+    if list_entry.note and course.get("note") and list_entry.note != course["note"]:
+        logger.warning(
+            "%s: 負担重量条件がA（一覧のアイコン推定）と B（RaceData02）で食い違います: "
+            "A=%s / B=%s。**Bを採用します**（OPEN_QUESTIONS C-3）",
+            list_entry.source_ref, list_entry.note, course["note"],
+        )
 
     # id は date / venue / race_no が揃って初めて作れる（取得項目仕様§2.1）
     if race.get("id") is None and race.get("date") and race.get("venue") and race.get("race_no"):
