@@ -49,6 +49,27 @@ SHUTUBA_URL_TMPL = "https://race.netkeiba.com/race/shutuba.html?race_id={race_id
 _GRADE_ICON_RE = re.compile(r"Icon_GradeType([1-3])\b")
 
 
+# 負担重量の決め方（JRAは必ずこの4つのどれか）。RaceData02 にそのまま1語で載る。
+# 出走馬の斤量をどう決めたかの条件であって、レースの格とは別物。
+WEIGHT_RULES = ("ハンデ", "別定", "定量", "馬齢")
+
+
+def _parse_weight_rule(race_data02_text: str) -> str | None:
+    """
+    負担重量条件（ハンデ/別定/定量/馬齢）を RaceData02 から読む。判らなければ None。
+
+    **以前は「"ハンデ" を含むか」だけを見ていた。** それ自体は正しく動くが、
+    含まれない場合の答えが None（＝不明）になり、Aページ（レース一覧）の
+    アイコン推定に上書きされてしまっていた（scraper/build_raw.py 参照）。
+    4語のどれかを必ず返すようにして、「別定と読めた」を「読めなかった」と
+    区別できるようにする。
+    """
+    for rule in WEIGHT_RULES:
+        if rule in race_data02_text:
+            return rule
+    return None
+
+
 def _parse_grade(soup: BeautifulSoup, race_data02_text: str) -> str | None:
     heading = soup.select_one(".RaceList_Item02 .RaceName, h1.RaceName")
     if heading:
@@ -140,7 +161,7 @@ def _parse_race_meta(soup: BeautifulSoup, race_source_ref: str) -> dict[str, Any
     heads_m = re.search(r"(\d+)頭", data02_text)
     heads = int(heads_m.group(1)) if heads_m else None
 
-    note = "ハンデ" if "ハンデ" in data02_text else None
+    note = _parse_weight_rule(data02_text)
 
     venue = None
     for jp_name in constants.JRA_VENUES:

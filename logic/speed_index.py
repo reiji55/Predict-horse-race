@@ -241,6 +241,9 @@ def apply_race_speed_guard(horses: list[dict[str, Any]],
             horse["speed_raw"] = None
             horse["speed_imputed"] = False
             horse["uncertain"] = True
+            # **使わなかった走は n_usable にも残さない。** ここを残すと、speedを捨てたのに
+            # 妙味メーターの信頼度（＝時計データの揃った馬の割合）だけが高いままになる。
+            horse["n_usable"] = 0
         else:
             qualified.append(float(speed))
             horse["speed_imputed"] = False
@@ -269,6 +272,9 @@ def apply_race_speed_guard(horses: list[dict[str, Any]],
         for horse in horses:
             horse["speed_raw"] = None
             horse["speed_imputed"] = False
+            # ①を捨てた以上、時計の裏づけはこのレースには無い。
+            # n_usable を残すと妙味の信頼度が「時計が揃っている」と言い続けてしまう。
+            horse["n_usable"] = 0
         report["reason"] = "insufficient_race_coverage"
         return report
 
