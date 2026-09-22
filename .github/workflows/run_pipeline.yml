@@ -33,21 +33,17 @@ jobs:
           python-version: '3.12'
 
       - name: 依存インストール
-        run: pip install -r requirements.txt
+        # 本番予想パイプラインも pytest を正規のテスト入口にする。
+        # requirements-dev.txt は requirements.txt を内包しているため、実行時依存も同時に入る。
+        run: pip install -r requirements-dev.txt
 
-      # netkeibaを叩く前に落とす（無駄なリクエストを投げないため。ネットワーク不要のテストのみ）
+      # netkeibaを叩く前に全テストを pytest で実行する。
+      # 以前は一部を `python tests/xxx.py` で直接実行しており、
+      # 「pytest CI は緑だが本番パイプラインだけ import 方式の違いで落ちる」
+      # かつ「pytest fixture を使う重要テストが本番では実行されない」という二重契約になっていた。
+      # 入口を pytest に一本化し、同じ契約で全回帰テストを必ず通す。
       - name: テスト
-        run: |
-          python tests/test_logic.py
-          python tests/test_speed_guard.py
-          python tests/test_top3_score.py
-          python tests/test_chappy.py
-          python tests/test_model_registry.py
-          python tests/test_model_compare.py
-          python tests/test_build_predictions.py
-          python tests/test_build_raw.py
-          python tests/test_build_results.py
-          python tests/test_fetchers_def.py
+        run: python -m pytest -q
 
       # スケジュール実行では入力が無いので、実行日（JST）から自動で決める
       - name: 対象の週と日付を決める
