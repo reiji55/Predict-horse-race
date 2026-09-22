@@ -266,4 +266,5 @@ def test_otori_never_appears_without_real_combination_odds():
 
     assert race["myomi"] == race["model_disagreement_myomi"]["myomi"]
     assert race["legendary"] is False
-    assert [c["char"] for c in race["cards"]] == ["kei", "tetsu", "gen"]
+    assert [c["char"] for c in race["cards"]] == ["kei", "tetsu", "gen", "chappy"]
+    assert race["chappy_decision"]["otori_gate"]["checks"]["combo_odds"] is False
