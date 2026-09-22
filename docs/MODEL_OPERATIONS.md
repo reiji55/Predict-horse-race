@@ -127,3 +127,47 @@ Normally direct-fix after review:
 - invalid bet units
 - broken timestamps
 - UI-only changes
+
+
+## Chappy / Otori is a separate evaluation track
+
+Chappy is not one side of the Champion/Challenger fixed-model A/B.
+
+- Champion/Challenger comparison: `kei/tetsu/gen` only.
+- Chappy/Otori: independent 1000-yen integration-layer track.
+
+Reason:
+If the same Chappy overlay were included on both sides, it would inflate spend/payout denominators and hide the actual difference between fixed models.
+
+Track Chappy/Otori by:
+- source = signal_engine / manual_chat
+- portfolio_style
+- conviction
+- decision_log
+- card result / ROI
+
+## Manual Chappy workflow
+
+When a ChatGPT conversation produces a stronger contextual card than the automatic signal engine:
+
+1. build the card **before post time**
+2. save `data/chappy_manual/{race_id}.json`
+3. commit before race
+4. run prediction pipeline
+5. verify snapshot contains `source=manual_chat`
+6. do not edit after result
+
+Spec:
+`docs/CHAPPY_MANUAL_OVERRIDE.md`
+
+## Otori semantics
+
+Otori is no longer an independent 500-yen character.
+
+It is the same Chappy 1000-yen slot in high-conviction state:
+- normal: char=chappy
+- gate passed: char=otori
+
+There must never be both Chappy and Otori cards for the same race.
+
+Until probability calibration is complete, the gate is provisional and conservative.
