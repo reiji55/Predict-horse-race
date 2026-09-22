@@ -4,15 +4,19 @@
 
 - Repository: `reiji55/Predict-horse-race`
 - Review branch: `chatgpt/top3-place-model-20260921`
-- Base production commit: `5cd8b668be240d4c6f96814dd5c8c3c20a2b4944`
+- Latest production commit synced into review branch: `88d042c57daedd6f5e6ff4f9364f4b85e02162e0`
+- Review-branch merge/sync commit: `c9500dc90c98a67da05b43d822c804436843bf30`
 - Production/default branch: `claude/content-review-full-rw32o2`
-- **This model change is NOT merged to production.**
-- Review all commits and the full PR diff before merge.
+- PR: **#3**
+- PR state after sync: **Draft / clean / mergeable**
+- **Top3 / Champion-Challenger / Chappy / new-Otori changes are NOT merged to production.**
+- Review all changed files and the full PR diff before merge.
+- The review branch now includes Claude's latest production-side speed-guard integration fixes and handicap-label parser fixes, so approving PR #3 will not revert them.
 
-Verified branch CI:
-- GitHub Actions run: `35588224689`
-- Python: **153 passed, 13 skipped**
-- Top3-focused subset: **22 passed**
+Verified latest branch CI:
+- GitHub Actions run: `35717252710`
+- Python: **174 passed, 13 skipped**
+- Focused Top3 + Chappy + prediction/results/model-comparison subset: **34 passed**
 - Node adapter tests: success
 
 ---
