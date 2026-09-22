@@ -44,3 +44,19 @@ def test_manual_chat_is_excluded_from_model_comparison():
 
     out = model_compare.compare(champion, {"chall": challenger})
     assert out["comparisons"][0]["common_race_ids"] == ["r1"]
+
+
+def test_chappy_and_otori_are_excluded_from_fixed_model_comparison():
+    champ = _race("r1", 1000, "champ")
+    chall = _race("r1", 1000, "chall")
+    champ["cards"].append({"char":"chappy","hit":True,"spent":1000,"payout":10000})
+    chall["cards"].append({"char":"otori","hit":False,"spent":1000,"payout":0})
+
+    out = model_compare.compare({"results":[champ]}, {"chall":{"results":[chall]}})
+    row = out["comparisons"][0]
+
+    # 固定3キャラ比較にはChappy/Otoriの1000円を混ぜない。
+    assert row["champion"]["spent"] == 1000
+    assert row["challenger"]["spent"] == 1000
+    assert row["champion"]["payout"] == 1000
+    assert row["challenger"]["payout"] == 1000
