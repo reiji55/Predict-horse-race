@@ -202,27 +202,32 @@ def build_race(race: dict, configs: dict, base_times: dict,
     # --- Chappy 1000円統合判断 ---------------------------------------
     # 固定3キャラとは別レイヤー。Win/Top3/条件/近況/市場を動的に統合し、
     # ChatGPT会話で作った手動カードがあればそれを最優先する。
-    manual_override = chappy.load_manual_override(race.get("id"), chappy_config)
-    chappy_card, chappy_decision = chappy.generate_card(
-        horses, race, chappy_config,
-        myomi_value=disagreement_myomi["myomi"],
-        speed_quality=speed_quality,
-        combo_odds=combo_odds,
-        model_id=runtime["model_id"], model_role=runtime["model_role"],
-        manual_override=manual_override,
-    )
-    cards.validate_card_invariants(
-        chappy_card, marks, cards_config.get("amt_unit", 100)
-    )
+    chappy_card = None
+    chappy_market_ev = None
+    chappy_decision: dict[str, Any] = {"status": "insufficient_horses"}
+    legendary = False
+    if len(horses) >= 4:
+        manual_override = chappy.load_manual_override(race.get("id"), chappy_config)
+        chappy_card, chappy_decision = chappy.generate_card(
+            horses, race, chappy_config,
+            myomi_value=disagreement_myomi["myomi"],
+            speed_quality=speed_quality,
+            combo_odds=combo_odds,
+            model_id=runtime["model_id"], model_role=runtime["model_role"],
+            manual_override=manual_override,
+        )
+        cards.validate_card_invariants(
+            chappy_card, marks, cards_config.get("amt_unit", 100)
+        )
 
-    # 鳳はChappyの上位互換state。別カードを追加せず、Chappyカードそのものが鳳へ変わる。
-    legendary = chappy_card["char"] == LEGENDARY_CHARACTER
-    if legendary:
-        generated_cards.insert(0, chappy_card)
-    else:
-        generated_cards.append(chappy_card)
+        # 鳳はChappyの上位互換state。別カードを追加せず、Chappyカードそのものが鳳へ変わる。
+        legendary = chappy_card["char"] == LEGENDARY_CHARACTER
+        if legendary:
+            generated_cards.insert(0, chappy_card)
+        else:
+            generated_cards.append(chappy_card)
+        chappy_market_ev = chappy_card.get("market_ev")
 
-    chappy_market_ev = chappy_card.get("market_ev")
     card_ev_myomi = myomi.compute_card_ev_myomi(
         chappy_market_ev, [h["n_usable"] for h in horses], myomi_config
     )
