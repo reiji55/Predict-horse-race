@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
 MODELS_PATH = CONFIG_DIR / "models.json"
 # 人が決めるモデルの設定（＝ここが変わったら「モデルを変えた」）
-HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json")
+HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json", "race_regime.json")
 # 自動で育つデータ表（＝ここが変わっても「モデルを変えた」わけではない）
 BASE_TIMES_FILE = "base_times.json"
 
