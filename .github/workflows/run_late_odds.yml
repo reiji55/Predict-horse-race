@@ -59,6 +59,7 @@ jobs:
 
       - name: 観測履歴をコミット
         run: |
+          mkdir -p data/odds_history
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/odds_history/
