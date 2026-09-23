@@ -1,10 +1,11 @@
-"""発走前に増えたコンディション情報だけを既存snapshotへ追記する。
+"""発走前に増えたコンディション情報を独立context snapshotとして凍結する。
 
-カード・印・妙味・frozen_atは一切変更しない。
+予想snapshot（印・買い目・妙味・frozen_at）は一切変更しない。
 13時の予想後に得られる馬体重/オッズ推移/パドック所見を、
-発走前に観測できた事実として context_layers だけ更新する。
+data/context_snapshots/{race_id}/{timestamp}.json に新規ファイルとして残す。
 
-これにより「直前情報は保存したいが、買い目の後出し変更は絶対しない」を両立する。
+1観測1ファイルなので通常pipelineと直前workflowが同時にpushしても
+同じJSONを編集せず、後出しの買い目変更も起こらない。
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from logic import condition_history, context_layers, snapshots
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "raw"
+CONTEXT_SNAPSHOT_DIR = ROOT / "data" / "context_snapshots"
 JST = snapshots.JST
 
 
@@ -33,32 +35,43 @@ def _overlay_latest_body_weights(race: dict[str, Any],
     return race
 
 
-def refresh(raw: dict[str, Any], now: datetime.datetime | None = None,
-            snapshot_directory: Path | None = None,
+def load_context_snapshots(race_id: str,
+                           directory: Path | None = None) -> list[dict[str, Any]]:
+    race_dir = (directory or CONTEXT_SNAPSHOT_DIR) / race_id
+    if not race_dir.is_dir():
+        return []
+    rows = []
+    for path in sorted(race_dir.glob("*.json")):
+        try:
+            with path.open(encoding="utf-8") as f:
+                row = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return sorted(rows, key=lambda x: x.get("observed_at") or "")
+
+
+def latest_context_snapshot(race_id: str,
+                            directory: Path | None = None) -> dict[str, Any] | None:
+    rows = load_context_snapshots(race_id, directory)
+    return rows[-1] if rows else None
+
+
+def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
+            output_directory: Path | None = None,
             condition_directory: Path | None = None,
             odds_directory: Path | None = None,
             paddock_directory: Path | None = None) -> dict[str, Any]:
     now = now or datetime.datetime.now(JST)
-    snapshot_directory = snapshot_directory or snapshots.SNAPSHOT_DIR
-    by_id = {r.get("id"): r for r in raw.get("races") or [] if r.get("id")}
-    report = {"updated": [], "skipped": []}
+    output_directory = output_directory or CONTEXT_SNAPSHOT_DIR
+    report = {"added": [], "skipped": []}
 
-    for race_id, race in by_id.items():
-        path = snapshots.snapshot_path(race_id, snapshot_directory)
-        if not path.exists():
-            report["skipped"].append({"race_id": race_id, "reason": "no_snapshot"})
+    for race in raw.get("races") or []:
+        race_id = race.get("id")
+        if not race_id:
             continue
-        try:
-            with path.open(encoding="utf-8") as f:
-                snapshot = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            report["skipped"].append({"race_id": race_id, "reason": "unreadable_snapshot"})
-            continue
-        if not snapshot.get("pre_race"):
-            report["skipped"].append({"race_id": race_id, "reason": "not_pre_race"})
-            continue
-
-        post_at = snapshots.post_datetime(snapshot)
+        post_at = snapshots.post_datetime(race)
         if post_at is None:
             report["skipped"].append({"race_id": race_id, "reason": "unknown_post_time"})
             continue
@@ -72,20 +85,31 @@ def refresh(raw: dict[str, Any], now: datetime.datetime | None = None,
             odds_directory=odds_directory,
             paddock_directory=paddock_directory,
         )
+        payload = {
+            "race_id": race_id,
+            "post_time": race.get("post_time"),
+            "observed_at": now.isoformat(timespec="seconds"),
+            "pre_race": True,
+            "context_layers": context,
+        }
 
-        # ここで変更してよいのはcontext系だけ。買い目・印・妙味・frozen_atは保持する。
-        snapshot["context_layers"] = context
-        snapshot["context_refreshed_at"] = now.isoformat(timespec="seconds")
+        race_dir = output_directory / race_id
+        race_dir.mkdir(parents=True, exist_ok=True)
+        stamp = now.astimezone(JST).strftime("%Y%m%dT%H%M%S")
+        path = race_dir / f"{stamp}.json"
+        if path.exists():
+            report["skipped"].append({"race_id": race_id, "reason": "duplicate_time"})
+            continue
         with path.open("w", encoding="utf-8") as f:
-            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+            json.dump(payload, f, ensure_ascii=False, indent=2)
             f.write("\n")
-        report["updated"].append(race_id)
+        report["added"].append(race_id)
 
     return report
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="発走前snapshotのcontextだけ更新")
+    parser = argparse.ArgumentParser(description="発走前のcontext snapshotを保存")
     parser.add_argument("--week", required=True)
     args = parser.parse_args()
 
@@ -94,8 +118,8 @@ def main() -> None:
         return
     with path.open(encoding="utf-8") as f:
         raw = json.load(f)
-    report = refresh(raw)
-    print(f"context refresh: updated={len(report['updated'])} skipped={len(report['skipped'])}")
+    report = capture(raw)
+    print(f"context snapshot: added={len(report['added'])} skipped={len(report['skipped'])}")
 
 
 if __name__ == "__main__":
