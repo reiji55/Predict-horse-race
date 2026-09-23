@@ -93,6 +93,8 @@ def test_missing_challenger_races_are_reported_not_hidden():
 def test_pass_is_an_opportunity_not_a_missed_card():
     champion_race = _race("r1", 0, "champ")
     challenger_race = _race("r1", 0, "chall")
+    champion_race["race_regime"] = {"label": "solid"}
+    challenger_race["race_regime"] = {"label": "solid"}
     for card in challenger_race["cards"]:
         if card["char"] == "gen":
             card.update({"action": "pass", "budget": 500, "spent": 0, "payout": 0})
@@ -110,6 +112,7 @@ def test_pass_is_an_opportunity_not_a_missed_card():
     assert gen["hit_rate"] is None
     assert row["challenger"]["passes"] == 1
     assert row["head_to_head"][0]["challenger_passes"] == ["gen"]
+    assert row["challenger_by_regime"]["solid"]["passes"] == 1
 
 if __name__ == "__main__":
     test_compare_uses_only_common_races()
