@@ -122,3 +122,28 @@ Please review:
 8. Run full CI and the targeted odds-history tests.
 
 If there is a major operational concern with the scheduled request timing, report it before merge.
+
+## Claude review changes (2026-09-23)
+
+1. **Actions start delay is hours, not minutes.** Scheduled `run_pipeline.yml` runs on
+   2026-09-19/20 were *created* 4h13m–5h10m after their cron time (runtime ~2 min).
+   A single 15:10 JST cron would land around 19:30–20:20 JST and always skip as
+   `already_posted`. The late workflow now has four slots
+   (01:15 / 01:35 / 01:55 / 06:10 UTC); with a 4–5h delay the first three land around
+   14:30–15:50 JST, and the 06:10 slot covers days with little delay.
+   Post-race runs still skip, so extra slots cannot leak post-race odds.
+2. **Pipeline phase had no post-time guard.** The 13:00 JST pipeline slot actually ran at
+   17:41–18:09 JST, so its "pipeline" observation would have been final odds after the race.
+   `append_observation` now refuses when `observed_at >= post_at` **or**
+   `source_time (official_datetime) >= post_at`, and fails closed when post time is unknown.
+3. **Stale raw.** Pipeline observations now use raw `fetched_at` as `observed_at`, and are
+   skipped when `collection_report` is missing or raw is older than 60 min.
+4. **Late capture clock.** The post-time check and `observed_at` are re-read per race
+   *after* the fetch; a race that posts during a slow fetch is skipped (`posted_during_fetch`).
+   A fetch that returns no win odds counts as a failure.
+5. **Push races between workflows.** Storage is now one file per observation:
+   `data/odds_history/{race_id}/{YYYYmmddTHHMMSS}_{phase}.json`
+   (read with `odds_history.load_observations`). Both the late workflow and the pipeline
+   retry `git push` after `git pull --rebase`, which cannot conflict on new files.
+   The late workflow queues instead of cancelling an in-flight run.
+6. Missing weekly raw (late slot landed before that day's pipeline) is a quiet no-op, not red.

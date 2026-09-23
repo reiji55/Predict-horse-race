@@ -2,10 +2,21 @@ name: 直前単勝オッズ観測
 
 # 直前資金を「賢い資金」と仮定して予想へ使うのではなく、
 # まず時系列データを集めて後から検証する。
-# 15:10 JST（06:10 UTC）。11Rは概ね15:25〜15:45なので、
-# Actionsの開始遅延が多少あっても発走前を狙いやすい。
+#
+# ★ スケジュール実行は定刻どおりに動かない。2026-09-19/20 の run_pipeline.yml は
+#   定刻から 4時間13分〜5時間10分 遅れて開始した（created_at 基準）。
+#   15:10 JST 1本だけだと、実際には19〜20時台に動いて毎回「発走済み」でスキップになる。
+#   そこで遅延が数時間でも数分でも発走前に当たる枠を複数置く。
+#   発走後に動いた回は capture_late_odds が必ずスキップする（fail-closed）ので、
+#   枠を増やしても発走後オッズが混ざることはない。1回あたり当日対象レース数ぶん
+#   （通常2回）の単勝API呼び出しだけ。
+#     01:15 / 01:35 / 01:55 UTC … 遅延4〜5時間なら 14:30〜15:50 JST 前後に着地
+#     06:10 UTC（15:10 JST）     … 遅延が小さい日の直前枠
 on:
   schedule:
+    - cron: '15 1 * * 6,0'
+    - cron: '35 1 * * 6,0'
+    - cron: '55 1 * * 6,0'
     - cron: '10 6 * * 6,0'
   workflow_dispatch:
     inputs:
@@ -19,9 +30,10 @@ on:
 permissions:
   contents: write
 
+# 観測の途中（push直前など）で後続の実行に打ち切られないよう、キャンセルせず順番待ちにする。
 concurrency:
   group: late-odds-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   capture:
@@ -58,10 +70,21 @@ jobs:
             --date "${{ steps.target.outputs.date }}"
 
       - name: 観測履歴をコミット
+        # 通常pipeline・成績集計と同じブランチへpushするので、先に進んでいたら rebase して再push。
+        # 観測は1観測1ファイル（data/odds_history/{race_id}/…）なので rebase は衝突しない。
         run: |
           mkdir -p data/odds_history
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/odds_history/
-          git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.date }} 直前単勝オッズ観測"
-          git push
+          if git diff --cached --quiet; then
+            echo "新しい観測はありません"
+            exit 0
+          fi
+          git commit -m "auto: ${{ steps.target.outputs.date }} 直前単勝オッズ観測"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

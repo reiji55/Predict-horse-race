@@ -13,7 +13,7 @@ import datetime
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from logic import odds_history, snapshots
 from scraper.fetchers import b2_odds
@@ -29,10 +29,18 @@ def _date_key(date_str: str) -> str:
     return date_str.replace("-", "")
 
 
+def _system_clock() -> datetime.datetime:
+    return datetime.datetime.now(JST)
+
+
 def capture(raw: dict[str, Any], date_str: str,
             now: datetime.datetime | None = None,
-            directory: Path | None = None) -> dict[str, Any]:
-    now = now or datetime.datetime.now(JST)
+            directory: Path | None = None,
+            clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
+    # 1レースごとに時計を読み直す。courtesy spacing(3秒)やリトライで取得が長引いても、
+    # 実行開始時刻のまま発走判定・observed_at 記録をしないため。
+    if clock is None:
+        clock = (lambda: now) if now is not None else _system_clock
     key = _date_key(date_str)
     report: dict[str, Any] = {"captured": [], "skipped": [], "failed": []}
 
@@ -45,7 +53,7 @@ def capture(raw: dict[str, Any], date_str: str,
         if post_at is None:
             report["skipped"].append({"race_id": race_id, "reason": "unknown_post_time"})
             continue
-        if now >= post_at:
+        if clock() >= post_at:
             report["skipped"].append({"race_id": race_id, "reason": "already_posted"})
             continue
 
@@ -76,14 +84,24 @@ def capture(raw: dict[str, Any], date_str: str,
                 for num, row in sorted(by_num.items())
             ],
         }
-        added = odds_history.append_observation(
-            observed_race, phase="late", observed_at=now, directory=directory
+        # observed_at は取得完了後の時刻。取得中に発走時刻を跨いだら保存しない（fail-closed）。
+        observed_at = clock()
+        status = odds_history.append_observation(
+            observed_race, phase="late", observed_at=observed_at, directory=directory
         )
+        if status == odds_history.AFTER_POST:
+            report["skipped"].append({"race_id": race_id, "reason": "posted_during_fetch"})
+            continue
+        if status == odds_history.NO_ODDS:
+            # APIは返ったが単勝が1件も読めない。取得失敗として数える。
+            report["failed"].append({"race_id": race_id, "reason": "no_win_odds"})
+            continue
         report["captured"].append({
             "race_id": race_id,
             "source_time": fetched.get("official_datetime"),
-            "added": added,
-            "minutes_to_post": round((post_at - now).total_seconds() / 60, 1),
+            "added": status == odds_history.ADDED,
+            "status": status,
+            "minutes_to_post": round((post_at - observed_at).total_seconds() / 60, 1),
         })
 
     return report
@@ -100,7 +118,10 @@ def main() -> None:
     date_str = args.date or datetime.datetime.now(JST).date().isoformat()
     path = RAW_DIR / f"{args.week}.json"
     if not path.exists():
-        raise SystemExit(f"{path} がありません。通常pipelineが先に成功している必要があります。")
+        # Actionsの開始遅延で、その日の通常pipelineより先に動くことがある。
+        # 観測できないだけなので赤にはせず、何もせず終わる。
+        logger.warning("%s がありません。通常pipelineがまだ走っていないため今回は観測しません。", path)
+        return
 
     with path.open(encoding="utf-8") as f:
         raw = json.load(f)
