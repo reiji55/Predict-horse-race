@@ -73,8 +73,18 @@ jobs:
           if [ -f "raw/${WEEK}.json" ]; then
             python -m logic.build_predictions --week "${WEEK}"
           else
-            echo "raw/${WEEK}.json が生成されなかったためスキップします（上のログを確認）"
+            echo "raw/${WEEK}.json が生成されませんでした"
+            exit 1
           fi
+
+      - name: データ品質ゲート
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m logic.data_quality \
+            --raw "raw/${WEEK}.json" \
+            --predictions data/predictions.json \
+            --output data/quality_report.json \
+            --fail-on critical
 
       - name: 生成物をコミット
         run: |
