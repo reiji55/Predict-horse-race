@@ -91,6 +91,11 @@ jobs:
             exit 1
           fi
 
+      - name: 発走前contextを独立snapshotへ凍結
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m logic.refresh_context --week "${WEEK}"
+
       - name: データ品質ゲート
         run: |
           WEEK="${{ steps.target.outputs.week }}"
