@@ -225,6 +225,38 @@ def test_summary_reports_the_market_baseline_next_to_the_model():
     print("test_summary_reports_the_market_baseline_next_to_the_model: OK")
 
 
+
+def test_pass_card_is_recorded_without_becoming_a_miss():
+    prediction_card = {
+        "char": "gen", "action": "pass", "budget": 500, "total": 0,
+        "abstain_reason": "race_regime:solid", "say": "見送るぜ。", "bets": [],
+    }
+    settled = build_results.settle_card(prediction_card, {})
+
+    assert settled["spent"] == 0 and settled["payout"] == 0
+    assert settled["action"] == "pass"
+    assert settled["hit"] is False
+    build_results.validate_result_invariants(settled, prediction_card, {})
+
+    payload = {"results": [{
+        "race_id": "r1",
+        "cards": [
+            settled,
+            {"char": "kei", "hit": True, "spent": 500, "payout": 900,
+             "bets": [{"type": "ワイド", "horses": [1, 2], "amt": 500,
+                       "hit": True, "payout": 900}]},
+        ],
+        "benchmark": None,
+    }]}
+    summary = build_results.summarize(payload)
+
+    gen = summary["by_char"]["gen"]
+    assert gen["opportunities"] == 1
+    assert gen["passes"] == 1
+    assert gen["cards"] == 0
+    assert gen.get("hit_rate") is None
+    assert summary["overall"]["passes"] == 1
+
 ALL_TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
 
 if __name__ == "__main__":
