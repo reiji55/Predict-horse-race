@@ -94,7 +94,7 @@ jobs:
       - name: 発走前contextを独立snapshotへ凍結
         run: |
           WEEK="${{ steps.target.outputs.week }}"
-          python -m logic.refresh_context --week "${WEEK}"
+          python -m logic.refresh_context --week "${WEEK}" --phase pipeline
 
       - name: データ品質ゲート
         run: |
