@@ -44,17 +44,6 @@ def _ratio(count: int, total: int) -> float:
     return round(count / total, 4) if total > 0 else 0.0
 
 
-def _coverage(entries: list[dict[str, Any]], key: str) -> float:
-    return _ratio(sum(1 for entry in entries if entry.get(key)), len(entries))
-
-
-def _odds_coverage(entries: list[dict[str, Any]]) -> float:
-    return _ratio(
-        sum(1 for entry in entries if entry.get("win_odds") is not None),
-        len(entries),
-    )
-
-
 def _combo_type_coverage(race: dict[str, Any]) -> float:
     combo = race.get("combo_odds") or {}
     present = sum(
