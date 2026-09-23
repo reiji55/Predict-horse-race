@@ -69,6 +69,7 @@ _TIME_RE = re.compile(r"(\d+):(\d+(?:\.\d+)?)")
 _LAST3F_RE = re.compile(r"\(\s*(\d+\.\d)\s*\)")
 _MARGIN_RE = re.compile(r"\(\s*(-?\d+(?:\.\d+)?)\s*\)\s*$")
 _ODDS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*\(\s*(\d+)\s*人気\s*\)")
+_BODY_WEIGHT_RE = re.compile(r"(\d{3,4})\(\s*([+\-]?\d+)\s*\)\s*$")
 
 
 def _text(node, selector: str) -> str:
@@ -127,6 +128,14 @@ def parse_past_cell(cell) -> dict[str, Any] | None:
     last3f_m = _LAST3F_RE.search(data06)
     last3f = float(last3f_m.group(1)) if last3f_m else None
 
+    # 同じ Data06 の末尾に "510(0)" のような当時の馬体重がある。
+    # これまで捨てていたが、当日馬体重を「その馬自身の通常レンジ」と比較するため保存する。
+    weight_m = _BODY_WEIGHT_RE.search(data06)
+    body_weight = (
+        {"value": int(weight_m.group(1)), "diff": int(weight_m.group(2))}
+        if weight_m else None
+    )
+
     # "ハワイアンタイム (2.5)" の括弧内が着差。1着なら共通内部フォーマット仕様§2.5 に従い 0 に上書き
     data07 = _text(cell, ".Data07")
     margin_m = _MARGIN_RE.search(data07)
@@ -146,6 +155,7 @@ def parse_past_cell(cell) -> dict[str, Any] | None:
         "margin_sec": margin_sec,
         "impost": impost,
         "jockey_name": jockey_name,
+        "body_weight": body_weight,
         "note": note,
     }
 
