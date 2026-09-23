@@ -137,8 +137,15 @@
   .race-item .info{flex:1}
   .race-item .rname{
     font-family:var(--mincho);font-weight:800;font-size:1rem;letter-spacing:.03em;
-    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;
   }
+  .race-item .rtitle{min-width:0;white-space:nowrap;line-height:1.25}
+  .race-item .rtitle.long{font-size:.86rem;letter-spacing:.01em}
+  .race-item .rtitle.xlong{
+    font-size:.78rem;letter-spacing:0;white-space:normal;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .race-item .grade{flex:none}
   .grade{font-size:.6rem;font-weight:900;color:#fff;padding:1px 7px;border-radius:4px;letter-spacing:.05em}
   .grade.g1{background:#1A1A1A}
   .grade.g2{background:#153E8A}
@@ -168,8 +175,15 @@
   }
   .detail-head .rname{
     font-family:var(--mincho);font-weight:800;font-size:1.25rem;letter-spacing:.05em;
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:8px;flex-wrap:nowrap;min-width:0;
   }
+  .detail-head .rtitle{min-width:0;white-space:nowrap;line-height:1.3}
+  .detail-head .rtitle.long{font-size:1.02rem;letter-spacing:.02em}
+  .detail-head .rtitle.xlong{
+    font-size:.92rem;letter-spacing:.01em;white-space:normal;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .detail-head .grade{flex:none}
   .detail-head .cond{font-size:.72rem;color:var(--ink-soft);margin-top:4px;letter-spacing:.03em}
   .detail-head .d-inline{
     display:flex;align-items:center;gap:8px;margin-top:10px;
@@ -234,12 +248,20 @@
   .rc-who .nickname{font-size:.6rem;font-weight:900;letter-spacing:.15em;opacity:.85}
   .rc-who .cname{
     font-family:var(--mincho);font-weight:800;font-size:1.1rem;letter-spacing:.08em;line-height:1.3;
-    display:flex;align-items:center;gap:8px;
+    display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap;
   }
+  .rc-who .cname-text{white-space:nowrap;flex:none}
   .risk-tag{
-    font-family:var(--gothic);font-size:.56rem;font-weight:900;letter-spacing:.1em;
-    padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.4);
+    font-family:var(--gothic);font-size:.51rem;font-weight:900;letter-spacing:.04em;
+    padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.4);white-space:nowrap;line-height:1.25;
+  }
+  .risk-card.chappy .rc-head{gap:9px}
+  .risk-card.chappy .rc-who .cname{gap:5px}
+  .risk-card.chappy .risk-tag{font-size:.48rem;padding:2px 5px}
+  @media (max-width:390px){
+    .risk-card.chappy .rc-who .cname{font-size:1.02rem;letter-spacing:.05em}
+    .risk-card.chappy .risk-tag{font-size:.45rem;padding:2px 4px;letter-spacing:.02em}
   }
   .rc-hit{text-align:right;font-size:.58rem;font-weight:700;letter-spacing:.08em;opacity:.95;flex:none}
   .rc-hit b{display:block;font-family:var(--mincho);font-size:1.05rem}
@@ -778,6 +800,12 @@ const gradeBadge = g => {
   const badge = GRADE_BADGE[g];
   return badge ? `<span class="grade ${badge[0]}">${badge[1]}</span>` : "";
 };
+// 長いレース名は段階的に縮小。極端に長いものだけ2行まで許可する。
+const raceTitleClass = name => {
+  const n = [...(name || "")].length;
+  return n >= 20 ? "xlong" : n >= 13 ? "long" : "";
+};
+const raceTitleHtml = name => `<span class="rtitle ${raceTitleClass(name)}">${name}</span>`;
 function distortHtml(v){
   const cls = v>=80 ? "legend" : v>=60 ? "hot" : "";
   return `<span class="distort ${cls}">
@@ -829,7 +857,7 @@ function renderList(){
         ${r.status==='manual_record'?'<span class="manual-flag">発走前チャット記録</span>':(r.status==='scheduled'?'<span class="schedule-flag">代替開催</span>':(r.legendary?'<span class="legend-flag">鳳 降臨</span>':''))}
         <span class="venue">${r.venue}</span>
         <span class="info">
-          <span class="rname">${r.name} ${gradeBadge(r.grade)}</span>
+          <span class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</span>
           <span class="meta">${r.no}・${r.cond}・${r.time}発走</span>
         </span>
         ${r.status==='manual_record'?'<span class="manual-mini">記録済み</span>':(r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort))}
@@ -872,7 +900,7 @@ function cardHtml(c){
       ${avatarHtml(ch, "avatar")}
       <span class="rc-who">
         <span class="nickname">${ch.nickname}</span>
-        <span class="cname">${ch.name} <span class="risk-tag">${ch.risk}</span></span>
+        <span class="cname"><span class="cname-text">${ch.name}</span><span class="risk-tag">${ch.risk}</span></span>
       </span>
       <span class="rc-hit">${(c.char==="chappy"||c.char==="otori")?"参考的中率":"想定的中率"}<b>${c.hit}</b></span>
     </div>
@@ -892,7 +920,7 @@ function renderDetail(r){
     document.getElementById("scr-detail").innerHTML = `
       <button class="back-btn" onclick="goList()">← レース一覧へ</button>
       <div class="detail-head">
-        <div class="rname">${r.name} ${gradeBadge(r.grade)}</div>
+        <div class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</div>
         <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
       </div>
       <div class="scheduled-panel">
@@ -920,7 +948,7 @@ function renderDetail(r){
       <div class="kk-sub">妙味・データ品質・参考的中率・実オッズの拒否権をすべて通過した高確信モードです。</div>
     </div>` : ''}
     <div class="detail-head">
-      <div class="rname">${r.name} ${gradeBadge(r.grade)}</div>
+      <div class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</div>
       <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
       ${r.distort==null ? "" : `<div class="d-inline">妙味メーター
         <span class="d-bar"><i style="width:${r.distort}%;background:${dcolor}"></i></span>
