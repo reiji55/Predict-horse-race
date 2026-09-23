@@ -42,6 +42,23 @@ def test_config_hash_changes_when_config_bytes_change(tmp_path: Path):
 
     assert before != after
 
+
+def test_config_hash_changes_when_base_times_change(tmp_path: Path):
+    """基準タイムが変われば同じmodel idでも別の予測前提として識別する。"""
+    src = Path(__file__).resolve().parent.parent / "config"
+    for name in model_registry.HASH_CONFIGS:
+        (tmp_path / name).write_bytes((src / name).read_bytes())
+
+    before = model_registry.config_hash(tmp_path)
+    base_times = json.loads((tmp_path / "base_times.json").read_text(encoding="utf-8"))
+    base_times.setdefault("東京", {}).setdefault("芝", {})["2000"] = 119.9
+    (tmp_path / "base_times.json").write_text(
+        json.dumps(base_times, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+    )
+    after = model_registry.config_hash(tmp_path)
+
+    assert before != after
+
 if __name__ == "__main__":
     test_registry_has_one_champion_and_unique_ids()
     print("test_registry_has_one_champion_and_unique_ids: OK")
