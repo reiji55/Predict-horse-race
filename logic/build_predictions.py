@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from logic import base_score, cards, chappy, model_registry, myomi, prob_model, race_regime as regime_mod, snapshots
+from logic import base_score, cards, chappy, context_layers, model_registry, myomi, prob_model, race_regime as regime_mod, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
 from logic import speed_index as speed_mod
@@ -269,6 +269,9 @@ def build_race(race: dict, configs: dict, base_times: dict,
         chappy_market_ev, [h["n_usable"] for h in horses], myomi_config
     )
 
+    # 新しい当日情報はまず観測だけ。base_score / p / 妙味 / 買い目にはまだ混ぜない。
+    context = context_layers.build_context(race)
+
     return {
         "id": race.get("id"),
         "source_refs": race.get("source_refs", {"netkeiba": None, "jravan": None}),
@@ -285,6 +288,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "config_hash": runtime["config_hash"],
         "base_times_hash": runtime["base_times_hash"],
         "speed_quality": speed_quality,
+        "context_layers": context,
         "race_regime": race_regime,
         "race_regime_policy_active": use_race_regime,
         "myomi": myomi_result["myomi"],
