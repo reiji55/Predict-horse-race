@@ -56,7 +56,9 @@ tests.test_bets_carry_waku_for_color = () => {
   const card = race.cards.find((c) => c.char === "otori");
 
   // 買い目は馬番だけ持つので、枠番は marks から引いて [枠, 馬番] にする
-  assert.deepStrictEqual(card.bets[0], { type: "ワイド", h: [[3, 4], [6, 9]], amt: 200 });
+  // won/payout は results を渡したときだけ埋まる（ここでは未確定なので null）
+  assert.deepStrictEqual(card.bets[0],
+    { type: "ワイド", h: [[3, 4], [6, 9]], amt: 200, won: null, payout: null });
   assert.deepStrictEqual(card.bets[4].h, [[3, 4], [6, 9], [1, 1]]);   // 3連複
   assert.strictEqual(card.total, 1000);
 };
@@ -173,6 +175,68 @@ tests.test_empty_results_do_not_crash = () => {
   assert.strictEqual(stats.roi, "—");
   assert.deepStrictEqual(stats.chars, []);
 };
+
+// --- 的中買い目の表示（2026-09-23 のUI改修）-------------------------------
+
+tests.test_settled_bets_carry_hit_and_payout_into_the_race_view = () => {
+  // レース画面は predictions.json しか見ていなかったので、
+  // 「どの買い目が当たっていくら返ったか」を出せなかった。results を結び直す。
+  const races = adapter.toRaces(predictions, comments, results);
+  const race = races.find((r) => r.id === "20260705-kokura-01");
+  const kei = race.cards.find((c) => c.char === "kei");
+
+  const won = kei.bets.filter((b) => b.won === true);
+  assert.ok(won.length > 0, "的中した買い目が1点も拾えていない");
+  won.forEach((b) => assert.ok(b.payout > 0, "的中なのに払戻が0"));
+  kei.bets.filter((b) => b.won === false).forEach((b) => {
+    assert.strictEqual(b.payout, 0);
+  });
+
+  // カード単位の確定収支も出せること
+  assert.strictEqual(kei.settled.spent, kei.total);
+  assert.strictEqual(kei.settled.balance, kei.settled.payout - kei.settled.spent);
+};
+
+tests.test_bets_stay_unsettled_when_the_race_has_no_result = () => {
+  // 結果がまだ無いレースで「的中！」を出さない（won は null のまま）。
+  const races = adapter.toRaces(predictions, comments, { results: [] });
+  races.forEach((race) => {
+    race.cards.forEach((card) => {
+      assert.strictEqual(card.settled, null);
+      card.bets.forEach((b) => {
+        assert.strictEqual(b.won, null);
+        assert.strictEqual(b.payout, null);
+      });
+    });
+  });
+};
+
+tests.test_bet_key_matches_regardless_of_horse_order = () => {
+  // 予想側と結果側で馬番の並びが違っても同じ1点として結びつくこと。
+  assert.strictEqual(
+    adapter.betKey({ type: "3連複", horses: [14, 3, 12] }),
+    adapter.betKey({ type: "3連複", horses: [3, 12, 14] }),
+  );
+  assert.notStrictEqual(
+    adapter.betKey({ type: "ワイド", horses: [3, 12] }),
+    adapter.betKey({ type: "馬連", horses: [3, 12] }),
+  );
+};
+
+tests.test_manual_and_auto_chappy_are_distinguishable = () => {
+  // UIの「本線モデル / 検証モデル」ラベルはこのフラグで出し分ける。
+  const doctored = JSON.parse(JSON.stringify(predictions));
+  doctored.races[0].cards = [
+    { char: "chappy", source: "manual_chat", model_role: "manual_chat",
+      total: 1000, bets: [], hit_pct: null, payout_range: null },
+    { char: "chappy", source: "signal_engine", model_role: "champion",
+      total: 1000, bets: [], hit_pct: 28, payout_range: [1200, 48000] },
+  ];
+  const cards = adapter.toRaces(doctored, comments, { results: [] })[0].cards;
+  assert.strictEqual(cards[0].manual, true);
+  assert.strictEqual(cards[1].manual, false);
+};
+
 
 let passed = 0;
 for (const [name, fn] of Object.entries(tests)) {

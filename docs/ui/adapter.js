@@ -63,15 +63,48 @@
     return map;
   }
 
+  /** 買い目1点を一意に表す鍵。券種＋馬番（順不同）で、予想側と結果側を突き合わせる。 */
+  function betKey(bet) {
+    return bet.type + ":" + (bet.horses || []).slice().sort(function (a, b) {
+      return a - b;
+    }).join("-");
+  }
+
   /**
-   * predictions.json（+ comments.json）を、モックの RACES 配列に変換する。
-   * comments は {race_id: {char_id: セリフ}}。無ければ say は空文字（UI側でフォールバック表示）。
+   * results.json を {race_id: {char: {betKey: 確定した1点}}} に畳む。
+   *
+   * 予想（predictions.json）には「いくら買ったか」しか無く、的中したか・いくら返ってきたかは
+   * 結果（results.json）側にある。レース画面で買い目ごとに的中を出すには、ここで結び直す。
    */
-  function toRaces(predictions, comments) {
+  function settlementIndex(results) {
+    var index = {};
+    ((results || {}).results || []).forEach(function (race) {
+      var byChar = index[race.race_id] = {};
+      (race.cards || []).forEach(function (card) {
+        var bets = {};
+        (card.bets || []).forEach(function (bet) {
+          bets[betKey(bet)] = bet;
+        });
+        byChar[card.char] = {
+          hit: !!card.hit, spent: card.spent, payout: card.payout, bets: bets,
+        };
+      });
+    });
+    return index;
+  }
+
+  /**
+   * predictions.json（+ comments.json + results.json）を、モックの RACES 配列に変換する。
+   * comments は {race_id: {char_id: セリフ}}。無ければ say は空文字（UI側でフォールバック表示）。
+   * results を渡すと、各買い目に確定した hit / payout が付く（結果が出ていなければ付かない）。
+   */
+  function toRaces(predictions, comments, results) {
     comments = comments || {};
+    var settled = settlementIndex(results);
     return (predictions.races || []).map(function (race) {
       var waku = wakuByNum(race.marks);
       var say = comments[race.id] || {};
+      var raceSettled = settled[race.id] || {};
 
       return {
         id: race.id,
@@ -95,6 +128,7 @@
           return { mk: mark.mk, hon: !!mark.hon, waku: mark.waku, num: mark.num, name: mark.name };
         }),
         cards: (race.cards || []).map(function (card) {
+          var cardSettled = raceSettled[card.char] || null;
           return {
             char: card.char,
             hit: card.hit_pct == null ? "—" : percent(card.hit_pct),
@@ -103,16 +137,29 @@
               : "—",
             total: card.total,
             bets: (card.bets || []).map(function (bet) {
+              var done = cardSettled ? cardSettled.bets[betKey(bet)] : null;
               return {
                 type: bet.type,
                 h: bet.horses.map(function (num) { return [waku[num] || 0, num]; }),
                 amt: bet.amt,
+                // 結果が未確定なら null のまま（UIは「的中！」を出さない）
+                won: done ? !!done.hit : null,
+                payout: done ? done.payout : null,
               };
             }),
+            // カード単位の確定収支。レースが終わっていなければ null
+            settled: cardSettled ? {
+              hit: cardSettled.hit, spent: cardSettled.spent, payout: cardSettled.payout,
+              balance: cardSettled.payout - cardSettled.spent,
+            } : null,
             say: say[card.char] || card.say || "",
             conviction: card.conviction == null ? null : card.conviction,
             portfolio_style: card.portfolio_style || null,
             source: card.source || null,
+            // 手動（ChatGPTがチャットで組んだ）か自動（アプリが組んだ）かの区別。
+            // 表示ラベルはUI側が決める（本線モデル / 検証モデル）。
+            manual: (card.source || card.model_role) === "manual_chat",
+            model_version: card.model_version || null,
             decision_log: card.decision_log || null,
           };
         }),
@@ -209,6 +256,7 @@
 
   var api = {
     toRaces: toRaces,
+    betKey: betKey,
     toStats: toStats,
     conditionText: conditionText,
     GRADE_LABEL: GRADE_LABEL,
