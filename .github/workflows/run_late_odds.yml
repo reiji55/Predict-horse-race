@@ -73,10 +73,10 @@ jobs:
         # 通常pipeline・成績集計と同じブランチへpushするので、先に進んでいたら rebase して再push。
         # 観測は1観測1ファイル（data/odds_history/{race_id}/…）なので rebase は衝突しない。
         run: |
-          mkdir -p data/odds_history
+          mkdir -p data/odds_history data/condition_history
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/odds_history/
+          git add data/odds_history/ data/condition_history/
           if git diff --cached --quiet; then
             echo "新しい観測はありません"
             exit 0
