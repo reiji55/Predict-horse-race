@@ -89,6 +89,28 @@ def test_missing_challenger_races_are_reported_not_hidden():
     assert cov["coverage_rate"] == round(1 / 3, 4)
 
 
+
+def test_pass_is_an_opportunity_not_a_missed_card():
+    champion_race = _race("r1", 0, "champ")
+    challenger_race = _race("r1", 0, "chall")
+    for card in challenger_race["cards"]:
+        if card["char"] == "gen":
+            card.update({"action": "pass", "budget": 500, "spent": 0, "payout": 0})
+
+    out = model_compare.compare(
+        {"results": [champion_race]},
+        {"race-regime-abstain-v1": {"results": [challenger_race]}},
+    )
+    row = out["comparisons"][0]
+    gen = row["challenger"]["by_char"]["gen"]
+
+    assert gen["opportunities"] == 1
+    assert gen["passes"] == 1
+    assert gen["cards"] == 0
+    assert gen["hit_rate"] is None
+    assert row["challenger"]["passes"] == 1
+    assert row["head_to_head"][0]["challenger_passes"] == ["gen"]
+
 if __name__ == "__main__":
     test_compare_uses_only_common_races()
     print("test_compare_uses_only_common_races: OK")
