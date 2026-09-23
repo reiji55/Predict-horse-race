@@ -36,6 +36,7 @@ def _system_clock() -> datetime.datetime:
 def capture(raw: dict[str, Any], date_str: str,
             now: datetime.datetime | None = None,
             directory: Path | None = None,
+            condition_directory: Path | None = None,
             clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
     # 1レースごとに時計を読み直す。courtesy spacing(3秒)やリトライで取得が長引いても、
     # 実行開始時刻のまま発走判定・observed_at 記録をしないため。
@@ -121,6 +122,7 @@ def capture(raw: dict[str, Any], date_str: str,
             body_at = clock()
             bw_status = condition_history.append_body_weight_observation(
                 latest_race, phase="late", observed_at=body_at,
+                directory=condition_directory,
             )
             bucket = (
                 "captured" if bw_status in (condition_history.ADDED, condition_history.DUPLICATE)
