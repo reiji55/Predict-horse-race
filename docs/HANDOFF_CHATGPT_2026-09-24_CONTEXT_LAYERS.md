@@ -108,3 +108,12 @@ or a future permitted CV service can plug in without changing prediction/result 
 
 See:
 `docs/CONTEXT_LAYERS.md`
+
+
+## Latest validation
+
+- Python: **235 passed, 13 skipped**
+- Node adapter: **17 passed**
+- CI: success on head `891156f4f9953a91f1d46ad4d4f749308603aff0`
+- Earlier CI exposed one parser-test issue: cushion value selection stopped scanning before measurement time.
+  Fixed by continuing through the section after finding the selected cushion value; final CI is green.
