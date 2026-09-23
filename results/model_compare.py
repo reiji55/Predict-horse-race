@@ -63,6 +63,16 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+
+def _aggregate_by_regime(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """発走前に凍結したレジーム別に成績を分ける。後付けで結果から分類しない。"""
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for race in results:
+        regime = race.get("race_regime") or {}
+        label = regime.get("label") or "unknown"
+        buckets.setdefault(label, []).append(race)
+    return {label: _aggregate(rows) for label, rows in sorted(buckets.items())}
+
 def compare(champion: dict[str, Any],
             challengers: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """
@@ -135,6 +145,8 @@ def compare(champion: dict[str, Any],
             "common_races": len(common_ids),
             "champion": champ_stats,
             "challenger": chall_stats,
+            "champion_by_regime": _aggregate_by_regime(champ_rows),
+            "challenger_by_regime": _aggregate_by_regime(chall_rows),
             "delta": {
                 "balance": chall_stats["balance"] - champ_stats["balance"],
                 "roi": (
