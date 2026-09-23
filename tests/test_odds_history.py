@@ -85,3 +85,16 @@ def test_late_capture_skips_started_races_and_fetches_only_pre_race(monkeypatch,
     assert report["skipped"] == [{"race_id": "20260926-hanshin-11", "reason": "already_posted"}]
     assert (tmp_path / "20260926-nakayama-11.json").exists()
     assert not (tmp_path / "20260926-hanshin-11.json").exists()
+
+
+def test_pipeline_history_with_empty_built_set_does_not_relabel_old_races(tmp_path: Path):
+    old = _race("20260925-nakayama-11")
+    raw = {
+        "collection_report": {"built": [], "failed": [{"stage": "race"}]},
+        "races": [old],
+    }
+
+    report = odds_history.append_current_run(raw, directory=tmp_path)
+
+    assert report == {"added": 0, "skipped": 0}
+    assert list(tmp_path.iterdir()) == []
