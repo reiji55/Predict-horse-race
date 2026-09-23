@@ -26,8 +26,12 @@ def attach(raw: dict[str, Any], dates: list[str],
         if not metrics:
             skipped.append({"race_id": race.get("id"), "reason": "venue_not_found"})
             continue
-        # JRAページの日付が取れていて対象日と違うなら、前開催の値を誤添付しない。
-        if metrics.get("date") and metrics["date"] != race_date:
+        # 前開催の値を誤添付しない。日付が読めない場合も「一致を確認できない」ので添付しない
+        # （fail-closed）。observe-only なので欠けても予想には影響しない。
+        if not metrics.get("date"):
+            skipped.append({"race_id": race.get("id"), "reason": "date_unknown"})
+            continue
+        if metrics["date"] != race_date:
             skipped.append({"race_id": race.get("id"), "reason": "date_mismatch"})
             continue
         race["track_metrics"] = metrics
@@ -59,9 +63,13 @@ def main() -> None:
         metrics = {}
 
     attach(raw, args.dates, metrics)
-    with path.open("w", encoding="utf-8") as f:
+    # raw は直後の予想生成が読む本番入力。書き込み途中で落ちても壊れないよう
+    # 一時ファイルに書いてから置き換える。
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
         json.dump(raw, f, ensure_ascii=False, indent=2)
         f.write("\n")
+    tmp.replace(path)
     logger.info("track context: venues=%s", sorted(metrics))
 
 

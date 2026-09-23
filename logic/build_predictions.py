@@ -270,7 +270,14 @@ def build_race(race: dict, configs: dict, base_times: dict,
     )
 
     # 新しい当日情報はまず観測だけ。base_score / p / 妙味 / 買い目にはまだ混ぜない。
-    context = context_layers.build_context(race)
+    # observe_only の層が壊れても（観測ファイル破損など）本番の予想生成は止めない。
+    try:
+        context = context_layers.build_context(race)
+    except Exception:  # noqa: BLE001
+        logger.warning("%s: context_layers を作れませんでした（予想には影響なし）",
+                       race.get("id"), exc_info=True)
+        context = {"mode": "observe_only", "status": "error",
+                   "layer1": {"status": "active", "source": "existing_prediction_model"}}
 
     return {
         "id": race.get("id"),

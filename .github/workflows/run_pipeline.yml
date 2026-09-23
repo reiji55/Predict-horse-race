@@ -68,6 +68,8 @@ jobs:
             --dates ${{ steps.target.outputs.dates }}
 
       - name: JRA馬場定量値を添付
+        # observe-only。失敗しても本番の予想生成・コミットは止めない。
+        continue-on-error: true
         run: |
           WEEK="${{ steps.target.outputs.week }}"
           python -m scraper.capture_track_context \
@@ -92,6 +94,8 @@ jobs:
           fi
 
       - name: 発走前contextを独立snapshotへ凍結
+        # observe-only。失敗しても本番の予想生成・コミットは止めない。
+        continue-on-error: true
         run: |
           WEEK="${{ steps.target.outputs.week }}"
           python -m logic.refresh_context --week "${WEEK}" --phase pipeline

@@ -25,6 +25,7 @@ def test_surprising_top3_is_queued_with_pre_race_context(tmp_path: Path):
     rd.mkdir(parents=True)
     (rd / "20260926T151000.json").write_text(json.dumps({
         "race_id": race_id,
+        "post_time": "15:45",
         "observed_at": "2026-09-26T15:10:00+09:00",
         "pre_race": True,
         "context_layers": {
@@ -88,3 +89,28 @@ def test_one_of_model_or_market_miss_is_enough(tmp_path: Path):
     }]}
     row = anomaly_review.build_report(results, context_snapshot_directory=tmp_path)["anomalies"][0]
     assert row["reasons"] == ["model_miss"]
+
+
+def test_context_snapshot_after_post_is_never_joined(tmp_path: Path):
+    """手置き・時計ずれで発走後の所見が紛れ込んでも、研究キューへ混ぜない。"""
+    race_id = "20260926-nakayama-11"
+    rd = tmp_path / race_id
+    rd.mkdir(parents=True)
+    for stamp, observed, pre in (
+        ("20260926T151000", "2026-09-26T15:10:00+09:00", True),
+        ("20260926T160000", "2026-09-26T16:00:00+09:00", True),   # 発走後
+        ("20260926T152000", "2026-09-26T15:20:00+09:00", False),  # pre_race でない
+    ):
+        (rd / f"{stamp}.json").write_text(json.dumps({
+            "race_id": race_id, "post_time": "15:45", "observed_at": observed,
+            "pre_race": pre,
+            "context_layers": {"version": stamp, "layer2": {"horses": []}},
+        }), encoding="utf-8")
+
+    results = {"results": [{
+        "race_id": race_id, "finish": [6, 1, 2],
+        "meta": {"marks": _marks()}, "cards": [],
+    }]}
+    row = anomaly_review.build_report(results, context_snapshot_directory=tmp_path)["anomalies"][0]
+    assert row["context_observed_at"] == "2026-09-26T15:10:00+09:00"
+    assert row["context"]["context_version"] == "20260926T151000"

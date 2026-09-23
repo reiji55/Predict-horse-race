@@ -256,3 +256,26 @@ def test_late_capture_records_no_weight_without_failing_odds(monkeypatch, tmp_pa
     assert len(report["captured"]) == 1
     assert report["body_weight"]["captured"] == []
     assert report["body_weight"]["skipped"][0]["status"] == "no_weight"
+
+
+def test_late_body_weight_parse_error_does_not_lose_odds(monkeypatch, tmp_path: Path):
+    """出馬表HTMLが変わって解析例外が出ても、観測済みのオッズは残す（observe-only）。"""
+    raw = {"races": [_race("20260926-nakayama-11", "15:45")]}
+    monkeypatch.setattr(
+        capture_late_odds.b2_odds, "fetch_win_odds",
+        _fake_fetch([], official="2026-09-26 15:10:03"),
+    )
+
+    def broken(ref):
+        raise AttributeError("'NoneType' object has no attribute 'find_all'")
+
+    monkeypatch.setattr(capture_late_odds.b_shutuba, "fetch_shutuba", broken)
+
+    report = capture_late_odds.capture(
+        raw, "2026-09-26", now=_at(15, 10),
+        directory=tmp_path / "odds", condition_directory=tmp_path / "conditions",
+    )
+
+    assert len(report["captured"]) == 1
+    assert report["body_weight"]["failed"] == [{"race_id": "20260926-nakayama-11"}]
+    assert (tmp_path / "odds" / "20260926-nakayama-11").is_dir()

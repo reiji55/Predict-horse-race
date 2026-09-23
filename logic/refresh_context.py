@@ -52,9 +52,31 @@ def load_context_snapshots(race_id: str,
     return sorted(rows, key=lambda x: x.get("observed_at") or "")
 
 
+def _parse_observed_at(value: Any) -> datetime.datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=JST)
+
+
 def latest_context_snapshot(race_id: str,
                             directory: Path | None = None) -> dict[str, Any] | None:
-    rows = load_context_snapshots(race_id, directory)
+    """発走前と確認できる最新のcontext snapshot。
+
+    capture() は発走前しか書かないが、手で置かれたファイルや時計ずれも想定し、
+    読み出し側でも pre_race=True かつ observed_at < 発走時刻 のものだけを採る。
+    """
+    rows = []
+    for row in load_context_snapshots(race_id, directory):
+        post_at = snapshots.post_datetime({"id": row.get("race_id") or race_id,
+                                           "post_time": row.get("post_time")})
+        observed_at = _parse_observed_at(row.get("observed_at"))
+        if (row.get("pre_race") is True and post_at is not None
+                and observed_at is not None and observed_at < post_at):
+            rows.append(row)
     return rows[-1] if rows else None
 
 

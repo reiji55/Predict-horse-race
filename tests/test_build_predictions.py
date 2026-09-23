@@ -255,3 +255,16 @@ if __name__ == "__main__":
     for test in ALL_TESTS:
         test()
     print(f"\nすべてのテストが通りました（{len(ALL_TESTS)}件）。")
+
+
+def test_broken_context_layer_never_blocks_predictions(monkeypatch):
+    """observe_only の層が例外を出しても、本番の印・買い目は作られる。"""
+    from logic import context_layers
+
+    def boom(*args, **kwargs):
+        raise ValueError("corrupt observation file")
+
+    monkeypatch.setattr(context_layers, "build_context", boom)
+    race = _build()["races"][0]
+    assert race["context_layers"]["status"] == "error"
+    assert race["cards"]

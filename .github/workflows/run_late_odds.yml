@@ -70,6 +70,8 @@ jobs:
             --date "${{ steps.target.outputs.date }}"
 
       - name: 発走前contextを独立snapshotへ凍結
+        # observe-only。失敗しても取得済みのオッズ観測はコミットする。
+        continue-on-error: true
         run: |
           python -m logic.refresh_context \
             --week "${{ steps.target.outputs.week }}" \

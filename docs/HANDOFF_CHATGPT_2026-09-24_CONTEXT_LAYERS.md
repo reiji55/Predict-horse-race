@@ -117,3 +117,36 @@ See:
 - CI: success on head `891156f4f9953a91f1d46ad4d4f749308603aff0`
 - Earlier CI exposed one parser-test issue: cushion value selection stopped scanning before measurement time.
   Fixed by continuing through the section after finding the selected cushion value; final CI is green.
+
+## Claude review changes (2026-09-24)
+
+Live JRA / netkeiba HTML could not be fetched from the review sandbox (proxy 403), so the
+track parser was reviewed for fail-closed behaviour rather than against a live page.
+
+1. **Track date was fail-open.** `attach` skipped only when a page date existed *and* differed;
+   an unparsed date attached the metrics anyway. Now a missing date skips (`date_unknown`).
+   The parser also returns `date=None` when the page contains more than one full date.
+2. **Moisture ambiguity.** Duplicate rows for the same surface with different values
+   (e.g. Friday + race-day measurements) now drop that surface; values outside 0–50% are ignored.
+   Cushion `measured_at` is set only when exactly one time appears in the section and a value was read.
+3. **Raw write is atomic** (tmp + replace) because `raw/{week}.json` is the production input read
+   by the next step.
+4. **Observe-only must never block production.**
+   - `build_predictions`: a `build_context` exception yields `context_layers.status="error"`
+     instead of failing the whole prediction run.
+   - `odds_history.load_observations` skips a corrupt observation file.
+   - Late capture: any exception from the extra shutuba fetch (not only `RuntimeError`) is
+     recorded as a body-weight failure; the odds observation is still kept.
+   - Workflows: track capture, context refresh (pipeline + late) and the anomaly queue are
+     `continue-on-error: true`. `run_results.yml` push now retries after `pull --rebase` like
+     the other writers.
+5. **Anomaly join is pre-race only on the read side too.** `latest_context_snapshot` accepts only
+   `pre_race: true` rows whose `observed_at` is before post time, so a hand-placed or clock-skewed
+   post-race context file can never enter the research queue.
+
+Reviewed without change: C2/horse-history weight regexes (only `NNN(±N)` matches; decimals such as
+last-3F never match), body-weight thresholds (diagnostic only), request load (+1 shutuba per
+pre-post late capture), context snapshot isolation (new files only; prediction snapshots untouched),
+paddock boundary (self-declared `observed_at` is additionally bounded by the context snapshot's own
+pre-post capture time), backward compatibility (old snapshots/results without the new fields), and
+keeping `context_layers.json` out of `config_hash` while `mode=observe_only`.

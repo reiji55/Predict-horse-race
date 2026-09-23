@@ -69,6 +69,8 @@ jobs:
           fi
 
       - name: 想定外好走馬を研究キューへ追加
+        # 研究用の派生ファイル。失敗しても成績集計・Challenger採点は止めない。
+        continue-on-error: true
         run: |
           if [ -f data/results.json ]; then
             python -m results.anomaly_review \
@@ -94,4 +96,10 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data/
           git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 成績集計"
-          git push
+          # 直前オッズ観測・通常pipelineも同じブランチへpushする（向こうは新規ファイルの追加が中心）。
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

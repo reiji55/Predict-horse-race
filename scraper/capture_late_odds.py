@@ -112,7 +112,7 @@ def capture(raw: dict[str, Any], date_str: str,
         # 予想へはまだ加点しない。後方検証用の観測ログ。
         try:
             latest_race = b_shutuba.fetch_shutuba(source_ref)
-        except RuntimeError:
+        except Exception:  # noqa: BLE001 — 観測専用。HTML変更等の解析例外でもオッズ観測を失わない
             logger.warning("直前馬体重を取得できませんでした: %s", race_id, exc_info=True)
             report["body_weight"]["failed"].append({"race_id": race_id})
         else:

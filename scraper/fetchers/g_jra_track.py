@@ -71,20 +71,34 @@ def parse_baba_html(html: str, source_url: str | None = None) -> dict[str, Any] 
     venue = venue_m.group(1)
 
     text = soup.get_text(" ", strip=True)
-    date_m = DATE_RE.search(text)
-    date = (
-        f"{int(date_m.group(1)):04d}-{int(date_m.group(2)):02d}-{int(date_m.group(3)):02d}"
-        if date_m else None
-    )
+    # ページ内に年付きの日付が複数（前日測定・更新日など）あると、どれが開催日か
+    # 断定できない。推測で選ぶと前開催の値を当日に誤添付しうるので None にする。
+    dates = {
+        f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        for m in DATE_RE.finditer(text)
+    }
+    date = next(iter(dates)) if len(dates) == 1 else None
+    if len(dates) > 1:
+        logger.warning("JRA馬場ページに日付が複数あり開催日を断定できません venue=%s dates=%s",
+                       venue, sorted(dates))
 
     moisture: dict[str, list[float]] = {}
+    ambiguous_surfaces: set[str] = set()
     for tr in soup.find_all("tr"):
         cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
         if len(cells) < 3 or cells[0] not in ("芝", "ダート"):
             continue
         a, b = _f(cells[1]), _f(cells[2])
-        if a is not None and b is not None:
-            moisture[cells[0]] = [a, b]
+        # 含水率として有り得ない値（列ずれ等）は採らない。
+        if a is None or b is None or not (0 < a < 50 and 0 < b < 50):
+            continue
+        # 同じ馬場の行が複数（金曜測定と当日測定など）あれば、どれが当日か断定できない。
+        if cells[0] in moisture and moisture[cells[0]] != [a, b]:
+            ambiguous_surfaces.add(cells[0])
+        moisture[cells[0]] = [a, b]
+    for surface in ambiguous_surfaces:
+        logger.warning("含水率の行が複数あり断定できません venue=%s surface=%s", venue, surface)
+        moisture.pop(surface, None)
 
     cushion_value = None
     cushion_time = None
@@ -92,12 +106,12 @@ def parse_baba_html(html: str, source_url: str | None = None) -> dict[str, Any] 
     if section:
         # 実測値は小数1桁。基準目盛り 12/10/8/7（整数）は候補にしない。
         decimal_candidates: list[float] = []
+        time_candidates: set[str] = set()
         for tag in section:
             txt = tag.get_text(" ", strip=True)
-            if cushion_time is None:
-                tm = TIME_RE.search(txt)
-                if tm:
-                    cushion_time = tm.group(1)
+            # 子要素を持つタグは子孫の文字列を重複して含むので、時刻は葉だけから拾う。
+            if not tag.find(True):
+                time_candidates.update(TIME_RE.findall(txt))
             if DECIMAL_RE.fullmatch(txt):
                 val = _f(txt)
                 if val is not None and 4 <= val <= 15:
@@ -109,6 +123,9 @@ def parse_baba_html(html: str, source_url: str | None = None) -> dict[str, Any] 
                     cushion_value = val
         if cushion_value is None and len(set(decimal_candidates)) == 1:
             cushion_value = decimal_candidates[0]
+        # 測定時刻も、区間内に1つだけのときに限り値へ紐づける。
+        if cushion_value is not None and len(time_candidates) == 1:
+            cushion_time = next(iter(time_candidates))
 
     course_usage = None
     turf_state = None
@@ -143,7 +160,7 @@ def parse_baba_html(html: str, source_url: str | None = None) -> dict[str, Any] 
         "cushion": {
             "value": cushion_value,
             "measured_at": cushion_time,
-        } if cushion_value is not None or cushion_time is not None else None,
+        } if cushion_value is not None else None,
         "moisture": {
             surface: {"goal": vals[0], "turn4": vals[1]}
             for surface, vals in moisture.items()
