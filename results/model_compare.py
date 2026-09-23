@@ -14,19 +14,27 @@ def _eligible(result: dict[str, Any]) -> bool:
 
 
 def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
-    spent = payout = cards = hits = 0
+    spent = payout = cards = hits = passes = opportunities = 0
     by_char: dict[str, dict[str, int]] = {}
     for race in results:
         for card in race.get("cards", []):
             if card.get("char") not in MODEL_COMPARE_CHARS:
                 continue
+            opportunities += 1
+            char = by_char.setdefault(card.get("char") or "unknown", {
+                "opportunities": 0, "cards": 0, "passes": 0,
+                "hits": 0, "spent": 0, "payout": 0
+            })
+            char["opportunities"] += 1
+            if card.get("action") == "pass":
+                passes += 1
+                char["passes"] += 1
+                continue
+
             cards += 1
             hits += 1 if card.get("hit") else 0
             spent += int(card.get("spent") or 0)
             payout += int(card.get("payout") or 0)
-            char = by_char.setdefault(card.get("char") or "unknown", {
-                "cards": 0, "hits": 0, "spent": 0, "payout": 0
-            })
             char["cards"] += 1
             char["hits"] += 1 if card.get("hit") else 0
             char["spent"] += int(card.get("spent") or 0)
@@ -42,7 +50,9 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "races": len(results),
+        "opportunities": opportunities,
         "cards": cards,
+        "passes": passes,
         "hits": hits,
         "spent": spent,
         "payout": payout,
@@ -52,6 +62,17 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
         "by_char": {k: finish(v) for k, v in by_char.items()},
     }
 
+
+
+def _aggregate_by_regime(results: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """発走前に凍結したレジーム別に成績を分ける。後付けで結果から分類しない。"""
+    buckets: dict[str, list[dict[str, Any]]] = {}
+    for race in results:
+        # race_regime導入前のsnapshotは「unknown(判定不能)」と区別して数える。
+        regime = race.get("race_regime")
+        label = (regime or {}).get("label") or ("unrecorded" if regime is None else "unknown")
+        buckets.setdefault(label, []).append(race)
+    return {label: _aggregate(rows) for label, rows in sorted(buckets.items())}
 
 def compare(champion: dict[str, Any],
             challengers: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -87,11 +108,17 @@ def compare(champion: dict[str, Any],
                            if x.get("char") in MODEL_COMPARE_CHARS)
             c2_pay = sum(int(x.get("payout") or 0) for x in c2.get("cards", [])
                          if x.get("char") in MODEL_COMPARE_CHARS)
+            c2_passes = [
+                x.get("char") for x in c2.get("cards", [])
+                if x.get("char") in MODEL_COMPARE_CHARS and x.get("action") == "pass"
+            ]
             head_to_head.append({
                 "race_id": rid,
                 "champion_balance": c1_pay - c1_spent,
                 "challenger_balance": c2_pay - c2_spent,
                 "delta_challenger_minus_champion": (c2_pay - c2_spent) - (c1_pay - c1_spent),
+                "challenger_passes": c2_passes,
+                "race_regime": c2.get("race_regime"),
             })
 
         champ_stats = _aggregate(champ_rows)
@@ -119,6 +146,8 @@ def compare(champion: dict[str, Any],
             "common_races": len(common_ids),
             "champion": champ_stats,
             "challenger": chall_stats,
+            "champion_by_regime": _aggregate_by_regime(champ_rows),
+            "challenger_by_regime": _aggregate_by_regime(chall_rows),
             "delta": {
                 "balance": chall_stats["balance"] - champ_stats["balance"],
                 "roi": (

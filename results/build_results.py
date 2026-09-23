@@ -100,6 +100,7 @@ def settle_card(card: dict[str, Any], dividends: dict[str, Any]) -> dict[str, An
     for key in (
         "objective", "place_partner_mode", "model_version", "model_role",
         "probability_model", "portfolio_style", "source", "conviction", "decision_log",
+        "action", "budget", "abstain_reason", "race_regime", "say",
     ):
         if card.get(key) is not None:
             result[key] = card[key]
@@ -184,7 +185,10 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
             "marks": prediction_race.get("marks", []),
         },
     }
-    for key in ("model_id", "model_role", "git_commit", "config_hash", "base_times_hash"):
+    for key in (
+        "model_id", "model_role", "git_commit", "config_hash", "base_times_hash",
+        "race_regime", "race_regime_policy_active",
+    ):
         if prediction_race.get(key) is not None:
             result[key] = prediction_race[key]
     if prediction_race.get("evaluation_scope"):
@@ -232,7 +236,7 @@ def summarize(results: dict[str, Any]) -> dict[str, Any]:
     集計トップは「全予想師のカードを毎回すべて買った場合の累計収支」に一本化する。
     合算の的中率のような曖昧な数値は出さず、**マイナス収支も隠さない**（引き継ぎ書v1 §2）。
     """
-    overall = {"races": 0, "spent": 0, "payout": 0}
+    overall = {"races": 0, "spent": 0, "payout": 0, "passes": 0}
     by_char: dict[str, dict[str, Any]] = {}
     by_type: dict[str, dict[str, Any]] = {}
     market = {"races": 0, "hits": 0, "spent": 0, "payout": 0}
@@ -254,7 +258,16 @@ def summarize(results: dict[str, Any]) -> dict[str, Any]:
             overall["spent"] += card["spent"]
             overall["payout"] += card["payout"]
 
-            char = by_char.setdefault(card["char"], {"cards": 0, "hits": 0, "spent": 0, "payout": 0})
+            char = by_char.setdefault(card["char"], {
+                "opportunities": 0, "cards": 0, "passes": 0,
+                "hits": 0, "spent": 0, "payout": 0,
+            })
+            char["opportunities"] += 1
+            if card.get("action") == "pass":
+                char["passes"] += 1
+                overall["passes"] += 1
+                continue
+
             char["cards"] += 1
             char["hits"] += 1 if card["hit"] else 0
             char["spent"] += card["spent"]

@@ -237,6 +237,24 @@ tests.test_manual_and_auto_chappy_are_distinguishable = () => {
   assert.strictEqual(cards[1].manual, false);
 };
 
+tests.test_pass_card_is_not_counted_as_a_miss = () => {
+  // race-regime challenger の見送りカードは0円。的中率の分母や「不的中」に入れない。
+  const doctored = {
+    results: [{
+      race_id: "r-pass", finish: [1, 2, 3], dividends: {},
+      cards: [
+        { char: "kei", hit: true, spent: 500, payout: 900, bets: [] },
+        { char: "gen", action: "pass", hit: false, spent: 0, payout: 0, bets: [] },
+      ],
+    }],
+  };
+  const stats = adapter.toStats(doctored, predictions);
+  const gen = stats.chars.find((c) => c.id === "gen");
+  assert.strictEqual(gen.rec, "0/0的中・見送り1");
+  assert.strictEqual(gen.hit, 0);
+  assert.strictEqual(stats.bought, "500円");
+  assert.strictEqual(stats.history[0].hit, true);
+};
 
 let passed = 0;
 for (const [name, fn] of Object.entries(tests)) {

@@ -55,6 +55,22 @@ def test_pre_race_build_writes_the_snapshot(tmp_path):
     assert saved["cards"][0]["bets"][0]["horses"] == [4, 9]
 
 
+
+def test_pre_race_regime_is_frozen_for_later_result_analysis(tmp_path):
+    race = _race()
+    race["race_regime"] = {
+        "version": "race-regime-v1",
+        "label": "solid",
+        "metrics": {"market_top3_share": 0.7},
+    }
+    race["race_regime_policy_active"] = True
+
+    snapshots.freeze(_predictions([race]), now=_at(14, 14), directory=tmp_path)
+    saved = json.loads((tmp_path / "20260919-hanshin-11.json").read_text(encoding="utf-8"))
+
+    assert saved["race_regime"]["label"] == "solid"
+    assert saved["race_regime_policy_active"] is True
+
 def test_a_later_pre_race_build_overwrites_it(tmp_path):
     """発走前ならオッズが新しいほど良いので上書きしてよい。"""
     snapshots.freeze(_predictions([_race(myomi=70.0)]), now=_at(7, 14), directory=tmp_path)

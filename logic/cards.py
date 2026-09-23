@@ -734,6 +734,34 @@ def generate_card_for_character(char_id: str, horses: list[dict[str, Any]],
     }
 
 
+
+def generate_abstain_card(char_id: str, config: dict[str, Any],
+                          model_id: str | None, model_role: str | None,
+                          reason: str, say: str = "",
+                          race_regime: dict[str, Any] | None = None) -> dict[str, Any]:
+    """「買わない」を正式な予測として残す0円カード。
+
+    何も出力しないのではなく action=pass / budget（通常なら使う金額）を残すことで、
+    後から Champion の通常購入と比較して「見送りが得だったか」を同じレースで検証できる。
+    """
+    char_config = config["characters"][char_id]
+    return {
+        "char": char_id,
+        "action": "pass",
+        "abstain_reason": reason,
+        "budget": char_config["total"],
+        "objective": char_config.get("objective", DEFAULT_OBJECTIVE),
+        "place_partner_mode": char_config.get("place_partner_mode"),
+        "model_version": model_id,
+        "model_role": model_role,
+        "hit_pct": None,
+        "payout_range": None,
+        "total": 0,
+        "bets": [],
+        "say": say,
+        "race_regime": race_regime,
+    }
+
 def validate_card_invariants(card: dict[str, Any], marks: list[dict[str, Any]],
                              amt_unit: int = 100) -> None:
     """買い目生成仕様§5.5の5条件を検証。崩れていたら ValueError を投げる。"""

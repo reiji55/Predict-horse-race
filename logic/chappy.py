@@ -202,12 +202,20 @@ def _pick(rows: list[dict[str, Any]], role: str, used: set[int]) -> dict[str, An
     return ordered[0]
 
 
-def choose_roles(board: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def choose_roles(board: dict[str, Any],
+                 long_edge_selector: str = "long_edge") -> dict[str, dict[str, Any]]:
+    """4役を重複なしで選ぶ。
+
+    通常は long_edge を市場不人気込みで選ぶ。SOLID判定の自動Chappyだけは
+    long_edge の「役名」は維持したまま selector を solid_depth に差し替え、
+    4頭目を作るためだけに人気薄を持ち上げることを避ける。
+    """
     rows = board["horses"]
     used: set[int] = set()
     roles = {}
     for role in ("win_anchor", "support", "top3_edge", "long_edge"):
-        row = _pick(rows, role, used)
+        selector = long_edge_selector if role == "long_edge" else role
+        row = _pick(rows, selector, used)
         roles[role] = row
         used.add(row["num"])
     return roles
@@ -322,9 +330,20 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
                   combo_odds: dict[str, Any] | None,
                   model_id: str | None, model_role: str | None,
                   manual_override: dict[str, Any] | None = None,
-                  takeout: float = 0.2) -> tuple[dict[str, Any], dict[str, Any]]:
+                  takeout: float = 0.2,
+                  race_regime: dict[str, Any] | None = None,
+                  solid_fourth_role: str | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
     board = build_signal_board(horses, race, config, speed_quality)
-    roles = choose_roles(board)
+
+    # 手動の「本線モデル」は人間/ChatGPTがレース全体を見て作った発走前カードなので、
+    # 自動レジームによる役割制約を掛けない。自動検証モデルのSOLID時だけ穴役強制を外す。
+    solid_auto = (
+        manual_override is None
+        and (race_regime or {}).get("label") == "solid"
+        and bool(solid_fourth_role)
+    )
+    selector = solid_fourth_role if solid_auto else "long_edge"
+    roles = choose_roles(board, long_edge_selector=selector)
 
     if manual_override is not None:
         bets, manual_log = _apply_manual(manual_override, roles, config)
@@ -381,6 +400,11 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
     decision_log = {
         "engine": config["version"],
         "source": source,
+        "race_regime": race_regime,
+        "role_policy": {
+            "long_edge_selector": selector,
+            "manual_unconstrained": manual_override is not None,
+        },
         "roles": {k: {"num": v["num"], "name": v["name"], "odds": v["odds"]} for k, v in roles.items()},
         "conviction": round(conviction, 6),
         "data_quality": round(avg_quality, 6),
@@ -397,7 +421,11 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
         "place_partner_mode": "dynamic",
         "model_version": config["version"],
         "model_role": model_role,
-        "portfolio_style": "high_conviction" if legendary else "balanced_edge_1000",
+        "portfolio_style": (
+            "high_conviction" if legendary
+            else "solid_consensus_1000" if solid_auto
+            else "balanced_edge_1000"
+        ),
         "source": source,
         "conviction": round(conviction, 6),
         "hit_pct": evaluation["hit_pct"],
@@ -409,7 +437,10 @@ def generate_card(horses: list[dict[str, Any]], race: dict[str, Any],
         "decision_log": decision_log,
         "say": (
             "鳳モード。複数シグナルが同時に揃ったため、チャッピーの1000円案を高確信配分へ切り替える。"
-            if legendary else decision_log["summary"]
+            if legendary
+            else "市場と指数の上位が揃っている。穴を無理に作らず、能力とTop3再現性を優先して組む。"
+            if solid_auto
+            else decision_log["summary"]
         ),
     }
     return card, decision_log

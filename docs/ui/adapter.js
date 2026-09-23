@@ -192,6 +192,15 @@
       var hitChars = [];
 
       (race.cards || []).forEach(function (card) {
+        // 見送り(PASS)は0円・不的中扱いにしない。的中率の分母にも入れない。
+        if (card.action === "pass") {
+          if (isManualChat) return;
+          var passStats = byChar[card.char] || (byChar[card.char] = {
+            cards: 0, hits: 0, spent: 0, payout: 0, hitPayout: 0, passes: 0,
+          });
+          passStats.passes = (passStats.passes || 0) + 1;
+          return;
+        }
         raceSpent += card.spent;
         racePayout += card.payout;
         if (card.hit) hitChars.push(CHAR_LABEL[card.char] || card.char);
@@ -201,7 +210,7 @@
         overall.spent += card.spent;
         overall.payout += card.payout;
         var stats = byChar[card.char] || (byChar[card.char] = {
-          cards: 0, hits: 0, spent: 0, payout: 0, hitPayout: 0,
+          cards: 0, hits: 0, spent: 0, payout: 0, hitPayout: 0, passes: 0,
         });
         stats.cards += 1;
         stats.spent += card.spent;
@@ -238,7 +247,8 @@
         id: id,
         hit: stats.cards ? Math.round((stats.hits / stats.cards) * 100) : 0,
         roi: stats.spent ? Math.round((stats.payout / stats.spent) * 100) : 0,
-        rec: stats.hits + "/" + stats.cards + "的中",
+        rec: stats.hits + "/" + stats.cards + "的中" +
+             (stats.passes ? "・見送り" + stats.passes : ""),
         avgPay: stats.hits ? yen(stats.hitPayout / stats.hits) : "—",
       };
     });

@@ -1,0 +1,34 @@
+{
+  "version": "race-regime-v1",
+  "min_horses": 6,
+  "min_pair_coverage": 0.8,
+  "solid": {
+    "min_market_top3_share": 0.62,
+    "max_market_entropy": 0.82,
+    "max_model_market_tv": 0.16,
+    "min_top3_overlap": 2
+  },
+  "open": {
+    "max_market_top3_share": 0.45,
+    "min_market_entropy": 0.9,
+    "min_model_market_tv": 0.24,
+    "min_checks": 2
+  },
+  "policies": {
+    "kei": {
+      "pass_on": []
+    },
+    "tetsu": {
+      "pass_on": []
+    },
+    "gen": {
+      "pass_on": [
+        "solid"
+      ],
+      "comment": "今日は人気どころが素直に強そうだな。こういうガチガチの勝負は俺の出番じゃねぇ。勝負したいレースじゃないから見送るぜ。"
+    },
+    "chappy_auto": {
+      "solid_fourth_role": "solid_depth"
+    }
+  }
+}
