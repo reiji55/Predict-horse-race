@@ -37,7 +37,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py -q
 
       - name: 対象の週を決める
         id: target
@@ -68,6 +68,18 @@ jobs:
             echo "結果か発走前スナップショットがまだ無いためスキップします"
           fi
 
+      - name: 想定外好走馬を研究キューへ追加
+        # 研究用の派生ファイル。失敗しても成績集計・Challenger採点は止めない。
+        continue-on-error: true
+        run: |
+          if [ -f data/results.json ]; then
+            python -m results.anomaly_review \
+              --results data/results.json \
+              --output data/research/anomaly_report.json
+          else
+            echo "Champion結果が無いため研究キュー生成をスキップします"
+          fi
+
       - name: Challengerも同じ結果で採点
         run: |
           if [ -f data/race_results.json ] && [ -f data/results.json ]; then
@@ -84,4 +96,10 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data/
           git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 成績集計"
-          git push
+          # 直前オッズ観測・通常pipelineも同じブランチへpushする（向こうは新規ファイルの追加が中心）。
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

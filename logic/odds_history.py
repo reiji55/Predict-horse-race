@@ -112,8 +112,11 @@ def load_observations(race_id: str, directory: Path | None = None) -> list[dict[
         return []
     rows = []
     for path in sorted(race_dir.glob("*.json")):
-        with path.open(encoding="utf-8") as f:
-            loaded = json.load(f)
+        try:
+            with path.open(encoding="utf-8") as f:
+                loaded = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
         if isinstance(loaded, dict):
             rows.append(loaded)
     return sorted(rows, key=lambda row: row.get("observed_at") or "")

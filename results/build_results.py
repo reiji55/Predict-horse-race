@@ -187,7 +187,7 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
     }
     for key in (
         "model_id", "model_role", "git_commit", "config_hash", "base_times_hash",
-        "race_regime", "race_regime_policy_active",
+        "context_layers", "race_regime", "race_regime_policy_active",
     ):
         if prediction_race.get(key) is not None:
             result[key] = prediction_race[key]

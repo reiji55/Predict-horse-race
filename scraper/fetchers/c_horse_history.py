@@ -62,6 +62,7 @@ _VENUE_IN_KAISAI_RE = re.compile(r"^\d*(\D+?)\d*$")
 _PAREN_RE = re.compile(r"\(([^)]+)\)")
 
 _DIST_RE = re.compile(r"(芝|ダ|障)(\d+)")
+_BODY_WEIGHT_RE = re.compile(r"^(\d{3,4})\(\s*([+\-]?\d+)\s*\)$")
 
 
 def _time_to_sec(text: str) -> float | None:
@@ -161,6 +162,18 @@ def _parse_run_row(tds: list) -> dict[str, Any]:
 
     last3f = _to_float_or_none(tds[27].get_text(strip=True)) if len(tds) > 27 else None
 
+    # netkeiba の列構成変更に強くするため固定indexではなく、行内の
+    # "510(0)" / "484(-4)" 形式を完全一致で探す。斤量やオッズとは形が違うため誤認しにくい。
+    body_weight = None
+    for td in tds:
+        weight_m = _BODY_WEIGHT_RE.match(td.get_text(strip=True))
+        if weight_m:
+            body_weight = {
+                "value": int(weight_m.group(1)),
+                "diff": int(weight_m.group(2)),
+            }
+            break
+
     return {
         "date": date_str,
         "venue": venue,
@@ -175,6 +188,7 @@ def _parse_run_row(tds: list) -> dict[str, Any]:
         "margin_sec": margin_sec,
         "impost": impost,
         "jockey_name": jockey_name,
+        "body_weight": body_weight,
         "note": finish_note,
     }
 

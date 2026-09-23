@@ -15,8 +15,8 @@ import logging
 from pathlib import Path
 from typing import Any, Callable
 
-from logic import odds_history, snapshots
-from scraper.fetchers import b2_odds
+from logic import condition_history, odds_history, snapshots
+from scraper.fetchers import b2_odds, b_shutuba
 
 logger = logging.getLogger("scraper.capture_late_odds")
 
@@ -36,13 +36,17 @@ def _system_clock() -> datetime.datetime:
 def capture(raw: dict[str, Any], date_str: str,
             now: datetime.datetime | None = None,
             directory: Path | None = None,
+            condition_directory: Path | None = None,
             clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
     # 1レースごとに時計を読み直す。courtesy spacing(3秒)やリトライで取得が長引いても、
     # 実行開始時刻のまま発走判定・observed_at 記録をしないため。
     if clock is None:
         clock = (lambda: now) if now is not None else _system_clock
     key = _date_key(date_str)
-    report: dict[str, Any] = {"captured": [], "skipped": [], "failed": []}
+    report: dict[str, Any] = {
+        "captured": [], "skipped": [], "failed": [],
+        "body_weight": {"captured": [], "skipped": [], "failed": []},
+    }
 
     for race in raw.get("races", []):
         race_id = race.get("id") or ""
@@ -104,6 +108,32 @@ def capture(raw: dict[str, Any], date_str: str,
             "minutes_to_post": round((post_at - observed_at).total_seconds() / 60, 1),
         })
 
+        # 同じ直前枠で出馬表を1回だけ再取得し、計量済みなら馬体重も保存する。
+        # 予想へはまだ加点しない。後方検証用の観測ログ。
+        try:
+            latest_race = b_shutuba.fetch_shutuba(source_ref)
+        except Exception:  # noqa: BLE001 — 観測専用。HTML変更等の解析例外でもオッズ観測を失わない
+            logger.warning("直前馬体重を取得できませんでした: %s", race_id, exc_info=True)
+            report["body_weight"]["failed"].append({"race_id": race_id})
+        else:
+            latest_race["id"] = race_id
+            latest_race["post_time"] = race.get("post_time")
+            latest_race["source_refs"] = race.get("source_refs")
+            body_at = clock()
+            bw_status = condition_history.append_body_weight_observation(
+                latest_race, phase="late", observed_at=body_at,
+                directory=condition_directory,
+            )
+            bucket = (
+                "captured" if bw_status in (condition_history.ADDED, condition_history.DUPLICATE)
+                else "skipped"
+            )
+            report["body_weight"][bucket].append({
+                "race_id": race_id,
+                "status": bw_status,
+                "minutes_to_post": round((post_at - body_at).total_seconds() / 60, 1),
+            })
+
     return report
 
 
@@ -128,8 +158,10 @@ def main() -> None:
 
     report = capture(raw, date_str)
     logger.info(
-        "late odds: captured=%d skipped=%d failed=%d",
+        "late odds: captured=%d skipped=%d failed=%d / body_weight captured=%d skipped=%d failed=%d",
         len(report["captured"]), len(report["skipped"]), len(report["failed"]),
+        len(report["body_weight"]["captured"]), len(report["body_weight"]["skipped"]),
+        len(report["body_weight"]["failed"]),
     )
     for row in report["captured"]:
         logger.info(

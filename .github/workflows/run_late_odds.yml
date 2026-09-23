@@ -69,14 +69,22 @@ jobs:
             --week "${{ steps.target.outputs.week }}" \
             --date "${{ steps.target.outputs.date }}"
 
+      - name: 発走前contextを独立snapshotへ凍結
+        # observe-only。失敗しても取得済みのオッズ観測はコミットする。
+        continue-on-error: true
+        run: |
+          python -m logic.refresh_context \
+            --week "${{ steps.target.outputs.week }}" \
+            --phase late
+
       - name: 観測履歴をコミット
         # 通常pipeline・成績集計と同じブランチへpushするので、先に進んでいたら rebase して再push。
         # 観測は1観測1ファイル（data/odds_history/{race_id}/…）なので rebase は衝突しない。
         run: |
-          mkdir -p data/odds_history
+          mkdir -p data/odds_history data/condition_history data/context_snapshots
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/odds_history/
+          git add data/odds_history/ data/condition_history/ data/context_snapshots/
           if git diff --cached --quiet; then
             echo "新しい観測はありません"
             exit 0

@@ -1,0 +1,22 @@
+{
+  "version": "context-layers-v1",
+  "mode": "observe_only",
+  "body_weight": {
+    "min_history": 3,
+    "unusual_abs_pct": 0.04,
+    "robust_z_threshold": 2.5
+  },
+  "rest": {
+    "quick_return_max_days": 14,
+    "layoff_min_days": 56
+  },
+  "paddock": {
+    "max_minutes_before_post": 60,
+    "min_observer_confidence": 0.5
+  },
+  "anomaly_review": {
+    "finish_max": 3,
+    "model_rank_min": 6,
+    "market_rank_min": 6
+  }
+}
