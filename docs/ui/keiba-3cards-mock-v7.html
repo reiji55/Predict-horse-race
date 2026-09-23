@@ -319,9 +319,27 @@
     flex:none;font-family:var(--mincho);font-weight:900;font-size:1rem;
     color:#A81F18;white-space:nowrap;min-width:4.6em;text-align:right;
   }
+  /* 的中情報が増えても買い目は1行を維持する。スマホ幅では判子を控えめに圧縮。 */
+  @media (max-width:430px){
+    .bet-row{flex-wrap:nowrap;gap:5px;padding:9px 10px}
+    .bet-type{font-size:.58rem;letter-spacing:0;padding:2px 5px}
+    .bet-horses{min-width:0;gap:2px;flex-wrap:nowrap}
+    .bet-row .uma{width:21px;height:21px;font-size:.68rem;border-radius:4px}
+    .bet-amt{font-size:.82rem}
+    .bet-hit{
+      font-size:.51rem;letter-spacing:0;padding:1px 3px;border-width:1px;
+      transform:rotate(-4deg);box-shadow:none;
+    }
+    .bet-hit .emo{display:none}
+    .bet-pay{font-size:.74rem;min-width:0}
+  }
   @media (max-width:360px){
-    .bet-row{flex-wrap:wrap}
-    .bet-pay{min-width:0}
+    .bet-row{gap:4px;padding-left:8px;padding-right:8px}
+    .bet-type{font-size:.54rem;padding-left:4px;padding-right:4px}
+    .bet-row .uma{width:20px;height:20px;font-size:.64rem}
+    .bet-amt{font-size:.76rem}
+    .bet-hit{font-size:.48rem;padding:1px 2px}
+    .bet-pay{font-size:.68rem}
   }
 
   /* 確定収支（レースが終わったカードだけ出る） */
