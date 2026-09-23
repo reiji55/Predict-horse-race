@@ -67,6 +67,13 @@ jobs:
             --week "${{ steps.target.outputs.week }}" \
             --dates ${{ steps.target.outputs.dates }}
 
+      - name: JRA馬場定量値を添付
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m scraper.capture_track_context \
+            --raw "raw/${WEEK}.json" \
+            --dates ${{ steps.target.outputs.dates }}
+
       - name: 単勝オッズ観測履歴を保存
         run: |
           WEEK="${{ steps.target.outputs.week }}"
