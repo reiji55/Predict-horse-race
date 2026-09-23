@@ -107,7 +107,6 @@ def parse_baba_html(html: str, source_url: str | None = None) -> dict[str, Any] 
                 val = _f(txt)
                 if val is not None and 4 <= val <= 15:
                     cushion_value = val
-                    break
         if cushion_value is None and len(set(decimal_candidates)) == 1:
             cushion_value = decimal_candidates[0]
 
