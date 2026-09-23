@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from logic import base_score, cards, chappy, model_registry, myomi, prob_model, snapshots
+from logic import base_score, cards, chappy, model_registry, myomi, prob_model, race_regime as regime_mod, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
 from logic import speed_index as speed_mod
@@ -59,7 +59,15 @@ def load_configs() -> dict:
         speed_config = json.load(f)
     with (CONFIG_DIR / "chappy.json").open(encoding="utf-8") as f:
         chappy_config = json.load(f)
-    return {"cards": cards_config, "myomi": myomi_config, "speed": speed_config, "chappy": chappy_config}
+    with (CONFIG_DIR / "race_regime.json").open(encoding="utf-8") as f:
+        race_regime_config = json.load(f)
+    return {
+        "cards": cards_config,
+        "myomi": myomi_config,
+        "speed": speed_config,
+        "chappy": chappy_config,
+        "race_regime": race_regime_config,
+    }
 
 
 def _overall_rates(raw: dict) -> tuple[float, float]:
@@ -84,9 +92,11 @@ def build_race(race: dict, configs: dict, base_times: dict,
     myomi_config = configs["myomi"]
     speed_config = configs["speed"]
     chappy_config = configs["chappy"]
+    race_regime_config = configs["race_regime"]
     model_spec = model_spec or model_registry.load_registry()["champion"]
     runtime = model_registry.runtime_metadata(model_spec)
     use_top3_partner = bool(model_spec.get("use_top3_partner", False))
+    use_race_regime = bool(model_spec.get("use_race_regime", False))
 
     course = race.get("course") or {}
     today_course = {
@@ -161,6 +171,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
     p = prob_model.softmax_scores(scores, myomi_config["prob_model"]["temperature"])
     q = prob_model.market_support(win_odds)
 
+    # 発走前の市場状態。Championでも診断値として記録するが、買い目へ使うのは
+    # use_race_regime=true のChallengerだけ。結果を見て後付け分類しないためsnapshotへ残す。
+    race_regime = regime_mod.classify(p, q, race_regime_config)
+
     # 旧妙味（単勝pと市場支持率の乖離）は診断値として残す。
     # 鳳の降臨判定には使わない。初実戦で「高EVを作った馬を鳳が買っていない」矛盾が起きたため。
     disagreement_myomi = myomi.compute_myomi(
@@ -189,12 +203,22 @@ def build_race(race: dict, configs: dict, base_times: dict,
     generated_cards = []
 
     for char_id in BASE_CHARACTERS:
-        card = cards.generate_card_for_character(
-            char_id, horses, cards_config,
-            temperature=temperature, combo_odds=combo_odds,
-            use_place_model=use_top3_partner,
-            model_id=runtime["model_id"], model_role=runtime["model_role"],
-        )
+        if use_race_regime and regime_mod.should_abstain(
+                char_id, race_regime, race_regime_config):
+            card = cards.generate_abstain_card(
+                char_id, cards_config,
+                model_id=runtime["model_id"], model_role=runtime["model_role"],
+                reason=f"race_regime:{race_regime.get('label')}",
+                say=regime_mod.abstain_comment(char_id, race_regime_config),
+                race_regime=race_regime,
+            )
+        else:
+            card = cards.generate_card_for_character(
+                char_id, horses, cards_config,
+                temperature=temperature, combo_odds=combo_odds,
+                use_place_model=use_top3_partner,
+                model_id=runtime["model_id"], model_role=runtime["model_role"],
+            )
         if card is None:
             continue
         cards.validate_card_invariants(card, marks, cards_config.get("amt_unit", 100))
@@ -223,6 +247,11 @@ def build_race(race: dict, configs: dict, base_times: dict,
             model_id=runtime["model_id"], model_role=runtime["model_role"],
             manual_override=manual_override,
             takeout=cards_config["combo_prob"]["takeout"],
+            race_regime=race_regime if use_race_regime else None,
+            solid_fourth_role=(
+                race_regime_config["policies"]["chappy_auto"].get("solid_fourth_role")
+                if use_race_regime else None
+            ),
         )
         cards.validate_card_invariants(
             chappy_card, marks, cards_config.get("amt_unit", 100)
@@ -256,6 +285,8 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "config_hash": runtime["config_hash"],
         "base_times_hash": runtime["base_times_hash"],
         "speed_quality": speed_quality,
+        "race_regime": race_regime,
+        "race_regime_policy_active": use_race_regime,
         "myomi": myomi_result["myomi"],
         "myomi_parts": myomi_result["myomi_parts"],
         "myomi_source": myomi_result.get("myomi_source"),
