@@ -278,6 +278,22 @@ def _fetch_type_body(race_source_ref: str, odds_type: str) -> dict[str, Any]:
     return parse_odds_response(resp.text)
 
 
+
+def fetch_win_odds(race_source_ref: str) -> dict[str, Any]:
+    """単勝だけを軽量取得する。
+
+    直前オッズ観測用。馬連/ワイド/3連複まで取り直す通常の fetch_odds と違い、
+    API 1回だけにして、発走前の市場分布を時系列で保存する用途に限定する。
+    """
+    body = _fetch_type_body(race_source_ref, ODDS_TYPE_TAN)
+    by_num = extract_win_place_odds(body)
+    if not any(v.get("win_odds") is not None for v in by_num.values()):
+        logger.warning("直前単勝オッズが1件も取れませんでした race_id=%s", race_source_ref)
+    return {
+        "official_datetime": body.get("official_datetime"),
+        "by_num": by_num,
+    }
+
 def fetch_odds(race_source_ref: str) -> dict[str, Any]:
     """
     単勝に加え、実際に購入する馬連・ワイド・3連複の市場オッズも取得する。

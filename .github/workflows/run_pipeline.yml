@@ -67,6 +67,13 @@ jobs:
             --week "${{ steps.target.outputs.week }}" \
             --dates ${{ steps.target.outputs.dates }}
 
+      - name: 単勝オッズ観測履歴を保存
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m logic.odds_history \
+            --raw "raw/${WEEK}.json" \
+            --phase pipeline
+
       - name: predictions.json ビルド
         run: |
           WEEK="${{ steps.target.outputs.week }}"
@@ -94,4 +101,11 @@ jobs:
           # data/ には発走前スナップショット（data/snapshots/）も含まれる。**採点の根拠はこれ**
           git add raw/ data/
           git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.week }} 予想生成"
-          git push
+          # 直前オッズ観測workflow（run_late_odds.yml）も同じブランチへpushする。
+          # 向こうが足すのは data/odds_history/ の新規ファイルだけなので rebase は衝突しない。
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1
