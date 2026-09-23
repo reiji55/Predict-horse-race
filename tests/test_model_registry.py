@@ -42,6 +42,42 @@ def test_config_hash_changes_when_config_bytes_change(tmp_path: Path):
 
     assert before != after
 
+
+def test_base_times_get_their_own_fingerprint(tmp_path: Path):
+    """
+    基準タイムが変われば base_times_hash が変わり、config_hash は変わらない。
+
+    base_times は自動で週ごとに埋まっていくデータ表なので、config_hash に混ぜると
+    「人がモデル設定を変えたのか」を config_hash で見分けられなくなる。
+    """
+    src = Path(__file__).resolve().parent.parent / "config"
+    for name in (*model_registry.HASH_CONFIGS, model_registry.BASE_TIMES_FILE):
+        (tmp_path / name).write_bytes((src / name).read_bytes())
+
+    config_before = model_registry.config_hash(tmp_path)
+    times_before = model_registry.base_times_hash(tmp_path)
+
+    base_times = json.loads((tmp_path / "base_times.json").read_text(encoding="utf-8"))
+    base_times.setdefault("東京", {}).setdefault("芝", {})["2000"] = 119.9
+    (tmp_path / "base_times.json").write_text(
+        json.dumps(base_times, ensure_ascii=False, sort_keys=True), encoding="utf-8"
+    )
+
+    assert model_registry.base_times_hash(tmp_path) != times_before
+    assert model_registry.config_hash(tmp_path) == config_before
+
+
+def test_missing_base_times_is_identified_not_fatal(tmp_path: Path):
+    """基準タイム表が無くても落とさず、"absent" として識別できること。"""
+    assert model_registry.base_times_hash(tmp_path) == "absent"
+
+
+def test_runtime_metadata_carries_both_fingerprints():
+    meta = model_registry.runtime_metadata({"id": "m", "role": "champion"})
+    assert meta["config_hash"] and meta["base_times_hash"]
+    assert meta["config_hash"] != meta["base_times_hash"]
+
+
 if __name__ == "__main__":
     test_registry_has_one_champion_and_unique_ids()
     print("test_registry_has_one_champion_and_unique_ids: OK")

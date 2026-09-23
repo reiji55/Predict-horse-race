@@ -123,6 +123,51 @@ def test_load_week_cache_reads_existing_raw(tmp_dir: Path | None = None):
     print("test_load_week_cache_reads_existing_raw: OK")
 
 
+def test_build_week_records_collection_completeness():
+    """対象にしたレースと構築成功/失敗が raw の collection_report に残ること。"""
+    original = (
+        build_raw.a_race_list.fetch_race_list,
+        build_raw.build_race,
+        build_raw.fetch_leading_stats,
+        build_raw.OUTPUT_DIR,
+    )
+
+    entries = [_entry("小倉", 11), _entry("福島", 11)]
+
+    def fake_build_race(entry, cache, n_runs):
+        if entry.venue == "福島":
+            raise RuntimeError("取得失敗を想定")
+        return {
+            "id": "20260705-kokura-11",
+            "venue": entry.venue,
+            "race_no": entry.race_no,
+            "entries": [],
+        }
+
+    with tempfile.TemporaryDirectory() as tmp:
+        build_raw.a_race_list.fetch_race_list = lambda _date: entries
+        build_raw.build_race = fake_build_race
+        build_raw.fetch_leading_stats = lambda venues, period: ({}, {})
+        build_raw.OUTPUT_DIR = Path(tmp)
+        try:
+            data = build_raw.build_week("2026-W27", ["2026-07-05"])
+        finally:
+            (
+                build_raw.a_race_list.fetch_race_list,
+                build_raw.build_race,
+                build_raw.fetch_leading_stats,
+                build_raw.OUTPUT_DIR,
+            ) = original
+
+    report = data["collection_report"]
+    assert len(report["selected"]) == 2
+    assert len(report["built"]) == 1
+    assert report["built"][0]["race_id"] == "20260705-kokura-11"
+    assert len(report["failed"]) == 1
+    assert report["failed"][0]["venue"] == "福島"
+    assert report["failed"][0]["stage"] == "race"
+
+
 # --- 1レース分の組み立て（フェッチャーを差し替え） --------------------
 
 class _FakeFetchers:

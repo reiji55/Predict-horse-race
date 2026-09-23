@@ -300,14 +300,34 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
     n_runs = config.get("past_runs", 5)
 
     races: list[dict[str, Any]] = []
+    # この実行で「何レースを対象にして、何レース作れたか」を残す。
+    # raw の races[] だけでは、取得途中で消えたレースを後から検知できないため。
+    collection_report: dict[str, Any] = {
+        "requested_dates": list(dates),
+        "selected": [],
+        "built": [],
+        "failed": [],
+    }
+
     for date_str in dates:
         try:
             list_entries = a_race_list.fetch_race_list(date_str)
         except RuntimeError:
             logger.exception("レース一覧を取得できませんでした: %s", date_str)
+            collection_report["failed"].append({
+                "date": date_str, "stage": "race_list",
+                "venue": None, "race_no": None, "source_ref": None,
+            })
             continue
 
         targets = select_main_races(list_entries, config)
+        for target in targets:
+            collection_report["selected"].append({
+                "date": date_str,
+                "venue": target.venue,
+                "race_no": target.race_no,
+                "source_ref": target.source_ref,
+            })
         logger.info("%s: %d レース中 %d レースを対象にします（%s）", date_str, len(list_entries),
                     len(targets), ", ".join(f"{e.venue}{e.race_no}R" for e in targets))
 
@@ -318,12 +338,25 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
             try:
                 race = build_race(list_entry, cache, n_runs)
             except RuntimeError:
-                # 1レースの失敗で週全体を落とさない（取得項目仕様§1.1 マナー設計）
+                # 1レースの失敗で週全体を落とさない（取得項目仕様§1.1 マナー設計）。
+                # ただし「消えたレース」が見えなくならないよう report には必ず残す。
                 logger.exception("レースの取得に失敗しました: %s%dR",
                                  list_entry.venue, list_entry.race_no)
+                collection_report["failed"].append({
+                    "date": date_str, "stage": "race",
+                    "venue": list_entry.venue, "race_no": list_entry.race_no,
+                    "source_ref": list_entry.source_ref,
+                })
                 continue
             attach_stats(race, jockey_stats, trainer_stats)
             races.append(race)
+            collection_report["built"].append({
+                "date": date_str,
+                "venue": list_entry.venue,
+                "race_no": list_entry.race_no,
+                "source_ref": list_entry.source_ref,
+                "race_id": race.get("id"),
+            })
 
     existing_races: list[dict[str, Any]] = []
     existing_path = OUTPUT_DIR / f"{week_id}.json"
@@ -337,6 +370,7 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
     return {
         "fetched_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
         "week_id": week_id,
+        "collection_report": collection_report,
         "races": merge_races(existing_races, races),
     }
 
