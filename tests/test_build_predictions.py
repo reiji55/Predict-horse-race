@@ -205,6 +205,48 @@ def test_failed_race_does_not_stop_the_week():
     print("test_failed_race_does_not_stop_the_week: OK")
 
 
+
+def test_race_regime_challenger_passes_gen_only_on_forced_solid():
+    """影モデルではSOLID時だけ源さんが降り、ケイ/哲と自動Chappyは残る。"""
+    raw = json.loads(RAW_SAMPLE.read_text(encoding="utf-8"))
+    base_times = json.loads(BASE_TIMES.read_text(encoding="utf-8"))
+    configs = json.loads(json.dumps(build_predictions.load_configs()))
+
+    # 統合テストなので分類式そのものは別テストに任せ、ここではSOLIDを確実に作る。
+    configs["race_regime"]["solid"] = {
+        "min_market_top3_share": 0.0,
+        "max_market_entropy": 1.0,
+        "max_model_market_tv": 1.0,
+        "min_top3_overlap": 0,
+    }
+    model_spec = {
+        "id": "race-regime-abstain-v1",
+        "role": "challenger",
+        "use_top3_partner": False,
+        "use_race_regime": True,
+    }
+
+    built = build_predictions.build_predictions(
+        raw, configs, base_times, model_spec=model_spec,
+        generated_at="2026-09-24T01:00:00+09:00",
+    )
+    race = built["races"][0]
+    assert race["race_regime"]["label"] == "solid"
+    assert race["race_regime_policy_active"] is True
+
+    by_char = {card["char"]: card for card in race["cards"]}
+    assert by_char["kei"].get("action", "bet") == "bet"
+    assert by_char["tetsu"].get("action", "bet") == "bet"
+
+    gen = by_char["gen"]
+    assert gen["action"] == "pass"
+    assert gen["total"] == 0 and gen["budget"] == 500 and gen["bets"] == []
+    assert "見送" in gen["say"]
+
+    chappy_card = by_char.get("chappy") or by_char.get("otori")
+    assert chappy_card is not None
+    assert chappy_card["decision_log"]["role_policy"]["long_edge_selector"] == "solid_depth"
+
 ALL_TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
 
 if __name__ == "__main__":
