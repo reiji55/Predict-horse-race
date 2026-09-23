@@ -153,6 +153,17 @@ def _fake_fetch(called, official="2026-09-26 15:10:03"):
     return fetch
 
 
+
+def _fake_shutuba(source_ref):
+    return {
+        "post_time": "15:45",
+        "source_refs": {"netkeiba": source_ref},
+        "entries": [
+            {"num": 1, "body_weight": {"value": 480, "diff": 2}},
+            {"num": 2, "body_weight": {"value": 502, "diff": -4}},
+        ],
+    }
+
 def test_late_capture_skips_started_races_and_fetches_only_pre_race(monkeypatch, tmp_path: Path):
     pre = _race("20260926-nakayama-11", "15:45")
     started = _race("20260926-hanshin-11", "15:00")
@@ -160,16 +171,23 @@ def test_late_capture_skips_started_races_and_fetches_only_pre_race(monkeypatch,
     called = []
 
     monkeypatch.setattr(capture_late_odds.b2_odds, "fetch_win_odds", _fake_fetch(called))
+    monkeypatch.setattr(capture_late_odds.b_shutuba, "fetch_shutuba", _fake_shutuba)
 
-    report = capture_late_odds.capture(raw, "2026-09-26", now=_at(15, 10), directory=tmp_path)
+    condition_dir = tmp_path / "conditions"
+    report = capture_late_odds.capture(
+        raw, "2026-09-26", now=_at(15, 10),
+        directory=tmp_path / "odds", condition_directory=condition_dir,
+    )
 
     assert len(called) == 1
     assert [x["race_id"] for x in report["captured"]] == ["20260926-nakayama-11"]
     assert report["captured"][0]["minutes_to_post"] == 35.0
     assert report["captured"][0]["added"] is True
     assert report["skipped"] == [{"race_id": "20260926-hanshin-11", "reason": "already_posted"}]
-    assert (tmp_path / "20260926-nakayama-11").is_dir()
-    assert not (tmp_path / "20260926-hanshin-11").exists()
+    assert (tmp_path / "odds" / "20260926-nakayama-11").is_dir()
+    assert not (tmp_path / "odds" / "20260926-hanshin-11").exists()
+    assert report["body_weight"]["captured"][0]["status"] == "added"
+    assert (condition_dir / "20260926-nakayama-11").is_dir()
 
 
 def test_late_capture_rechecks_post_time_after_slow_fetch(monkeypatch, tmp_path: Path):
@@ -178,9 +196,11 @@ def test_late_capture_rechecks_post_time_after_slow_fetch(monkeypatch, tmp_path:
     ticks = iter([_at(15, 44), _at(15, 46)])
     called = []
     monkeypatch.setattr(capture_late_odds.b2_odds, "fetch_win_odds", _fake_fetch(called))
+    monkeypatch.setattr(capture_late_odds.b_shutuba, "fetch_shutuba", _fake_shutuba)
 
     report = capture_late_odds.capture(
-        raw, "2026-09-26", directory=tmp_path, clock=lambda: next(ticks)
+        raw, "2026-09-26", directory=tmp_path / "odds",
+        condition_directory=tmp_path / "conditions", clock=lambda: next(ticks)
     )
 
     assert len(called) == 1
@@ -188,7 +208,7 @@ def test_late_capture_rechecks_post_time_after_slow_fetch(monkeypatch, tmp_path:
     assert report["skipped"] == [
         {"race_id": "20260926-nakayama-11", "reason": "posted_during_fetch"}
     ]
-    assert not (tmp_path / "20260926-nakayama-11").exists()
+    assert not (tmp_path / "odds" / "20260926-nakayama-11").exists()
 
 
 def test_late_capture_counts_empty_odds_as_failure(monkeypatch, tmp_path: Path):
@@ -198,7 +218,11 @@ def test_late_capture_counts_empty_odds_as_failure(monkeypatch, tmp_path: Path):
         lambda ref: {"official_datetime": None, "by_num": {1: {"win_odds": None}}},
     )
 
-    report = capture_late_odds.capture(raw, "2026-09-26", now=_at(15, 10), directory=tmp_path)
+    monkeypatch.setattr(capture_late_odds.b_shutuba, "fetch_shutuba", _fake_shutuba)
+    report = capture_late_odds.capture(
+        raw, "2026-09-26", now=_at(15, 10),
+        directory=tmp_path / "odds", condition_directory=tmp_path / "conditions",
+    )
 
     assert report["captured"] == []
     assert report["failed"] == [{"race_id": "20260926-nakayama-11", "reason": "no_win_odds"}]
@@ -211,3 +235,24 @@ def test_late_capture_without_raw_is_a_quiet_noop(monkeypatch, tmp_path: Path):
                                      "--date", "2026-09-26"])
 
     capture_late_odds.main()     # SystemExit しない
+
+
+def test_late_capture_records_no_weight_without_failing_odds(monkeypatch, tmp_path: Path):
+    raw = {"races": [_race("20260926-nakayama-11", "15:45")]}
+    monkeypatch.setattr(
+        capture_late_odds.b2_odds, "fetch_win_odds",
+        _fake_fetch([], official="2026-09-26 15:10:03"),
+    )
+    monkeypatch.setattr(
+        capture_late_odds.b_shutuba, "fetch_shutuba",
+        lambda ref: {"entries": [{"num": 1, "body_weight": None}]},
+    )
+
+    report = capture_late_odds.capture(
+        raw, "2026-09-26", now=_at(15, 10),
+        directory=tmp_path / "odds", condition_directory=tmp_path / "conditions",
+    )
+
+    assert len(report["captured"]) == 1
+    assert report["body_weight"]["captured"] == []
+    assert report["body_weight"]["skipped"][0]["status"] == "no_weight"
