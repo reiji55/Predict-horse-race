@@ -109,7 +109,7 @@ def append_current_run(raw: dict[str, Any], phase: str = "pipeline",
         if item.get("race_id")
     }
     races = raw.get("races", [])
-    if built_ids:
+    if collection:
         races = [race for race in races if race.get("id") in built_ids]
 
     added = skipped = 0
