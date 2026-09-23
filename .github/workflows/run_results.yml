@@ -68,6 +68,16 @@ jobs:
             echo "結果か発走前スナップショットがまだ無いためスキップします"
           fi
 
+      - name: 想定外好走馬を研究キューへ追加
+        run: |
+          if [ -f data/results.json ]; then
+            python -m results.anomaly_review \
+              --results data/results.json \
+              --output data/research/anomaly_report.json
+          else
+            echo "Champion結果が無いため研究キュー生成をスキップします"
+          fi
+
       - name: Challengerも同じ結果で採点
         run: |
           if [ -f data/race_results.json ] && [ -f data/results.json ]; then
