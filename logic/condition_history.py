@@ -95,3 +95,16 @@ def append_body_weight_observation(race: dict[str, Any], phase: str,
         json.dump(obs, f, ensure_ascii=False, indent=2)
         f.write("\n")
     return ADDED
+
+
+def latest_body_weights(race_id: str, directory: Path | None = None) -> dict[int, dict[str, Any]]:
+    """最新の発走前観測から {馬番: body_weight} を返す。無ければ空。"""
+    rows = load_observations(race_id, directory)
+    if not rows:
+        return {}
+    latest = rows[-1]
+    return {
+        int(row["num"]): dict(row["body_weight"])
+        for row in latest.get("horses") or []
+        if row.get("num") is not None and isinstance(row.get("body_weight"), dict)
+    }
