@@ -476,10 +476,13 @@
   .cardstat.mid .dual.hit i{background:#B8860B}
   .cardstat.high .dual.hit i{background:#C23028}
   .cardstat.legend .dual.hit i{background:linear-gradient(90deg,#8A6A12,#D4AF37)}
+  .cardstat.chappy{border-color:#AEB6C2}
+  .cardstat.chappy .dual.hit i{background:#374151}
   .dual .d-num{font-family:var(--mincho);font-weight:800;font-size:.9rem;text-align:right}
   .dual.roi.plus .d-num{color:var(--legend)}
   .cardstat .cs-foot{display:flex;justify-content:space-between;align-items:baseline;font-size:.62rem;color:var(--ink-soft);margin-top:9px;border-top:1px dashed var(--line);padding-top:7px}
   .cardstat .cs-foot b{font-family:var(--mincho);color:var(--ink);font-size:.85rem}
+  .cardstat .cs-note{font-size:.6rem;color:var(--ink-soft);margin-top:6px;line-height:1.5}
   .roi-note{font-size:.62rem;color:var(--ink-soft);margin:0 4px 10px;letter-spacing:.03em;line-height:1.7}
 
   .hist-item{
@@ -1008,7 +1011,8 @@ function renderStats(){
         <span class="d-track"><i style="width:${roiW}%"></i></span>
         <span class="d-num">${s.roi}%</span>
       </div>
-      <div class="cs-foot"><span>的中したときの平均払戻(500円あたり)</span><b>${s.avgPay}</b></div>
+      <div class="cs-foot"><span>的中したときの平均払戻(${s.stake || "500円"}あたり)</span><b>${s.avgPay}</b></div>
+      ${s.manual ? `<div class="cs-note">うち本線(ChatGPT会話で発走前に作成)${s.manual}レース。本線カードは上の累計収支には含めず、ここで別に集計しています。</div>` : ""}
     </div>`;
   }).join("");
   // 予想は実データなのに成績がまだ無い状態。ここでサンプルを出すと嘘になるので、
@@ -1043,7 +1047,7 @@ function renderStats(){
     <div class="stat-grid">
       <div class="stat-box" style="grid-column:1/-1">
         <div class="lbl">累計収支 — 全予想師のカードを毎回すべて買った場合</div>
-        <div class="val minus">${STATS.balance}</div>
+        <div class="val ${String(STATS.balance).startsWith("+") ? "plus" : "minus"}">${STATS.balance}</div>
         <div class="sub">購入${STATS.bought}・払戻${STATS.paid}・回収率${STATS.roi}・対象${STATS.races}レース</div>
       </div>
     </div>

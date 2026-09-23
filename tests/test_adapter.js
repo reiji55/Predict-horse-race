@@ -256,6 +256,34 @@ tests.test_pass_card_is_not_counted_as_a_miss = () => {
   assert.strictEqual(stats.history[0].hit, true);
 };
 
+tests.test_manual_chappy_appears_in_character_stats_but_not_overall = () => {
+  // 9/22のチャッピーはChatGPT会話で作った本線(manual_chat)。予想師別には出すが累計収支には混ぜない。
+  const data = {
+    results: [
+      { race_id: "auto", finish: [1, 2, 3], dividends: {},
+        cards: [{ char: "kei", hit: false, spent: 500, payout: 0, bets: [] }] },
+      { race_id: "20260922-nakayama-11", evaluation_scope: "manual_chat",
+        finish: [1, 2, 3], dividends: {},
+        cards: [{ char: "chappy", source: "manual_chat", hit: true,
+                  spent: 1000, payout: 11280, bets: [] }] },
+      { race_id: "20260921-hanshin-11", evaluation_scope: "manual_chat",
+        finish: [1, 2, 3], dividends: {},
+        cards: [{ char: "chatgpt", hit: true, spent: 500, payout: 1150, bets: [] }] },
+    ],
+  };
+  const stats = adapter.toStats(data, predictions);
+  const chappy = stats.chars.find((c) => c.id === "chappy");
+  assert.ok(chappy, "チャッピーの行がある");
+  assert.strictEqual(chappy.rec, "1/1的中");
+  assert.strictEqual(chappy.roi, 1128);
+  assert.strictEqual(chappy.stake, "1,000円");
+  assert.strictEqual(chappy.manual, 1);
+  assert.strictEqual(stats.chars.find((c) => c.id === "kei").stake, "500円");
+  assert.ok(!stats.chars.find((c) => c.id === "chatgpt"));
+  assert.strictEqual(stats.bought, "500円");      // 累計はautoのケイだけ
+  assert.strictEqual(stats.races, 1);
+};
+
 let passed = 0;
 for (const [name, fn] of Object.entries(tests)) {
   fn();

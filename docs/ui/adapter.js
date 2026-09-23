@@ -29,7 +29,10 @@
   };
 
   var CHAR_ORDER = ["kei", "tetsu", "gen", "chappy", "otori"];
-  var CHAR_LABEL = { chatgpt: "チャット予想", chappy: "チャッピー", otori: "鳳" };
+  var CHAR_LABEL = {
+    kei: "ケイ", tetsu: "哲さん", gen: "源さん",
+    chatgpt: "チャット予想", chappy: "チャッピー", otori: "鳳",
+  };
 
   function yen(value) {
     return Math.round(value).toLocaleString("ja-JP") + "円";
@@ -205,13 +208,20 @@
         racePayout += card.payout;
         if (card.hit) hitChars.push(CHAR_LABEL[card.char] || card.char);
 
-        if (isManualChat) return;
+        // ChatGPT会話で作った本線カード(manual_chat)は、累計収支（自動パイプラインの
+        // 全カード購入時）には混ぜない。ただしチャッピー/鳳の本線はまさにこの手動カード
+        // なので、予想師別の成績には載せる（載せないとチャッピーの行が永遠に出ない）。
+        var chappyLayer = card.char === "chappy" || card.char === "otori";
+        if (isManualChat && !chappyLayer) return;
 
-        overall.spent += card.spent;
-        overall.payout += card.payout;
+        if (!isManualChat) {
+          overall.spent += card.spent;
+          overall.payout += card.payout;
+        }
         var stats = byChar[card.char] || (byChar[card.char] = {
           cards: 0, hits: 0, spent: 0, payout: 0, hitPayout: 0, passes: 0,
         });
+        if (isManualChat) stats.manual = (stats.manual || 0) + 1;
         stats.cards += 1;
         stats.spent += card.spent;
         stats.payout += card.payout;
@@ -250,6 +260,9 @@
         rec: stats.hits + "/" + stats.cards + "的中" +
              (stats.passes ? "・見送り" + stats.passes : ""),
         avgPay: stats.hits ? yen(stats.hitPayout / stats.hits) : "—",
+        // 1カードあたりの購入額（ケイ・哲さん・源さんは500円、チャッピー/鳳は1,000円）
+        stake: stats.cards ? yen(stats.spent / stats.cards) : "—",
+        manual: stats.manual || 0,
       };
     });
 
