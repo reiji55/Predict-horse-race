@@ -28,7 +28,7 @@ BASE_TIMES = ROOT / "tests" / "fixtures" / "base_times.sample.json"
 REQUIRED_RACE_KEYS = {
     "id", "source_refs", "day", "venue", "race_no", "name", "grade",
     "post_time", "course", "model_id", "model_role", "git_commit", "config_hash",
-    "speed_quality", "myomi", "myomi_parts", "legendary", "chappy_decision", "marks", "cards",
+    "speed_quality", "context_layers", "myomi", "myomi_parts", "legendary", "chappy_decision", "marks", "cards",
 }
 
 
@@ -68,6 +68,8 @@ def test_race_shape_and_marks():
     assert all(m["odds"] is not None for m in marks)
 
     quality = race["speed_quality"]
+    assert race["context_layers"]["mode"] == "observe_only"
+    assert race["context_layers"]["layer1"]["status"] == "active"
     assert quality["used"] is True
     assert quality["coverage"] >= quality["min_race_coverage"]
     print("test_race_shape_and_marks: OK")
