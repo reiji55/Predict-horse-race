@@ -1,0 +1,66 @@
+name: 直前単勝オッズ観測
+
+# 直前資金を「賢い資金」と仮定して予想へ使うのではなく、
+# まず時系列データを集めて後から検証する。
+# 15:10 JST（06:10 UTC）。11Rは概ね15:25〜15:45なので、
+# Actionsの開始遅延が多少あっても発走前を狙いやすい。
+on:
+  schedule:
+    - cron: '10 6 * * 6,0'
+  workflow_dispatch:
+    inputs:
+      week_id:
+        description: 'ISO週識別子 例: 2026-W39（空なら今日）'
+        required: false
+      date:
+        description: '対象日 YYYY-MM-DD（空ならJSTの今日）'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: late-odds-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 直前オッズ周辺の回帰テスト
+        run: python -m pytest -q tests/test_odds_history.py
+
+      - name: 対象の週と日付を決める
+        id: target
+        run: |
+          WEEK="${{ github.event.inputs.week_id }}"
+          DATE="${{ github.event.inputs.date }}"
+          TODAY=$(TZ=Asia/Tokyo date +%Y-%m-%d)
+          [ -z "$DATE" ] && DATE="$TODAY"
+          [ -z "$WEEK" ] && WEEK=$(TZ=Asia/Tokyo date +%G-W%V)
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+
+      - name: 発走前の単勝オッズを軽量取得
+        run: |
+          python -m scraper.capture_late_odds \
+            --week "${{ steps.target.outputs.week }}" \
+            --date "${{ steps.target.outputs.date }}"
+
+      - name: 観測履歴をコミット
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/odds_history/
+          git diff --cached --quiet || git commit -m "auto: ${{ steps.target.outputs.date }} 直前単勝オッズ観測"
+          git push
