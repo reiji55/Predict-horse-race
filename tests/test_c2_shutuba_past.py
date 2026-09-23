@@ -66,7 +66,9 @@ def test_run_fields_match_the_spec(parsed):
         "going": "稍重", "class": "3win", "heads": 16, "finish": 14,
         "time_sec": pytest.approx(85.2), "last3f": pytest.approx(39.1),
         "margin_sec": pytest.approx(2.5), "impost": pytest.approx(54.0),
-        "jockey_name": "川須栄彦", "note": None,
+        "jockey_name": "川須栄彦",
+        "body_weight": {"value": 510, "diff": 0},
+        "note": None,
     }
 
 
