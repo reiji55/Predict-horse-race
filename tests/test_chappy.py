@@ -289,6 +289,35 @@ def test_manual_chappy_is_not_constrained_by_solid_regime():
     assert decision["role_policy"]["manual_unconstrained"] is True
     assert decision["role_policy"]["long_edge_selector"] == "long_edge"
 
+
+def test_manual_chappy_card_is_identical_with_and_without_regime_policy():
+    """本線(manual) Chappyは、Championと同じ入力ならregime challenger下でも同じ買い目・状態になる。"""
+    horses = _horses()
+    override = {
+        "race_id": "20260922-nakayama-11",
+        "author": "ChatGPT",
+        "created_at": "2026-09-22T12:44:00+09:00",
+        "bets": [
+            {"type": "ワイド", "horses": [1, 2], "amt": 600},
+            {"type": "3連複", "horses": [1, 2, 3], "amt": 400},
+        ],
+    }
+    common = dict(myomi_value=90, speed_quality={"coverage": 1.0}, combo_odds={},
+                  model_id="m", manual_override=override)
+    champ_card, champ_log = chappy.generate_card(
+        horses, _race(), CONFIG, model_role="champion", **copy.deepcopy(common))
+    regime_card, regime_log = chappy.generate_card(
+        horses, _race(), CONFIG, model_role="challenger",
+        race_regime={"label": "solid"}, solid_fourth_role="solid_depth",
+        **copy.deepcopy(common))
+
+    for key in ("char", "bets", "total", "portfolio_style", "source", "say",
+                "conviction", "hit_pct", "payout_range"):
+        assert champ_card[key] == regime_card[key], key
+    assert champ_log["roles"] == regime_log["roles"]
+    assert champ_log["otori_gate"] == regime_log["otori_gate"]
+    assert regime_log["role_policy"]["long_edge_selector"] == "long_edge"
+
 if __name__ == "__main__":
     test_condition_profile_rewards_repeat_same_course_distance()
     print("test_condition_profile_rewards_repeat_same_course_distance: OK")

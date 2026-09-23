@@ -47,15 +47,27 @@ def classify(p: list[float | None], q: list[float | None],
         if p_i is not None and q_i is not None
     ]
     min_horses = int(config.get("min_horses", 6))
+    # 欠損馬を除いた部分集合で再正規化すると、人気薄のオッズ欠損だけで
+    # 上位3頭シェアが水増しされ、偽のSOLIDが出る。ペア率が低いときは判定しない。
+    min_pair_coverage = float(config.get("min_pair_coverage", 0.0))
+    field_size = len(p)
+    pair_coverage = len(paired) / field_size if field_size else 0.0
+    reason = None
     if len(paired) < min_horses:
+        reason = f"usable_horses<{min_horses}"
+    elif pair_coverage < min_pair_coverage:
+        reason = f"pair_coverage<{min_pair_coverage}"
+    if reason is not None:
         return {
             "version": config.get("version"),
             "label": LABEL_UNKNOWN,
             "usable_horses": len(paired),
+            "field_size": field_size,
+            "pair_coverage": round(pair_coverage, 6),
             "metrics": None,
             "solid_checks": {},
             "open_checks": {},
-            "reason": f"usable_horses<{min_horses}",
+            "reason": reason,
         }
 
     indices = [row[0] for row in paired]
@@ -112,6 +124,8 @@ def classify(p: list[float | None], q: list[float | None],
         "version": config.get("version"),
         "label": label,
         "usable_horses": len(paired),
+        "field_size": field_size,
+        "pair_coverage": round(pair_coverage, 6),
         "metrics": metrics,
         "solid_checks": solid_checks,
         "open_checks": open_checks,

@@ -68,8 +68,9 @@ def _aggregate_by_regime(results: list[dict[str, Any]]) -> dict[str, dict[str, A
     """発走前に凍結したレジーム別に成績を分ける。後付けで結果から分類しない。"""
     buckets: dict[str, list[dict[str, Any]]] = {}
     for race in results:
-        regime = race.get("race_regime") or {}
-        label = regime.get("label") or "unknown"
+        # race_regime導入前のsnapshotは「unknown(判定不能)」と区別して数える。
+        regime = race.get("race_regime")
+        label = (regime or {}).get("label") or ("unrecorded" if regime is None else "unknown")
         buckets.setdefault(label, []).append(race)
     return {label: _aggregate(rows) for label, rows in sorted(buckets.items())}
 

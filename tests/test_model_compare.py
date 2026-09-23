@@ -114,6 +114,22 @@ def test_pass_is_an_opportunity_not_a_missed_card():
     assert row["head_to_head"][0]["challenger_passes"] == ["gen"]
     assert row["challenger_by_regime"]["solid"]["passes"] == 1
 
+
+def test_pre_regime_snapshots_are_unrecorded_not_unknown():
+    """race_regime導入前の結果を「判定不能(unknown)」と混ぜない。"""
+    old = _race("old", 0, "champ")                      # race_regime キー自体がない
+    unk = _race("unk", 0, "champ")
+    unk["race_regime"] = {"label": "unknown"}
+    out = model_compare.compare(
+        {"results": [old, unk]},
+        {"race-regime-abstain-v1": {"results": [dict(old, model_id="c"), dict(unk, model_id="c")]}},
+    )
+    buckets = out["comparisons"][0]["champion_by_regime"]
+    assert set(buckets) == {"unrecorded", "unknown"}
+    assert buckets["unrecorded"]["races"] == 1
+    assert buckets["unknown"]["races"] == 1
+
+
 if __name__ == "__main__":
     test_compare_uses_only_common_races()
     print("test_compare_uses_only_common_races: OK")
