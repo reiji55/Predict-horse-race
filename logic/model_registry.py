@@ -9,7 +9,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = ROOT / "config"
 MODELS_PATH = CONFIG_DIR / "models.json"
-HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json")
+HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json", "base_times.json")
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
@@ -49,8 +49,9 @@ def git_commit() -> str:
 
 def config_hash(config_dir: Path | None = None) -> str:
     """
-    予想へ影響する設定を安定順でSHA-256化する。
-    後から「同じmodel idでも設定値が違った」を判別するための指紋。
+    予想へ影響する設定・基準タイム表を安定順でSHA-256化する。
+    `base_times.json` もスピード指数を通じて予想へ直接影響するため対象に含める。
+    後から「同じmodel idでも入力前提が違った」を判別するための指紋。
     """
     config_dir = config_dir or CONFIG_DIR
     digest = hashlib.sha256()
