@@ -59,6 +59,7 @@ def latest_context_snapshot(race_id: str,
 
 
 def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
+            phase: str = "context",
             output_directory: Path | None = None,
             condition_directory: Path | None = None,
             odds_directory: Path | None = None,
@@ -89,6 +90,7 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
             "race_id": race_id,
             "post_time": race.get("post_time"),
             "observed_at": now.isoformat(timespec="seconds"),
+            "phase": phase,
             "pre_race": True,
             "context_layers": context,
         }
@@ -96,7 +98,7 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
         race_dir = output_directory / race_id
         race_dir.mkdir(parents=True, exist_ok=True)
         stamp = now.astimezone(JST).strftime("%Y%m%dT%H%M%S")
-        path = race_dir / f"{stamp}.json"
+        path = race_dir / f"{stamp}_{phase}.json"
         if path.exists():
             report["skipped"].append({"race_id": race_id, "reason": "duplicate_time"})
             continue
@@ -111,6 +113,7 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
 def main() -> None:
     parser = argparse.ArgumentParser(description="発走前のcontext snapshotを保存")
     parser.add_argument("--week", required=True)
+    parser.add_argument("--phase", default="context")
     args = parser.parse_args()
 
     path = RAW_DIR / f"{args.week}.json"
@@ -118,7 +121,7 @@ def main() -> None:
         return
     with path.open(encoding="utf-8") as f:
         raw = json.load(f)
-    report = capture(raw)
+    report = capture(raw, phase=args.phase)
     print(f"context snapshot: added={len(report['added'])} skipped={len(report['skipped'])}")
 
 
