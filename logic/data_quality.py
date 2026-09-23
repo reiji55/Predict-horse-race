@@ -3,23 +3,30 @@
 目的:
 - scraper/build_raw.py は「1レース失敗しても週全体を止めない」思想で動く。
 - そのままだと、対象レースが途中で消えたり、過去走/オッズが空でも workflow が success になりうる。
-- 本モジュールは raw と predictions を突き合わせ、壊れた出力を本番データとして push しないための
-  最低限の品質ゲートを提供する。
+- 本モジュールは raw と predictions を突き合わせ、問題を必ず見える形で残す。
 
-critical:
-- race list / race 取得に明示的な失敗がある
-- raw にあるレースの prediction が無い
-- 出走馬ゼロ
-- prediction の marks / cards が空
-- 過去走または単勝オッズが全頭でゼロ
+--- 2段階の判定 ---
 
-warning:
-- 過去走 / 単勝オッズの一部欠損
-- 騎手 / 厩舎成績の欠損
-- 式別オッズが3券種すべて揃っていない
-- speed guard によりスピード指数がレース全体でOFF
+レース単位の重大度（races[].status）:
+  critical … 出走馬ゼロ／過去走が全頭ゼロ／単勝オッズが全頭ゼロ／予想が無い／marks・cards が空
+  warning  … 一部欠損・騎手/厩舎成績の欠損・式別オッズ欠け・speed guard による①OFF
 
-warning は現状のフォールバック設計で安全に処理できるため、既定では workflow を止めない。
+**push を止めるかどうか（publish_blocked）は、レース単位とは別に決める。**
+止めるのは「push しない方がまし」なときだけ:
+  - raw か predictions にレースが1件も無い
+  - この実行で対象にしたレースが1件も作れなかった（一覧取得も含めて全滅）
+  - この実行で作ったレースが**全部** critical（C2 がbot判定された等の系統的な障害）
+
+一部のレースだけ壊れているときは止めない（status=warning・ERRORログで警告）。
+理由（2026-09-23 のレビュー）:
+  1. push を止めると、正常なレースの**発走前スナップショットも一緒に消える**
+     （Actions の作業領域は捨てられる）。次の実行が発走後なら、そのレースは
+     「発走後に初めて作られた予想」として採点対象から外れる。
+     1レースの一時的な失敗で、他の全レースの記録を失うのは割に合わない。
+  2. raw は土日の結果を**週単位でマージ**しているので、判定を raw 全体にかけると、
+     既に公開済みの土曜のレースの欠損が、日曜の正常な実行を**週末いっぱい止め続ける**。
+     → 止めるかどうかは**この実行で作ったレース**（collection_report.built）だけで判断する。
+     collection_report が無い古い raw は、全レースを対象にする（後方互換）。
 """
 from __future__ import annotations
 
@@ -38,6 +45,18 @@ DEFAULT_PREDICTIONS = ROOT / "data" / "predictions.json"
 DEFAULT_OUTPUT = ROOT / "data" / "quality_report.json"
 
 REQUIRED_COMBO_TYPES = ("ワイド", "馬連", "3連複")
+
+# 一部欠損を warning にする閾値。**項目ごとに平常時の水準が違う**ので1つの値にしない。
+#   過去走・単勝・厩舎 … 平常時100%（W38 実測）。出走取消や初出走で数頭欠ける程度は許す
+#   騎手 … D（騎手リーディング）は上位約100人しか載らないため、平常時でも 56〜92%（W38 実測・
+#          OPEN_QUESTIONS C-8）。80% にすると毎回ほぼ全レースで鳴り、警告が無視されるようになる。
+#          ここで拾いたいのは「D の取得そのものが失敗した」＝0%近辺なので、低めに置く
+COVERAGE_WARN = {
+    "past_runs": 0.8,
+    "win_odds": 0.8,
+    "trainer_stats": 0.8,
+    "jockey_stats": 0.4,
+}
 
 
 def _ratio(count: int, total: int) -> float:
@@ -77,14 +96,15 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
     selected_count = len(collection.get("selected") or [])
     built_count = len(collection.get("built") or [])
 
+    # 取得の失敗は必ず記録する。ただし一部だけの失敗は「止める理由」にはしない（冒頭参照）
     if failed_collection:
         _add(
-            global_issues, "critical", "scraper_collection_failed",
+            global_issues, "warning", "scraper_collection_failed",
             f"取得段階で {len(failed_collection)} 件の失敗が記録されています",
         )
     if selected_count and built_count < selected_count:
         _add(
-            global_issues, "critical", "scraper_race_missing",
+            global_issues, "warning", "scraper_race_missing",
             f"対象 {selected_count} レース中 {built_count} レースしか構築できていません",
         )
     if collection and selected_count == 0 and not failed_collection:
@@ -92,6 +112,13 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
             global_issues, "warning", "no_targets_selected",
             "この実行では予想対象レースが1件も選ばれていません",
         )
+
+    # push を止めるかどうかを判定する対象＝**この実行で作ったレース**。
+    # collection_report が無い古い raw では区別できないので全レースを対象にする。
+    if collection:
+        run_ids = {b.get("race_id") for b in (collection.get("built") or []) if b.get("race_id")}
+    else:
+        run_ids = {race.get("id") for race in raw_races if race.get("id")}
 
     race_reports: list[dict[str, Any]] = []
     totals = {
@@ -130,25 +157,25 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
             _add(issues, "critical", "no_entries", "出走馬が1頭もありません")
         if entry_count and past_count == 0:
             _add(issues, "critical", "no_past_runs", "過去走が全頭で空です")
-        elif past_cov < 0.8:
+        elif past_cov < COVERAGE_WARN["past_runs"]:
             _add(
                 issues, "warning", "low_past_run_coverage",
                 f"過去走カバレッジが {past_cov:.0%} です",
             )
         if entry_count and odds_count == 0:
             _add(issues, "critical", "no_win_odds", "単勝オッズが全頭で空です")
-        elif odds_cov < 0.8:
+        elif odds_cov < COVERAGE_WARN["win_odds"]:
             _add(
                 issues, "warning", "low_win_odds_coverage",
                 f"単勝オッズカバレッジが {odds_cov:.0%} です",
             )
 
-        if jockey_cov < 0.8:
+        if entry_count and jockey_cov < COVERAGE_WARN["jockey_stats"]:
             _add(
                 issues, "warning", "low_jockey_stats_coverage",
                 f"騎手成績カバレッジが {jockey_cov:.0%} です",
             )
-        if trainer_cov < 0.8:
+        if entry_count and trainer_cov < COVERAGE_WARN["trainer_stats"]:
             _add(
                 issues, "warning", "low_trainer_stats_coverage",
                 f"厩舎成績カバレッジが {trainer_cov:.0%} です",
@@ -215,20 +242,46 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
 
     critical_races = sum(1 for row in race_reports if row["status"] == "critical")
     warning_races = sum(1 for row in race_reports if row["status"] == "warning")
-    overall_status = _severity(global_issues + [
-        issue for row in race_reports for issue in row["issues"]
-    ])
+
+    blocking_reasons: list[str] = []
+    if not raw_races:
+        blocking_reasons.append("raw にレースが1件もありません")
+    if not pred_races:
+        blocking_reasons.append("predictions にレースが1件もありません")
+    if collection and failed_collection and built_count == 0:
+        blocking_reasons.append(
+            f"この実行で対象にしたレースを1件も作れませんでした（失敗 {len(failed_collection)} 件）"
+        )
+    in_scope = [row for row in race_reports if row["race_id"] in run_ids]
+    if in_scope and all(row["status"] == "critical" for row in in_scope):
+        blocking_reasons.append(
+            f"この実行で作った {len(in_scope)} レースがすべて critical です（系統的な障害の疑い）"
+        )
+    for reason in blocking_reasons:
+        _add(global_issues, "critical", "publish_blocked", reason)
+
+    # 全体の status：critical は「push を止める」ときだけ。
+    # 一部のレースが critical でも、他が正常なら warning（レース単位の critical はそのまま残る）
+    if blocking_reasons:
+        overall_status = "critical"
+    elif global_issues or any(row["issues"] for row in race_reports):
+        overall_status = "warning"
+    else:
+        overall_status = "ok"
 
     total_entries = totals["entries"]
     return {
         "generated_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
         "week_id": raw.get("week_id"),
         "status": overall_status,
+        "publish_blocked": bool(blocking_reasons),
+        "blocking_reasons": blocking_reasons,
         "summary": {
             "raw_races": len(raw_races),
             "prediction_races": len(pred_races),
             "critical_races": critical_races,
             "warning_races": warning_races,
+            "races_in_this_run": sorted(run_ids),
             "selected_this_run": selected_count,
             "built_this_run": built_count,
             "collection_failures": len(failed_collection),
@@ -246,6 +299,10 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
 
 
 def should_fail(report: dict[str, Any], fail_on: str) -> bool:
+    """
+    終了コード1にするか。status の意味は build_report の説明を参照：
+    critical ＝ push しない方がまし（publish_blocked）、warning ＝ 問題はあるが公開は続ける。
+    """
     status = report.get("status", "ok")
     if fail_on == "never":
         return False

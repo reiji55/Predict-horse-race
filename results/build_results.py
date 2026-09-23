@@ -184,7 +184,7 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
             "marks": prediction_race.get("marks", []),
         },
     }
-    for key in ("model_id", "model_role", "git_commit", "config_hash"):
+    for key in ("model_id", "model_role", "git_commit", "config_hash", "base_times_hash"):
         if prediction_race.get(key) is not None:
             result[key] = prediction_race[key]
     if prediction_race.get("evaluation_scope"):
