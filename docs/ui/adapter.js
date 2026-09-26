@@ -46,6 +46,47 @@
     return Math.round(value) + "%";
   }
 
+  var RACE_LIST_RETENTION_DAYS = 31;
+  var STATS_RETENTION_DAYS = 365;
+
+  function raceDateMs(raceId) {
+    var raw = String(raceId || "").slice(0, 8);
+    if (!/^\d{8}$/.test(raw)) return null;
+    var y = Number(raw.slice(0, 4));
+    var m = Number(raw.slice(4, 6));
+    var d = Number(raw.slice(6, 8));
+    return Date.UTC(y, m - 1, d);
+  }
+
+  function retainRecentById(rows, days, idOf) {
+    var dated = rows.map(function (row) {
+      return { row: row, ms: raceDateMs(idOf(row)) };
+    });
+    var usable = dated.filter(function (x) { return x.ms != null; });
+    if (!usable.length) return rows.slice();
+
+    var latest = Math.max.apply(null, usable.map(function (x) { return x.ms; }));
+    var cutoff = latest - days * 24 * 60 * 60 * 1000;
+    return dated.filter(function (x) {
+      return x.ms == null || x.ms >= cutoff;
+    }).map(function (x) { return x.row; });
+  }
+
+  function fallbackRaceLabel(raceId) {
+    var parts = String(raceId || "").split("-");
+    var venueMap = {
+      nakayama: "中山", hanshin: "阪神", tokyo: "東京", kyoto: "京都",
+      kokura: "小倉", chukyo: "中京", niigata: "新潟", fukushima: "福島",
+      sapporo: "札幌", hakodate: "函館",
+    };
+    if (parts.length >= 3) {
+      var venue = venueMap[parts[1]] || parts[1] || "";
+      var no = Number(parts[2]);
+      if (venue && Number.isFinite(no)) return venue + no + "R";
+    }
+    return "過去レース";
+  }
+
   /** レース条件の1行テキスト（例："芝1200m・GⅢ・ハンデ・18頭"）を組み立てる。 */
   function conditionText(race) {
     var course = race.course || {};
@@ -120,6 +161,79 @@
     return index;
   }
 
+  function settledResultToRace(result) {
+    var meta = result.meta || {};
+    var marks = meta.marks || [];
+    var waku = wakuByNum(marks);
+    var spent = 0, payout = 0, hitChars = [];
+    (result.cards || []).forEach(function (card) {
+      if (card.action === "pass") return;
+      spent += Number(card.spent || 0);
+      payout += Number(card.payout || 0);
+      if (card.hit) hitChars.push(CHAR_LABEL[card.char] || card.char);
+    });
+
+    return {
+      id: result.race_id,
+      day: meta.day || "",
+      venue: meta.venue || "",
+      no: meta.race_no ? meta.race_no + "R" : "",
+      name: meta.name || fallbackRaceLabel(result.race_id),
+      grade: meta.grade || null,
+      time: meta.post_time || "",
+      cond: conditionText(meta),
+      distort: meta.myomi == null ? null : Math.round(meta.myomi),
+      myomi: meta.myomi == null ? null : meta.myomi,
+      myomi_parts: meta.myomi_parts || null,
+      legendary: !!meta.legendary,
+      status: meta.status || (result.evaluation_scope === "manual_chat" ? "manual_record" : "settled"),
+      status_note: meta.status_note || result.record_note || "",
+      result_status: payout > 0 ? "hit" : "miss",
+      result_payout: payout,
+      result_spent: spent,
+      result_balance: payout - spent,
+      result_hit_chars: hitChars,
+      result_finish: (result.finish || []).slice(0, 3).map(function (num) {
+        return [waku[num] || 0, num];
+      }),
+      marks: marks.filter(function (mark) {
+        return mark.mk;
+      }).map(function (mark) {
+        return { mk: mark.mk, hon: !!mark.hon, waku: mark.waku, num: mark.num, name: mark.name };
+      }),
+      cards: (result.cards || []).map(function (card) {
+        return {
+          char: card.char,
+          hit: "—",
+          range: "—",
+          total: Number(card.spent || 0),
+          bets: (card.bets || []).map(function (bet) {
+            return {
+              type: bet.type,
+              h: (bet.horses || []).map(function (num) { return [waku[num] || 0, num]; }),
+              amt: bet.amt,
+              won: !!bet.hit,
+              payout: Number(bet.payout || 0),
+            };
+          }),
+          settled: card.action === "pass" ? null : {
+            hit: !!card.hit,
+            spent: Number(card.spent || 0),
+            payout: Number(card.payout || 0),
+            balance: Number(card.payout || 0) - Number(card.spent || 0),
+          },
+          say: card.say || "",
+          conviction: card.conviction == null ? null : card.conviction,
+          portfolio_style: card.portfolio_style || null,
+          source: card.source || null,
+          manual: (card.source || card.model_role) === "manual_chat",
+          model_version: card.model_version || null,
+          decision_log: card.decision_log || null,
+        };
+      }),
+    };
+  }
+
   /**
    * predictions.json（+ comments.json + results.json）を、モックの RACES 配列に変換する。
    * comments は {race_id: {char_id: セリフ}}。無ければ say は空文字（UI側でフォールバック表示）。
@@ -129,7 +243,7 @@
     comments = comments || {};
     var settled = settlementIndex(results);
     var resultSummaries = resultSummaryIndex(results);
-    return (predictions.races || []).map(function (race) {
+    var races = (predictions.races || []).map(function (race) {
       var waku = wakuByNum(race.marks);
       var say = comments[race.id] || {};
       var raceSettled = settled[race.id] || {};
@@ -202,6 +316,18 @@
         }),
       };
     });
+
+    var seen = {};
+    races.forEach(function (race) { seen[race.id] = true; });
+    ((results || {}).results || []).forEach(function (result) {
+      if (!result.race_id || seen[result.race_id]) return;
+      races.push(settledResultToRace(result));
+      seen[result.race_id] = true;
+    });
+
+    return retainRecentById(races, RACE_LIST_RETENTION_DAYS, function (race) {
+      return race.id;
+    });
   }
 
   /**
@@ -220,8 +346,12 @@
     var overall = { spent: 0, payout: 0, races: 0 };
     var byChar = {};
     var history = [];
+    var retainedResults = retainRecentById(
+      (results.results || []), STATS_RETENTION_DAYS,
+      function (race) { return race.race_id; }
+    );
 
-    (results.results || []).forEach(function (race) {
+    retainedResults.forEach(function (race) {
       var isManualChat = race.evaluation_scope === "manual_chat";
       if (!isManualChat) overall.races += 1;
       var raceSpent = 0;
@@ -269,7 +399,7 @@
       history.push({
         hit: racePayout > 0,
         name: (meta.venue || "") + (meta.race_no ? meta.race_no + "R" : "") +
-              (meta.name ? "(" + meta.name + ")" : race.race_id),
+              (meta.name ? "(" + meta.name + ")" : fallbackRaceLabel(race.race_id)),
         // results.json の finish は着順どおりの馬番配列。
         // 予想カードと同じ枠色チップで表示できるよう [枠番, 馬番] にして渡す。
         top3: (function () {
