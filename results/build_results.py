@@ -182,6 +182,13 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
             "race_no": prediction_race.get("race_no"),
             "name": prediction_race.get("name"),
             "grade": prediction_race.get("grade"),
+            "post_time": prediction_race.get("post_time"),
+            "course": prediction_race.get("course") or {},
+            "status": prediction_race.get("status"),
+            "status_note": prediction_race.get("status_note"),
+            "myomi": prediction_race.get("myomi"),
+            "myomi_parts": prediction_race.get("myomi_parts"),
+            "legendary": bool(prediction_race.get("legendary")),
             "marks": prediction_race.get("marks", []),
         },
     }
@@ -226,6 +233,29 @@ def build_results(predictions: dict[str, Any],
     return {
         "updated_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
         "results": results,
+    }
+
+
+def merge_with_previous(fresh: dict[str, Any],
+                        previous: dict[str, Any] | None) -> dict[str, Any]:
+    """過去の確定結果を落とさず、新しく採点できたレースだけ差し替える。
+
+    results.json はダッシュボードの長期成績台帳でもある。週次/手動Actionで取得できた
+    レースだけから毎回作り直すと、snapshotを持たない手動チャット記録や一時的に
+    取得対象外だった過去レースが消える。race_id を主キーに previous → fresh の順で
+    上書きし、fresh があるレースだけ最新版へ更新する。
+    """
+    by_id: dict[str, dict[str, Any]] = {}
+    for payload in ((previous or {}).get("results", []), fresh.get("results", [])):
+        for race in payload:
+            race_id = race.get("race_id")
+            if race_id:
+                by_id[race_id] = race
+
+    return {
+        "updated_at": fresh.get("updated_at")
+            or datetime.datetime.now(JST).isoformat(timespec="seconds"),
+        "results": [by_id[race_id] for race_id in sorted(by_id)],
     }
 
 
@@ -324,7 +354,15 @@ def main() -> None:
     with open(args.results, encoding="utf-8") as f:
         race_results = json.load(f)
 
-    results = build_results(predictions, race_results)
+    fresh_results = build_results(predictions, race_results)
+    previous_results: dict[str, Any] = {}
+    if OUTPUT_PATH.exists():
+        try:
+            with OUTPUT_PATH.open(encoding="utf-8") as f:
+                previous_results = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            logger.warning("既存 results.json を読めないため新規結果だけで続行します", exc_info=True)
+    results = merge_with_previous(fresh_results, previous_results)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:
