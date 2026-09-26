@@ -125,6 +125,24 @@
   .scheduled-panel b{color:var(--turf)}
   .manual-flag{position:absolute;top:-9px;left:14px;background:#334155;color:#fff;font-size:.6rem;font-weight:900;letter-spacing:.08em;padding:2px 10px;border-radius:999px}
   .manual-mini{font-size:.68rem;font-weight:900;color:#334155;border:1px solid #94A3B8;border-radius:999px;padding:4px 8px;white-space:nowrap}
+  .result-mini{
+    flex:none;min-width:78px;display:flex;flex-direction:column;align-items:flex-end;gap:1px;
+    font-size:.58rem;font-weight:800;line-height:1.25;white-space:nowrap;
+  }
+  .result-mini b{font-size:.76rem;letter-spacing:.02em}
+  .result-mini small{font-size:.55rem;font-weight:800;color:var(--ink-soft)}
+  .result-mini.hit b{color:#C23028}
+  .result-mini.miss b{color:#66736C}
+  .detail-result{
+    margin-top:10px;padding:9px 10px;border-radius:10px;background:#F5F7F4;
+    display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+    font-size:.65rem;font-weight:800;color:var(--ink-soft);
+  }
+  .detail-result.hit{background:#FFF3F2;color:#8F241E}
+  .detail-result .dr-badge{font-weight:900;white-space:nowrap}
+  .detail-result .dr-top3{display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .detail-result .dr-pay{margin-left:auto;font-family:var(--mincho);font-size:.8rem;white-space:nowrap}
+  .detail-result .dr-who{width:100%;font-size:.58rem;color:var(--ink-soft)}
   .manual-panel{background:#F8FAFC;border:1px solid #CBD5E1;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:.72rem;line-height:1.75;color:#475569}
   .manual-panel b{color:#1E293B}
   .race-item .venue{
@@ -818,6 +836,34 @@ function distortHtml(v){
   </span>`;
 }
 
+function resultMiniHtml(r){
+  if(r.result_status==="hit"){
+    return `<span class="result-mini hit"><b>🎯 的中</b><small>払戻 ${Number(r.result_payout||0).toLocaleString("ja-JP")}円</small></span>`;
+  }
+  if(r.result_status==="miss"){
+    return `<span class="result-mini miss"><b>結果確定</b><small>不的中</small></span>`;
+  }
+  return distortHtml(r.distort);
+}
+
+function resultSummaryHtml(r){
+  if(!r.result_status) return "";
+  const top3 = (r.result_finish || []).map(p=>umaChip(p[0],p[1])).join("");
+  if(r.result_status==="hit"){
+    const who = (r.result_hit_chars || []).join("・");
+    return `<div class="detail-result hit">
+      <span class="dr-badge">🎯 的中</span>
+      <span class="dr-top3">1〜3着 ${top3}</span>
+      <b class="dr-pay">払戻 ${Number(r.result_payout||0).toLocaleString("ja-JP")}円</b>
+      ${who ? `<span class="dr-who">${who} が的中</span>` : ""}
+    </div>`;
+  }
+  return `<div class="detail-result">
+    <span class="dr-badge">結果確定・不的中</span>
+    <span class="dr-top3">1〜3着 ${top3}</span>
+  </div>`;
+}
+
 /* ================= レース一覧 ================= */
 /* レースIDの先頭8桁(YYYYMMDD)が唯一の日付の出どころ。
    以前は「土なら7/4、日なら7/5」とサンプル時代の日付を直書きしていて、
@@ -863,7 +909,7 @@ function renderList(){
           <span class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</span>
           <span class="meta">${r.no}・${r.cond}・${r.time}発走</span>
         </span>
-        ${r.status==='manual_record'?'<span class="manual-mini">記録済み</span>':(r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort))}
+        ${r.result_status ? resultMiniHtml(r) : (r.status==='manual_record'?'<span class="manual-mini">記録済み</span>':(r.status==='scheduled'?'<span class="schedule-mini">予想準備中</span>':distortHtml(r.distort)))}
       </button>`;
     });
   });
@@ -953,6 +999,7 @@ function renderDetail(r){
     <div class="detail-head">
       <div class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</div>
       <div class="cond">${r.venue}${r.no}・${r.cond}・${r.time}発走</div>
+      ${resultSummaryHtml(r)}
       ${r.distort==null ? "" : `<div class="d-inline">妙味メーター
         <span class="d-bar"><i style="width:${r.distort}%;background:${dcolor}"></i></span>
         <b>${r.distort}</b>
