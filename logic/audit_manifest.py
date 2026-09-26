@@ -281,6 +281,87 @@ def build_manifest(race: dict[str, Any], now: datetime.datetime,
     }
 
 
+def evidence_from_files(race: dict[str, Any],
+                        prediction_directory: Path | None = None,
+                        context_directory: Path | None = None,
+                        odds_directory: Path | None = None,
+                        config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """結果後の監査用に、既存の発走前ファイルだけから最終証跡を再構成する。
+
+    新しい観測は作らない。post_at より前のファイルだけをfail-closedで選ぶため、
+    旧レースにmanifestが無い場合の監査にも使える。
+    """
+    post_at = snapshots.post_datetime(race)
+    if post_at is None:
+        return {
+            "status": "unknown_post_time",
+            "artifacts": {"prediction": None, "context": None, "odds": None},
+            "odds_freshness": classify_odds_freshness(None, config),
+            "context_completeness": {
+                "prediction_snapshot_present": False,
+                "context_snapshot_present": False,
+                "odds_snapshot_present": False,
+            },
+        }
+
+    as_of = post_at - datetime.timedelta(microseconds=1)
+    prediction = _latest_prediction(
+        race, post_at, as_of, prediction_directory or PREDICTION_SNAPSHOT_DIR
+    )
+    context = _latest_context(
+        race, post_at, as_of, context_directory or CONTEXT_SNAPSHOT_DIR
+    )
+    odds = _latest_odds(
+        race, post_at, as_of, odds_directory or ODDS_HISTORY_DIR
+    )
+
+    pred_info = None
+    if prediction:
+        path, payload = prediction
+        pred_info = _artifact(path, payload, post_at, "frozen_at")
+
+    context_info = None
+    context_payload = None
+    if context:
+        path, context_payload = context
+        context_info = _artifact(path, context_payload, post_at, "observed_at")
+
+    odds_info = None
+    freshness = classify_odds_freshness(None, config)
+    if odds:
+        path, payload = odds
+        odds_info = _artifact(path, payload, post_at, "observed_at")
+        source_at = odds_history.parse_source_time(payload.get("source_time"))
+        source_minutes = _minutes_to_post(post_at, source_at)
+        odds_info.update({
+            "source_time": payload.get("source_time"),
+            "source_minutes_to_post": source_minutes,
+            "rows": len(payload.get("odds") or []),
+        })
+        freshness = classify_odds_freshness(
+            source_minutes if source_minutes is not None
+            else odds_info.get("minutes_to_post"),
+            config,
+        )
+
+    completeness = _context_completeness(context_payload)
+    completeness.update({
+        "prediction_snapshot_present": pred_info is not None,
+        "context_snapshot_present": context_info is not None,
+        "odds_snapshot_present": odds_info is not None,
+    })
+    return {
+        "status": "derived_from_pre_race_artifacts",
+        "artifacts": {
+            "prediction": pred_info,
+            "context": context_info,
+            "odds": odds_info,
+        },
+        "odds_freshness": freshness,
+        "context_completeness": completeness,
+    }
+
+
 def capture(raw: dict[str, Any], now: datetime.datetime | None = None,
             phase: str = "audit",
             output_directory: Path | None = None,
