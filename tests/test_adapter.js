@@ -226,6 +226,79 @@ tests.test_race_list_has_no_result_status_before_settlement = () => {
   });
 };
 
+tests.test_race_list_keeps_recent_settled_races_missing_from_latest_predictions = () => {
+  const historical = JSON.parse(JSON.stringify(results));
+  historical.results.push({
+    race_id: "20260620-hanshin-11",
+    finish: [11, 9, 12],
+    dividends: {},
+    evaluation_scope: "manual_chat",
+    meta: {
+      day: "土", venue: "阪神", race_no: 11, name: "履歴テストS", grade: "g3",
+      post_time: "15:30", course: {surface:"ダ", dist:1800, heads:16},
+      status: "manual_record", marks: [
+        {mk:"◎", hon:true, num:11, waku:6, name:"A"},
+        {mk:"○", num:9, waku:5, name:"B"},
+        {mk:"▲", num:12, waku:6, name:"C"},
+      ],
+    },
+    cards: [{
+      char:"chappy", source:"manual_chat", model_role:"manual_chat",
+      hit:true, spent:1000, payout:5000,
+      bets:[{type:"3連複",horses:[9,11,12],amt:100,hit:true,payout:5000}],
+    }],
+  });
+  historical.results.push({
+    race_id: "20260501-tokyo-11",
+    finish: [1,2,3], dividends:{},
+    meta:{venue:"東京",race_no:11,name:"古すぎるレース",marks:[]},
+    cards:[],
+  });
+
+  const races = adapter.toRaces(predictions, comments, historical);
+  const kept = races.find((r) => r.id === "20260620-hanshin-11");
+  assert.ok(kept, "直近1か月の確定レースが一覧に復元される");
+  assert.strictEqual(kept.name, "履歴テストS");
+  assert.strictEqual(kept.result_status, "hit");
+  assert.strictEqual(kept.cards[0].manual, true);
+  assert.ok(!races.find((r) => r.id === "20260501-tokyo-11"),
+            "1か月より古いレースは一覧から畳む");
+};
+
+tests.test_stats_keep_one_year_even_when_predictions_no_longer_contain_race = () => {
+  const data = {
+    results: [
+      {
+        race_id:"20250701-hanshin-11", finish:[1,2,3], dividends:{},
+        meta:{venue:"阪神",race_no:11,name:"一年超前",marks:[]},
+        cards:[{char:"kei",hit:true,spent:500,payout:999999,bets:[]}],
+      },
+      {
+        race_id:"20260705-kokura-01", finish:[1,2,3], dividends:{},
+        meta:{venue:"小倉",race_no:1,name:"最新",marks:[]},
+        cards:[{char:"kei",hit:false,spent:500,payout:0,bets:[]}],
+      },
+    ],
+  };
+  const stats = adapter.toStats(data, {races:[]});
+  assert.strictEqual(stats.races, 1);
+  assert.strictEqual(stats.bought, "500円");
+  assert.strictEqual(stats.paid, "0円");
+  assert.ok(stats.history[0].name.includes("最新"));
+  assert.ok(!stats.history.some((h) => h.name.includes("一年超前")));
+};
+
+tests.test_stats_never_fall_back_to_raw_race_id_as_the_display_name = () => {
+  const data = {
+    results: [{
+      race_id:"20260705-hanshin-11", finish:[1,2,3], dividends:{},
+      cards:[{char:"kei",hit:false,spent:500,payout:0,bets:[]}],
+    }],
+  };
+  const stats = adapter.toStats(data, {races:[]});
+  assert.strictEqual(stats.history[0].name, "阪神11R");
+};
+
 tests.test_bets_stay_unsettled_when_the_race_has_no_result = () => {
   // 結果がまだ無いレースで「的中！」を出さない（won は null のまま）。
   const races = adapter.toRaces(predictions, comments, { results: [] });
