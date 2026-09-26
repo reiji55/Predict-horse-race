@@ -93,6 +93,14 @@ jobs:
             exit 1
           fi
 
+      - name: shadow研究の発走前記録（observe-only）
+        # 予想・snapshotは読むだけ。発走前のレースについて、較正・順位ズレ・Chappy shadow・
+        # 固定3人の選定順を data/shadow/prerace/ へ追記する。失敗しても予想本体は止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m research.prerace_capture --week "${WEEK}" --phase pipeline
+
       - name: 発走前contextを独立snapshotへ凍結
         # observe-only。失敗しても本番の予想生成・コミットは止めない。
         continue-on-error: true

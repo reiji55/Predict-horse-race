@@ -34,3 +34,8 @@ jobs:
 
       - name: UI adapter tests
         run: node tests/test_adapter.js
+
+      - name: Chat Chappy decision logs（構造と規約の検証）
+        # 発走前性（Gitの初回コミット時刻）は run_results で全履歴を取って検証する。
+        # ここではスキーマ・候補馬の網羅・落とした理由の必須化などの規約だけを確かめる。
+        run: python -m research.decision_log validate

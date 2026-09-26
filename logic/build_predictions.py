@@ -84,20 +84,17 @@ def _overall_rates(raw: dict) -> tuple[float, float]:
     )
 
 
-def build_race(race: dict, configs: dict, base_times: dict,
-               overall_jockey_rate: float, overall_trainer_rate: float,
-               model_spec: dict[str, Any] | None = None) -> dict:
-    """raw の races[] 1件から、指定モデルの predictions races[] 1件を組み立てる。"""
-    cards_config = configs["cards"]
-    myomi_config = configs["myomi"]
-    speed_config = configs["speed"]
-    chappy_config = configs["chappy"]
-    race_regime_config = configs["race_regime"]
-    model_spec = model_spec or model_registry.load_registry()["champion"]
-    runtime = model_registry.runtime_metadata(model_spec)
-    use_top3_partner = bool(model_spec.get("use_top3_partner", False))
-    use_race_regime = bool(model_spec.get("use_race_regime", False))
+def prepare_horses(race: dict, configs: dict, base_times: dict,
+                   overall_jockey_rate: float, overall_trainer_rate: float,
+                   ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """raw の1レースから、各馬の①②③生値・Top3生値とスピード指数品質ガード結果を作る。
 
+    build_race から切り出しただけで、計算内容は変えていない（出力はバイト単位で同一。
+    tests/test_shadow_research.py の golden テスト参照）。research/ の発走前shadow記録が
+    キャラ別の選定順を再計算するために、同じ関数を共有する（二重実装しないため）。
+    """
+    speed_config = configs["speed"]
+    cards_config = configs["cards"]
     course = race.get("course") or {}
     today_course = {
         "surface": course.get("surface"),
@@ -155,6 +152,27 @@ def build_race(race: dict, configs: dict, base_times: dict,
             speed_quality["qualified_horses"], speed_quality["total_horses"],
             speed_quality["coverage"], speed_quality["min_race_coverage"],
         )
+
+    return horses, speed_quality
+
+
+def build_race(race: dict, configs: dict, base_times: dict,
+               overall_jockey_rate: float, overall_trainer_rate: float,
+               model_spec: dict[str, Any] | None = None) -> dict:
+    """raw の races[] 1件から、指定モデルの predictions races[] 1件を組み立てる。"""
+    cards_config = configs["cards"]
+    myomi_config = configs["myomi"]
+    chappy_config = configs["chappy"]
+    race_regime_config = configs["race_regime"]
+    model_spec = model_spec or model_registry.load_registry()["champion"]
+    runtime = model_registry.runtime_metadata(model_spec)
+    use_top3_partner = bool(model_spec.get("use_top3_partner", False))
+    use_race_regime = bool(model_spec.get("use_race_regime", False))
+
+    course = race.get("course") or {}
+    horses, speed_quality = prepare_horses(
+        race, configs, base_times, overall_jockey_rate, overall_trainer_rate,
+    )
 
     # --- Win Score と Top3 Score を分離 -------------------------------
     # ①②③のbase_scoreは「勝ち切る力」のまま。Top3はワイド/3連複の相手候補専用で、
