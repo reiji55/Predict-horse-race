@@ -193,6 +193,23 @@ def test_merge_with_previous_keeps_old_manual_and_replaces_refetched_race():
     assert merged["updated_at"] == fresh["updated_at"]
 
 
+def test_unreadable_ledger_is_never_overwritten(tmp_path):
+    """既存 results.json が壊れていたら、新規分だけで上書きせず止める（履歴消失の防止）。"""
+    import pytest
+
+    broken = tmp_path / "results.json"
+    broken.write_text('{"results": [\n<<<<<<< HEAD\n', encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        build_results.load_previous(broken)
+
+    wrong_shape = tmp_path / "wrong.json"
+    wrong_shape.write_text('{"results": {"r1": {}}}', encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        build_results.load_previous(wrong_shape)
+
+    assert build_results.load_previous(tmp_path / "missing.json") == {}
+
+
 def test_result_meta_keeps_fields_needed_for_history_ui():
     predictions, _, race_results = _load()
     race = json.loads(json.dumps(predictions["races"][0]))

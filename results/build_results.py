@@ -259,6 +259,27 @@ def merge_with_previous(fresh: dict[str, Any],
     }
 
 
+def load_previous(path: Path) -> dict[str, Any]:
+    """既存の results.json（長期成績台帳）を読む。無ければ空。
+
+    読めない（壊れている・conflict marker 混入など）ときに「新規結果だけで続行」すると、
+    snapshot を持たない手動記録や過去週の確定結果を黙って消して上書きしてしまう。
+    台帳を守るため、読めなければ書き込まずに止める。
+    """
+    if not path.exists():
+        return {}
+    try:
+        with path.open(encoding="utf-8") as f:
+            loaded = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"既存の {path} を読めません。履歴を消さないため上書きせず停止します"
+        ) from exc
+    if not isinstance(loaded, dict) or not isinstance(loaded.get("results", []), list):
+        raise RuntimeError(f"既存の {path} の形式が想定と違います。上書きせず停止します")
+    return loaded
+
+
 def summarize(results: dict[str, Any]) -> dict[str, Any]:
     """
     ダッシュボード用の集計（データスキーマ仕様§7 の宿題。JSONの契約は変えない）。
@@ -355,14 +376,7 @@ def main() -> None:
         race_results = json.load(f)
 
     fresh_results = build_results(predictions, race_results)
-    previous_results: dict[str, Any] = {}
-    if OUTPUT_PATH.exists():
-        try:
-            with OUTPUT_PATH.open(encoding="utf-8") as f:
-                previous_results = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            logger.warning("既存 results.json を読めないため新規結果だけで続行します", exc_info=True)
-    results = merge_with_previous(fresh_results, previous_results)
+    results = merge_with_previous(fresh_results, load_previous(OUTPUT_PATH))
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:
