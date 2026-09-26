@@ -96,6 +96,30 @@
     return index;
   }
 
+  /** レース一覧用の確定結果サマリ。結果未取得レースは index に存在しない。 */
+  function resultSummaryIndex(results) {
+    var index = {};
+    ((results || {}).results || []).forEach(function (race) {
+      var spent = 0, payout = 0, hitChars = [];
+      (race.cards || []).forEach(function (card) {
+        if (card.action === "pass") return;
+        spent += Number(card.spent || 0);
+        payout += Number(card.payout || 0);
+        if (card.hit) hitChars.push(CHAR_LABEL[card.char] || card.char);
+      });
+      index[race.race_id] = {
+        settled: true,
+        hit: payout > 0,
+        spent: spent,
+        payout: payout,
+        balance: payout - spent,
+        hit_chars: hitChars,
+        finish: (race.finish || []).slice(0, 3),
+      };
+    });
+    return index;
+  }
+
   /**
    * predictions.json（+ comments.json + results.json）を、モックの RACES 配列に変換する。
    * comments は {race_id: {char_id: セリフ}}。無ければ say は空文字（UI側でフォールバック表示）。
@@ -104,10 +128,12 @@
   function toRaces(predictions, comments, results) {
     comments = comments || {};
     var settled = settlementIndex(results);
+    var resultSummaries = resultSummaryIndex(results);
     return (predictions.races || []).map(function (race) {
       var waku = wakuByNum(race.marks);
       var say = comments[race.id] || {};
       var raceSettled = settled[race.id] || {};
+      var resultSummary = resultSummaries[race.id] || null;
 
       return {
         id: race.id,
@@ -124,6 +150,12 @@
         legendary: !!race.legendary,
         status: race.status || null,
         status_note: race.status_note || "",
+        result_status: resultSummary ? (resultSummary.hit ? "hit" : "miss") : null,
+        result_payout: resultSummary ? resultSummary.payout : null,
+        result_spent: resultSummary ? resultSummary.spent : null,
+        result_balance: resultSummary ? resultSummary.balance : null,
+        result_hit_chars: resultSummary ? resultSummary.hit_chars : [],
+        result_finish: resultSummary ? resultSummary.finish : [],
         // 無印（mk:""）の馬は表示しない。marks には後方検証のため全馬入っている（OPEN_QUESTIONS B-5）
         marks: (race.marks || []).filter(function (mark) {
           return mark.mk;
