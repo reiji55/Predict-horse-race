@@ -5,7 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -34,22 +34,3 @@ jobs:
 
       - name: UI adapter tests
         run: node tests/test_adapter.js
-
-
-      - name: Scratch live refresh 2026-09-26
-        run: |
-          python -m scraper.build_raw --week 2026-W39 --dates 2026-09-26
-          python -m scraper.capture_track_context --raw raw/2026-W39.json --dates 2026-09-26 || true
-          python -m logic.odds_history --raw raw/2026-W39.json --phase pipeline
-          python -m logic.build_predictions --week 2026-W39
-          python -m logic.refresh_context --week 2026-W39 --phase pipeline || true
-          python -m logic.data_quality --raw raw/2026-W39.json --predictions data/predictions.json --output data/quality_report.json --fail-on critical
-          git config user.name "weekend3cards-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add raw/ data/
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-          else
-            git commit -m "scratch-generated: 2026-09-26 live refresh"
-            git push origin HEAD:"$GITHUB_REF_NAME"
-          fi
