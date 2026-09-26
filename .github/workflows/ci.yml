@@ -5,7 +5,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -34,23 +34,3 @@ jobs:
 
       - name: UI adapter tests
         run: node tests/test_adapter.js
-
-
-      - name: Scratch settle 2026-09-26 results
-        if: github.ref == 'refs/heads/chatgpt/results-ui-20260926'
-        run: |
-          python -m results.fetch_week_results --week 2026-W39 --refetch
-          if [ -f data/race_results.json ]; then
-            python -m results.build_results --results data/race_results.json
-            python -m results.anomaly_review --results data/results.json --output data/research/anomaly_report.json || true
-            python -m results.build_shadow_results --results data/race_results.json --champion-results data/results.json || true
-          fi
-          git config user.name "weekend3cards-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add data/
-          if git diff --cached --quiet; then
-            echo "No result changes"
-          else
-            git commit -m "auto: 2026-W39 live result settlement"
-            git push origin HEAD:"$GITHUB_REF_NAME"
-          fi
