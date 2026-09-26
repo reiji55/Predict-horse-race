@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-26T12:48:28+09:00",
+  "generated_at": "2026-09-26T14:40:33+09:00",
   "week_id": "2026-W39",
   "status": "warning",
   "publish_blocked": false,
@@ -8,7 +8,7 @@
     "raw_races": 2,
     "prediction_races": 2,
     "critical_races": 0,
-    "warning_races": 2,
+    "warning_races": 1,
     "races_in_this_run": [
       "20260926-hanshin-11",
       "20260926-nakayama-11"
@@ -20,7 +20,7 @@
       "past_runs": 1.0,
       "win_odds": 1.0,
       "jockey_stats": 0.6333,
-      "trainer_stats": 0.5667
+      "trainer_stats": 1.0
     }
   },
   "collection_report": {
@@ -66,13 +66,13 @@
       "venue": "阪神",
       "race_no": 11,
       "name": "シリウスS",
-      "status": "warning",
+      "status": "ok",
       "raw": {
         "entries": 16,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
         "jockey_stats_coverage": 0.6875,
-        "trainer_stats_coverage": 0.4375,
+        "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
       "prediction": {
@@ -82,13 +82,7 @@
         "speed_coverage": 0.6875,
         "model_id": "win-v1-speed-guard"
       },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 44% です"
-        }
-      ]
+      "issues": []
     },
     {
       "race_id": "20260926-nakayama-11",
@@ -101,7 +95,7 @@
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
         "jockey_stats_coverage": 0.5714,
-        "trainer_stats_coverage": 0.7143,
+        "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
       "prediction": {
@@ -112,11 +106,6 @@
         "model_id": "win-v1-speed-guard"
       },
       "issues": [
-        {
-          "severity": "warning",
-          "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 71% です"
-        },
         {
           "severity": "warning",
           "code": "speed_guard_disabled",
