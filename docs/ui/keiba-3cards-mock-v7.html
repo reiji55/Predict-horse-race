@@ -152,12 +152,16 @@
     min-height:52px;display:flex;align-items:center;
   }
   .race-item.legendary .venue{color:var(--legend);border-color:var(--legend-bright)}
-  .race-item .info{flex:1}
+  /* 長いレース名が右端の結果表示を押し出さないよう、中央カラムだけ縮める。 */
+  .race-item .info{flex:1;min-width:0}
   .race-item .rname{
     font-family:var(--mincho);font-weight:800;font-size:1rem;letter-spacing:.03em;
     display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;
   }
-  .race-item .rtitle{min-width:0;white-space:nowrap;line-height:1.25}
+  .race-item .rtitle{
+    flex:1;min-width:0;white-space:nowrap;line-height:1.25;
+    overflow:hidden;text-overflow:ellipsis;
+  }
   .race-item .rtitle.long{font-size:.86rem;letter-spacing:.01em}
   .race-item .rtitle.xlong{
     font-size:.78rem;letter-spacing:0;white-space:normal;
