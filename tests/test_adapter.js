@@ -209,7 +209,12 @@ tests.test_race_list_gets_settled_hit_status_and_payout = () => {
   assert.strictEqual(race.result_payout, expectedPayout);
   assert.strictEqual(race.result_spent, expectedSpent);
   assert.strictEqual(race.result_balance, expectedPayout - expectedSpent);
-  assert.deepStrictEqual(race.result_finish, source.finish.slice(0, 3));
+  const predRace = predictions.races.find((r) => r.id === source.race_id);
+  const waku = Object.fromEntries(predRace.marks.map((m) => [m.num, m.waku]));
+  assert.deepStrictEqual(
+    race.result_finish,
+    source.finish.slice(0, 3).map((num) => [waku[num] || 0, num])
+  );
 };
 
 tests.test_race_list_has_no_result_status_before_settlement = () => {
