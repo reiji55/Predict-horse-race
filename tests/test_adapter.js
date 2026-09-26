@@ -197,6 +197,30 @@ tests.test_settled_bets_carry_hit_and_payout_into_the_race_view = () => {
   assert.strictEqual(kei.settled.balance, kei.settled.payout - kei.settled.spent);
 };
 
+tests.test_race_list_gets_settled_hit_status_and_payout = () => {
+  const races = adapter.toRaces(predictions, comments, results);
+  const race = races.find((r) => r.id === results.results[0].race_id);
+  const source = results.results[0];
+  const expectedPayout = source.cards.reduce((sum, card) =>
+    sum + (card.action === "pass" ? 0 : Number(card.payout || 0)), 0);
+  const expectedSpent = source.cards.reduce((sum, card) =>
+    sum + (card.action === "pass" ? 0 : Number(card.spent || 0)), 0);
+  assert.strictEqual(race.result_status, expectedPayout > 0 ? "hit" : "miss");
+  assert.strictEqual(race.result_payout, expectedPayout);
+  assert.strictEqual(race.result_spent, expectedSpent);
+  assert.strictEqual(race.result_balance, expectedPayout - expectedSpent);
+  assert.deepStrictEqual(race.result_finish, source.finish.slice(0, 3));
+};
+
+tests.test_race_list_has_no_result_status_before_settlement = () => {
+  const races = adapter.toRaces(predictions, comments, { results: [] });
+  races.forEach((race) => {
+    assert.strictEqual(race.result_status, null);
+    assert.strictEqual(race.result_payout, null);
+    assert.deepStrictEqual(race.result_hit_chars, []);
+  });
+};
+
 tests.test_bets_stay_unsettled_when_the_race_has_no_result = () => {
   // 結果がまだ無いレースで「的中！」を出さない（won は null のまま）。
   const races = adapter.toRaces(predictions, comments, { results: [] });
