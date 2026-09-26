@@ -2,8 +2,8 @@
   "generated_at": "2026-09-26T10:55:42+09:00",
   "week_id": "2026-W39",
   "model": {
-    "model_id": "win-v1-speed-guard",
-    "model_role": "champion",
+    "model_id": "race-regime-abstain-v1",
+    "model_role": "challenger",
     "git_commit": "a6357ebc9a76289d07033e831f92c72fa436fed9",
     "config_hash": "ccf4585346bf5937",
     "base_times_hash": "ab7d639c51b21e3a"
@@ -28,8 +28,8 @@
         "heads": 16,
         "note": "ハンデ"
       },
-      "model_id": "win-v1-speed-guard",
-      "model_role": "champion",
+      "model_id": "race-regime-abstain-v1",
+      "model_role": "challenger",
       "git_commit": "a6357ebc9a76289d07033e831f92c72fa436fed9",
       "config_hash": "ccf4585346bf5937",
       "base_times_hash": "ab7d639c51b21e3a",
@@ -545,7 +545,7 @@
         },
         "reason": "market_or_model_is_open"
       },
-      "race_regime_policy_active": false,
+      "race_regime_policy_active": true,
       "myomi": 63.6,
       "myomi_parts": {
         "umami": 0.7822,
@@ -556,7 +556,42 @@
       "chappy_decision": {
         "engine": "chappy-signal-v1",
         "source": "signal_engine",
-        "race_regime": null,
+        "race_regime": {
+          "version": "race-regime-v1",
+          "label": "open",
+          "usable_horses": 16,
+          "field_size": 16,
+          "pair_coverage": 1.0,
+          "metrics": {
+            "market_top1_share": 0.185121,
+            "market_top3_share": 0.431851,
+            "market_entropy": 0.921443,
+            "model_market_tv": 0.182205,
+            "top3_overlap": 2,
+            "market_top3_indices": [
+              12,
+              5,
+              9
+            ],
+            "model_top3_indices": [
+              12,
+              5,
+              8
+            ]
+          },
+          "solid_checks": {
+            "market_top3_share": false,
+            "market_entropy": false,
+            "model_market_tv": false,
+            "top3_overlap": true
+          },
+          "open_checks": {
+            "market_top3_share": true,
+            "market_entropy": true,
+            "model_market_tv": false
+          },
+          "reason": "market_or_model_is_open"
+        },
         "role_policy": {
           "long_edge_selector": "long_edge",
           "manual_unconstrained": false
@@ -1576,8 +1611,8 @@
           "char": "kei",
           "objective": "pq",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 26,
           "payout_range": [
             800,
@@ -1684,8 +1719,8 @@
           "char": "tetsu",
           "objective": "pq",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 9,
           "payout_range": [
             1900,
@@ -1794,8 +1829,8 @@
           "char": "gen",
           "objective": "ev",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 7,
           "payout_range": [
             2500,
@@ -1909,7 +1944,7 @@
           "objective": "dynamic_signal_integration",
           "place_partner_mode": "dynamic",
           "model_version": "chappy-signal-v1",
-          "model_role": "champion",
+          "model_role": "challenger",
           "portfolio_style": "balanced_edge_1000",
           "source": "signal_engine",
           "conviction": 0.791577,
@@ -2115,7 +2150,42 @@
           "decision_log": {
             "engine": "chappy-signal-v1",
             "source": "signal_engine",
-            "race_regime": null,
+            "race_regime": {
+              "version": "race-regime-v1",
+              "label": "open",
+              "usable_horses": 16,
+              "field_size": 16,
+              "pair_coverage": 1.0,
+              "metrics": {
+                "market_top1_share": 0.185121,
+                "market_top3_share": 0.431851,
+                "market_entropy": 0.921443,
+                "model_market_tv": 0.182205,
+                "top3_overlap": 2,
+                "market_top3_indices": [
+                  12,
+                  5,
+                  9
+                ],
+                "model_top3_indices": [
+                  12,
+                  5,
+                  8
+                ]
+              },
+              "solid_checks": {
+                "market_top3_share": false,
+                "market_entropy": false,
+                "model_market_tv": false,
+                "top3_overlap": true
+              },
+              "open_checks": {
+                "market_top3_share": true,
+                "market_entropy": true,
+                "model_market_tv": false
+              },
+              "reason": "market_or_model_is_open"
+            },
             "role_policy": {
               "long_edge_selector": "long_edge",
               "manual_unconstrained": false
@@ -2938,8 +3008,8 @@
         "heads": 14,
         "note": "定量"
       },
-      "model_id": "win-v1-speed-guard",
-      "model_role": "champion",
+      "model_id": "race-regime-abstain-v1",
+      "model_role": "challenger",
       "git_commit": "a6357ebc9a76289d07033e831f92c72fa436fed9",
       "config_hash": "ccf4585346bf5937",
       "base_times_hash": "ab7d639c51b21e3a",
@@ -3401,7 +3471,7 @@
         },
         "reason": "market_or_model_is_open"
       },
-      "race_regime_policy_active": false,
+      "race_regime_policy_active": true,
       "myomi": 40.4,
       "myomi_parts": {
         "umami": 0.8081,
@@ -3412,7 +3482,42 @@
       "chappy_decision": {
         "engine": "chappy-signal-v1",
         "source": "signal_engine",
-        "race_regime": null,
+        "race_regime": {
+          "version": "race-regime-v1",
+          "label": "open",
+          "usable_horses": 14,
+          "field_size": 14,
+          "pair_coverage": 1.0,
+          "metrics": {
+            "market_top1_share": 0.159093,
+            "market_top3_share": 0.44133,
+            "market_entropy": 0.908739,
+            "model_market_tv": 0.208099,
+            "top3_overlap": 1,
+            "market_top3_indices": [
+              1,
+              7,
+              2
+            ],
+            "model_top3_indices": [
+              3,
+              11,
+              7
+            ]
+          },
+          "solid_checks": {
+            "market_top3_share": false,
+            "market_entropy": false,
+            "model_market_tv": false,
+            "top3_overlap": false
+          },
+          "open_checks": {
+            "market_top3_share": true,
+            "market_entropy": true,
+            "model_market_tv": false
+          },
+          "reason": "market_or_model_is_open"
+        },
         "role_policy": {
           "long_edge_selector": "long_edge",
           "manual_unconstrained": false
@@ -4314,8 +4419,8 @@
           "char": "kei",
           "objective": "pq",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 33,
           "payout_range": [
             500,
@@ -4422,8 +4527,8 @@
           "char": "tetsu",
           "objective": "pq",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 24,
           "payout_range": [
             500,
@@ -4532,8 +4637,8 @@
           "char": "gen",
           "objective": "ev",
           "place_partner_mode": null,
-          "model_version": "win-v1-speed-guard",
-          "model_role": "champion",
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
           "hit_pct": 4,
           "payout_range": [
             4900,
@@ -4647,7 +4752,7 @@
           "objective": "dynamic_signal_integration",
           "place_partner_mode": "dynamic",
           "model_version": "chappy-signal-v1",
-          "model_role": "champion",
+          "model_role": "challenger",
           "portfolio_style": "balanced_edge_1000",
           "source": "signal_engine",
           "conviction": 0.809945,
@@ -4853,7 +4958,42 @@
           "decision_log": {
             "engine": "chappy-signal-v1",
             "source": "signal_engine",
-            "race_regime": null,
+            "race_regime": {
+              "version": "race-regime-v1",
+              "label": "open",
+              "usable_horses": 14,
+              "field_size": 14,
+              "pair_coverage": 1.0,
+              "metrics": {
+                "market_top1_share": 0.159093,
+                "market_top3_share": 0.44133,
+                "market_entropy": 0.908739,
+                "model_market_tv": 0.208099,
+                "top3_overlap": 1,
+                "market_top3_indices": [
+                  1,
+                  7,
+                  2
+                ],
+                "model_top3_indices": [
+                  3,
+                  11,
+                  7
+                ]
+              },
+              "solid_checks": {
+                "market_top3_share": false,
+                "market_entropy": false,
+                "model_market_tv": false,
+                "top3_overlap": false
+              },
+              "open_checks": {
+                "market_top3_share": true,
+                "market_entropy": true,
+                "model_market_tv": false
+              },
+              "reason": "market_or_model_is_open"
+            },
             "role_policy": {
               "long_edge_selector": "long_edge",
               "manual_unconstrained": false
