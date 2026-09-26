@@ -182,6 +182,13 @@ def build_race_result(prediction_race: dict[str, Any], race_result: dict[str, An
             "race_no": prediction_race.get("race_no"),
             "name": prediction_race.get("name"),
             "grade": prediction_race.get("grade"),
+            "post_time": prediction_race.get("post_time"),
+            "course": prediction_race.get("course") or {},
+            "status": prediction_race.get("status"),
+            "status_note": prediction_race.get("status_note"),
+            "myomi": prediction_race.get("myomi"),
+            "myomi_parts": prediction_race.get("myomi_parts"),
+            "legendary": bool(prediction_race.get("legendary")),
             "marks": prediction_race.get("marks", []),
         },
     }
@@ -227,6 +234,50 @@ def build_results(predictions: dict[str, Any],
         "updated_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
         "results": results,
     }
+
+
+def merge_with_previous(fresh: dict[str, Any],
+                        previous: dict[str, Any] | None) -> dict[str, Any]:
+    """過去の確定結果を落とさず、新しく採点できたレースだけ差し替える。
+
+    results.json はダッシュボードの長期成績台帳でもある。週次/手動Actionで取得できた
+    レースだけから毎回作り直すと、snapshotを持たない手動チャット記録や一時的に
+    取得対象外だった過去レースが消える。race_id を主キーに previous → fresh の順で
+    上書きし、fresh があるレースだけ最新版へ更新する。
+    """
+    by_id: dict[str, dict[str, Any]] = {}
+    for payload in ((previous or {}).get("results", []), fresh.get("results", [])):
+        for race in payload:
+            race_id = race.get("race_id")
+            if race_id:
+                by_id[race_id] = race
+
+    return {
+        "updated_at": fresh.get("updated_at")
+            or datetime.datetime.now(JST).isoformat(timespec="seconds"),
+        "results": [by_id[race_id] for race_id in sorted(by_id)],
+    }
+
+
+def load_previous(path: Path) -> dict[str, Any]:
+    """既存の results.json（長期成績台帳）を読む。無ければ空。
+
+    読めない（壊れている・conflict marker 混入など）ときに「新規結果だけで続行」すると、
+    snapshot を持たない手動記録や過去週の確定結果を黙って消して上書きしてしまう。
+    台帳を守るため、読めなければ書き込まずに止める。
+    """
+    if not path.exists():
+        return {}
+    try:
+        with path.open(encoding="utf-8") as f:
+            loaded = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"既存の {path} を読めません。履歴を消さないため上書きせず停止します"
+        ) from exc
+    if not isinstance(loaded, dict) or not isinstance(loaded.get("results", []), list):
+        raise RuntimeError(f"既存の {path} の形式が想定と違います。上書きせず停止します")
+    return loaded
 
 
 def summarize(results: dict[str, Any]) -> dict[str, Any]:
@@ -324,7 +375,8 @@ def main() -> None:
     with open(args.results, encoding="utf-8") as f:
         race_results = json.load(f)
 
-    results = build_results(predictions, race_results)
+    fresh_results = build_results(predictions, race_results)
+    results = merge_with_previous(fresh_results, load_previous(OUTPUT_PATH))
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w", encoding="utf-8") as f:

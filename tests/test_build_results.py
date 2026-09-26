@@ -168,6 +168,64 @@ def test_unfinished_races_are_skipped():
     print("test_unfinished_races_are_skipped: OK")
 
 
+def test_merge_with_previous_keeps_old_manual_and_replaces_refetched_race():
+    previous = {
+        "updated_at": "2026-09-22T21:05:00+09:00",
+        "results": [
+            {"race_id": "20260922-nakayama-11", "evaluation_scope": "manual_chat",
+             "cards": [{"char": "chappy", "payout": 11280}]},
+            {"race_id": "20260926-hanshin-11", "cards": [{"char": "kei", "payout": 0}]},
+        ],
+    }
+    fresh = {
+        "updated_at": "2026-09-26T16:10:00+09:00",
+        "results": [
+            {"race_id": "20260926-hanshin-11", "cards": [{"char": "kei", "payout": 6010}]},
+        ],
+    }
+
+    merged = build_results.merge_with_previous(fresh, previous)
+    by_id = {r["race_id"]: r for r in merged["results"]}
+
+    assert set(by_id) == {"20260922-nakayama-11", "20260926-hanshin-11"}
+    assert by_id["20260922-nakayama-11"]["evaluation_scope"] == "manual_chat"
+    assert by_id["20260926-hanshin-11"]["cards"][0]["payout"] == 6010
+    assert merged["updated_at"] == fresh["updated_at"]
+
+
+def test_unreadable_ledger_is_never_overwritten(tmp_path):
+    """既存 results.json が壊れていたら、新規分だけで上書きせず止める（履歴消失の防止）。"""
+    import pytest
+
+    broken = tmp_path / "results.json"
+    broken.write_text('{"results": [\n<<<<<<< HEAD\n', encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        build_results.load_previous(broken)
+
+    wrong_shape = tmp_path / "wrong.json"
+    wrong_shape.write_text('{"results": {"r1": {}}}', encoding="utf-8")
+    with pytest.raises(RuntimeError):
+        build_results.load_previous(wrong_shape)
+
+    assert build_results.load_previous(tmp_path / "missing.json") == {}
+
+
+def test_result_meta_keeps_fields_needed_for_history_ui():
+    predictions, _, race_results = _load()
+    race = json.loads(json.dumps(predictions["races"][0]))
+    race["status"] = "manual_record"
+    race["status_note"] = "test note"
+    built = build_results.build_race_result(race, race_results[race["id"]])
+    meta = built["meta"]
+
+    assert meta["post_time"] == race["post_time"]
+    assert meta["course"] == race["course"]
+    assert meta["status"] == "manual_record"
+    assert meta["status_note"] == "test note"
+    assert meta["myomi"] == race["myomi"]
+    assert meta["legendary"] == bool(race["legendary"])
+
+
 def test_summary_is_honest_about_losses():
     """集計は「全カード購入時の累計収支」に一本化。マイナスも隠さない。"""
     predictions, _, race_results = _load()
