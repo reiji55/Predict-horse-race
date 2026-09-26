@@ -100,6 +100,14 @@ jobs:
           WEEK="${{ steps.target.outputs.week }}"
           python -m logic.refresh_context --week "${WEEK}" --phase pipeline
 
+      - name: 発走前監査manifestを保存
+        # Prediction / Context / Odds の同一発走前証跡をSHA-256付きで束ねる。
+        # observe-only。失敗しても予想本体は止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m logic.audit_manifest --week "${WEEK}" --phase pipeline
+
       - name: データ品質ゲート
         run: |
           WEEK="${{ steps.target.outputs.week }}"
