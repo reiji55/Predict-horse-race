@@ -155,7 +155,9 @@
         result_spent: resultSummary ? resultSummary.spent : null,
         result_balance: resultSummary ? resultSummary.balance : null,
         result_hit_chars: resultSummary ? resultSummary.hit_chars : [],
-        result_finish: resultSummary ? resultSummary.finish : [],
+        result_finish: resultSummary ? resultSummary.finish.map(function (num) {
+          return [waku[num] || 0, num];
+        }) : [],
         // 無印（mk:""）の馬は表示しない。marks には後方検証のため全馬入っている（OPEN_QUESTIONS B-5）
         marks: (race.marks || []).filter(function (mark) {
           return mark.mk;
