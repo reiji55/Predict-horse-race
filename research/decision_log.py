@@ -78,14 +78,14 @@ def template(snapshot: dict[str, Any], snapshot_path: Path, config: dict[str, An
         for c in snapshot.get("cards") or []
         if c.get("char") in FIXED_CHARACTERS and c.get("action") != "pass"
     }
-    rel = snapshot_path.relative_to(common.ROOT) if snapshot_path.is_relative_to(common.ROOT) else snapshot_path
     return {
         "schema_version": config["decision_log"]["schema_version"],
         "race_id": snapshot.get("race_id"),
         "created_at": created_at,
         "author": "ChatGPT",
         "snapshot_ref": {
-            "path": str(rel),
+            # 参照先は常に正規パス。検証側も race_id から決まるこのパスだけを見る。
+            "path": canonical_snapshot_path(snapshot.get("race_id") or ""),
             "sha256": common.sha256_file(snapshot_path),
             "frozen_at": snapshot.get("frozen_at"),
             "model_id": snapshot.get("model_id"),
@@ -224,40 +224,83 @@ def first_commit_time(path: Path, repo: Path | None = None) -> datetime.datetime
     return common.parse_dt(lines[-1]) if out.returncode == 0 and lines else None
 
 
-def snapshot_version_in_git(snapshot_rel_path: str, sha256: str, repo: Path | None = None) -> bool:
-    """snapshot_ref.sha256 が、Git履歴にある snapshot のどれかの版と一致するか。"""
+def snapshot_blob_from_git(snapshot_rel_path: str, sha256: str,
+                           repo: Path | None = None) -> bytes | None:
+    """Git履歴上の snapshot のうち、SHA-256 が一致する版の中身（バイト列）を返す。無ければ None。
+
+    snapshot は発走前の再実行で上書きされるので、log が参照した版は過去のコミットにしか無いことがある。
+    """
     repo = repo or common.ROOT
     out = _git(["log", "--format=%H", "--", snapshot_rel_path], repo)
     if out.returncode != 0:
-        return False
+        return None
     for commit in out.stdout.decode().split():
         blob = _git(["show", f"{commit}:{snapshot_rel_path}"], repo)
         if blob.returncode == 0 and common.sha256_bytes(blob.stdout) == sha256:
-            return True
-    return False
+            return blob.stdout
+    return None
+
+
+def snapshot_version_in_git(snapshot_rel_path: str, sha256: str, repo: Path | None = None) -> bool:
+    """snapshot_ref.sha256 が、Git履歴にある snapshot のどれかの版と一致するか。"""
+    return snapshot_blob_from_git(snapshot_rel_path, sha256, repo) is not None
+
+
+def resolve_referenced_snapshot(log: dict[str, Any], repo: Path | None = None,
+                                snapshot_dir: Path | None = None
+                                ) -> tuple[dict[str, Any] | None, str | None, str | None]:
+    """log.snapshot_ref が指す**その版**の snapshot を返す。(snapshot, sha256, source)。
+
+    source は "current"（作業ツリーの現行版と一致）/ "git_history"（過去のコミットの版）/ None（見つからない）。
+    参照先のパスは log 側の記述を信用せず、race_id から決まる正規のパスだけを見る。
+    """
+    repo = repo or common.ROOT
+    race_id = log.get("race_id") or ""
+    ref_sha = (log.get("snapshot_ref") or {}).get("sha256")
+    current_path = snapshots.snapshot_path(race_id, snapshot_dir or (repo / "data" / "snapshots"))
+    if not race_id or not ref_sha:
+        return None, None, None
+    if current_path.exists() and common.sha256_file(current_path) == ref_sha:
+        snapshot = common.read_json(current_path)
+        return (snapshot, ref_sha, "current") if isinstance(snapshot, dict) else (None, None, None)
+    blob = snapshot_blob_from_git(canonical_snapshot_path(race_id), ref_sha, repo)
+    if blob is None:
+        return None, None, None
+    try:
+        snapshot = json.loads(blob.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, None, None
+    return (snapshot, ref_sha, "git_history") if isinstance(snapshot, dict) else (None, None, None)
+
+
+def canonical_snapshot_path(race_id: str) -> str:
+    return f"data/snapshots/{race_id}.json"
 
 
 def verify(log_path: Path, config: dict[str, Any], repo: Path | None = None,
            snapshot_dir: Path | None = None) -> dict[str, Any]:
-    """構造検証＋Gitでの発走前性の検証。採点に使ってよいかどうかを返す。"""
+    """構造検証＋Gitでの発走前性の検証。採点に使ってよいかどうかを返す。
+
+    候補馬の順位・固定3人・順位ズレの列は、log が参照した**その版の snapshot**と照合する
+    （現行版に上書きされていても、Git履歴から参照版を復元して照合する）。
+    """
     repo = repo or common.ROOT
     log = common.read_json(log_path)
     if not isinstance(log, dict):
         return {"path": str(log_path), "valid": False, "errors": ["JSONとして読めません"],
                 "prerace_verified": False}
     race_id = log.get("race_id") or ""
-    snapshot_path = snapshots.snapshot_path(race_id, snapshot_dir or (repo / "data" / "snapshots"))
-    snapshot = common.read_json(snapshot_path)
-    current_sha = common.sha256_file(snapshot_path) if snapshot_path.exists() else None
-    errors = validate(log, config, snapshot if isinstance(snapshot, dict) else None, current_sha)
+    snapshot, ref_sha, source = resolve_referenced_snapshot(log, repo, snapshot_dir)
+    errors = validate(log, config, snapshot, ref_sha)
+    if snapshot is None:
+        errors.append("snapshot_ref.sha256 に一致する snapshot の版が現行にも Git履歴にも無く、"
+                      "候補馬の事実を照合できません")
+    ref_path = (log.get("snapshot_ref") or {}).get("path")
+    if ref_path and ref_path != canonical_snapshot_path(race_id):
+        errors.append(f"snapshot_ref.path は {canonical_snapshot_path(race_id)} である必要があります")
 
-    post = common.post_at(race_id, (snapshot or {}).get("post_time")) if isinstance(snapshot, dict) else None
+    post = common.post_at(race_id, snapshot.get("post_time")) if snapshot else None
     committed = first_commit_time(log_path, repo)
-    ref = log.get("snapshot_ref") or {}
-    snapshot_ok = bool(ref.get("sha256")) and (
-        ref.get("sha256") == current_sha
-        or snapshot_version_in_git(str(ref.get("path") or ""), ref["sha256"], repo)
-    )
     created = common.parse_dt(log.get("created_at"))
     prerace = bool(post and committed and committed < post and created and created < post)
     return {
@@ -268,8 +311,9 @@ def verify(log_path: Path, config: dict[str, Any], repo: Path | None = None,
         "post_at": post.isoformat() if post else None,
         "created_at": log.get("created_at"),
         "git_first_commit_at": committed.isoformat() if committed else None,
-        "snapshot_version_found": snapshot_ok,
-        "prerace_verified": prerace and snapshot_ok and not errors,
+        "snapshot_version_found": snapshot is not None,
+        "facts_checked_against": source,
+        "prerace_verified": prerace and snapshot is not None and not errors,
     }
 
 
@@ -317,12 +361,16 @@ def main(argv: list[str] | None = None) -> int:
         path = path if path.is_absolute() else common.ROOT / path
         if args.cmd == "validate":
             log = common.read_json(path)
-            race_id = (log or {}).get("race_id") or ""
-            snap_path = snapshots.snapshot_path(race_id)
-            snapshot = common.read_json(snap_path)
-            sha = common.sha256_file(snap_path) if snap_path.exists() else None
-            errors = (validate(log, config, snapshot if isinstance(snapshot, dict) else None, sha)
-                      if isinstance(log, dict) else ["JSONとして読めません"])
+            if isinstance(log, dict):
+                # 参照版の snapshot を現行 → Git履歴の順に探して事実を照合する。
+                # CI の浅い clone では過去版が無いことがあるので、その場合は警告だけ出す
+                # （発走前性と事実照合の最終判定は、全履歴を取る verify / settle で行う）。
+                snapshot, ref_sha, source = resolve_referenced_snapshot(log)
+                errors = validate(log, config, snapshot, ref_sha)
+                if snapshot is None:
+                    print(f"  注意: {path.name} の参照 snapshot 版が見つからないため事実照合を省略しました")
+            else:
+                errors = ["JSONとして読めません"]
             status = "OK" if not errors else "NG"
         else:
             result = verify(path, config)

@@ -65,7 +65,7 @@ def _settle_decision_logs(race_id: str, finish: list[int], dividends: dict[str, 
         result = decision_log.verify(path, config, repo=repo, snapshot_dir=snapshot_dir)
         row: dict[str, Any] = {k: result[k] for k in (
             "path", "valid", "errors", "created_at", "git_first_commit_at",
-            "snapshot_version_found", "prerace_verified")}
+            "snapshot_version_found", "facts_checked_against", "prerace_verified")}
         log = common.read_json(path) or {}
         bets = [{k: b[k] for k in ("type", "horses", "amt")} for b in log.get("bets") or []
                 if b.get("type") in decision_log.BET_SIZE and b.get("horses") and b.get("amt")]

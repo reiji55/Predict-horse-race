@@ -27,7 +27,8 @@
 どちらのステップも `continue-on-error: true` で、失敗しても予想本体と成績集計は止まりません。
 
 `prerace_capture` は、本番と同じ `build_predictions.prepare_horses`（今回 build_race から切り出した関数）を使って、キャラ別の選定順を再計算します。
-再計算した印順・スコアが snapshot と一致しない場合は `fidelity.recomputed_matches_snapshot=false` を残し、選定順は採点に使いません。
+再計算した marks が snapshot と `num / score / odds / top3_score / top3_rank` の全列で一致しない場合は、`fidelity.recomputed_matches_snapshot=false` と不一致の列（`mismatches`）を残します。その場合、選定順は採点に使わず、snapshot 側（丸めたスコア）へフォールバックします（fail-closed）。
+オッズまで比べるのは、固定3人の sel / value が単勝オッズにも依存するためです。スコアが同じでもオッズだけ更新された raw は不一致として扱います。
 
 `settle` で使う入力（evidence）は次の優先順です。
 
@@ -154,7 +155,9 @@
 ### 発走前性の機械検証（`verify` と settle）
 1. `created_at` < 発走時刻
 2. **このファイルがGitに最初に追加されたコミットのコミット時刻** < 発走時刻
-3. `snapshot_ref.sha256` が、Git履歴上の snapshot のどれかの版と一致
+3. `snapshot_ref.sha256` と一致する snapshot の版が、現行または Git履歴にある
+   - snapshot は発走前の再実行で上書きされるので、一致する版を Git履歴から取り出して JSON に戻し、**その参照版そのもの**と候補馬の事実（base順位・Top3順位・人気順位・固定3人・順位ズレ）を照合します（`facts_checked_against`: `current` / `git_history`）。
+   - 参照先は log 側のパスを信用せず、`race_id` から決まる `data/snapshots/{race_id}.json` だけを見ます。
 
 3つがそろったものだけを `prerace_verified=true` として累積に入れます。
 `run_results` は全履歴（`fetch-depth: 0`）を取って検証します。

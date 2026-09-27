@@ -392,3 +392,91 @@ def test_settle_walk_forward_excludes_races_at_the_same_post_time(tmp_path: Path
     assert wf["20261004-hanshin-11"]["history_races"] == 0
     assert wf["20261004-nakayama-11"]["history_races"] == 0     # 同時刻の他場は「過去」ではない
     assert wf["20261011-nakayama-11"]["history_races"] == 2
+
+
+# ------------------------------------------------------------------ PR14 レビュー対応
+
+def _repo_with_snapshot_history(tmp_path: Path):
+    """snapshot v1 → log（v1参照）→ snapshot v2（発走前再実行でオッズ更新）の順にコミットしたリポジトリ。"""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    v1 = _snapshot()
+    snap_path = _write(repo / "data" / "snapshots" / f"{v1['race_id']}.json", v1)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "snapshot v1", date="2026-10-04T13:00:00+09:00")
+
+    log = _filled_log(snap_path, v1)            # v1 の事実と SHA-256 で作る
+    log_path = _write(repo / "data" / "chappy_decisions" / v1["race_id"] / "20261004T150500.json", log)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "decision", date="2026-10-04T15:06:00+09:00")
+
+    v2 = copy.deepcopy(v1)
+    v2["frozen_at"] = "2026-10-04T15:20:00+09:00"
+    for mark in v2["marks"]:
+        if mark["num"] == 3:
+            mark["odds"] = 3.0                  # 人気が急上昇 → 3番は順位ズレでなくなる
+    _write(snap_path, v2)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "snapshot v2", date="2026-10-04T15:21:00+09:00")
+    return repo, log_path, log, v1, v2
+
+
+def test_log_referencing_overwritten_snapshot_is_checked_against_that_version(tmp_path: Path):
+    repo, log_path, log, v1, v2 = _repo_with_snapshot_history(tmp_path)
+    # 前提: 現行（v2）では3番の事実が変わっている
+    assert decision_log.snapshot_facts(v2, CONFIG)[3]["rank_gap"] is False
+    assert decision_log.snapshot_facts(v1, CONFIG)[3]["rank_gap"] is True
+
+    result = decision_log.verify(log_path, CONFIG, repo=repo)
+    assert result["errors"] == []
+    assert result["facts_checked_against"] == "git_history"
+    assert result["snapshot_version_found"] is True
+    assert result["prerace_verified"] is True
+
+
+def test_log_with_tampered_v1_facts_fails_even_when_snapshot_was_overwritten(tmp_path: Path):
+    repo, log_path, log, v1, v2 = _repo_with_snapshot_history(tmp_path)
+    tampered = copy.deepcopy(log)
+    for cand in tampered["candidates"]:
+        if cand["num"] == 3:
+            cand["market_rank"] = 1             # v1 の事実（人気8位）と違う
+            cand["rank_gap"] = False            # 保護対象から外して理由を書かずに済ませる改ざん
+    _write(log_path, tampered)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "tamper", date="2026-10-04T15:22:00+09:00")
+
+    result = decision_log.verify(log_path, CONFIG, repo=repo)
+    assert result["facts_checked_against"] == "git_history"
+    assert any("3番" in e and "market_rank" in e for e in result["errors"])
+    assert any("3番" in e and "rank_gap" in e for e in result["errors"])
+    assert result["valid"] is False and result["prerace_verified"] is False
+
+
+def test_log_referencing_unknown_snapshot_version_is_not_verified(tmp_path: Path):
+    repo, log_path, log, v1, v2 = _repo_with_snapshot_history(tmp_path)
+    forged = copy.deepcopy(log)
+    forged["snapshot_ref"]["sha256"] = "0" * 64
+    _write(log_path, forged)
+    result = decision_log.verify(log_path, CONFIG, repo=repo)
+    assert result["snapshot_version_found"] is False
+    assert result["facts_checked_against"] is None
+    assert result["prerace_verified"] is False
+
+
+def test_fidelity_fails_closed_when_only_odds_changed(tmp_path: Path):
+    """スコアは同じでもオッズが違えば、固定3人の sel/value は変わりうる。選定順は採点に使わない。"""
+    now = datetime.datetime(2026, 7, 5, 13, 0, tzinfo=JST)
+    raw, base_times, configs, _, snap_dir = _build_sample_and_freeze(tmp_path, now)
+    updated = copy.deepcopy(raw)
+    entry = updated["races"][0]["entries"][0]
+    entry["win_odds"] = round(float(entry["win_odds"]) * 3 + 1, 1)
+
+    prerace_capture.capture(updated, now=now, snapshot_dir=snap_dir, output_dir=tmp_path / "prerace",
+                            configs=configs, base_times=base_times)
+    record = json.loads(next((tmp_path / "prerace").rglob("*.json")).read_text(encoding="utf-8"))
+    fidelity = record["fidelity"]
+    assert fidelity["recomputed_matches_snapshot"] is False
+    assert fidelity["mismatches"] and all(m["fields"] == ["odds"] for m in fidelity["mismatches"])
+    assert record["diversity"]["sel_orders"] is None
+    assert record["calibration_inputs"]["score_source"] == "snapshot_marks_rounded"

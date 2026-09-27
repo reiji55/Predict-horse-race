@@ -43,11 +43,26 @@ def _recompute_horses(race: dict[str, Any], configs: dict[str, Any], base_times:
     return horses, marks
 
 
+# 選定順（sel / value）はスコアだけでなく単勝オッズにも依存する。オッズだけ更新された raw で
+# 「一致」と誤判定しないよう、印の並び・スコア・オッズ・Top3 の列まで一致を求める。
+FIDELITY_KEYS = ("num", "score", "odds", "top3_score", "top3_rank")
+
+
 def _fidelity(recomputed_marks: list[dict[str, Any]], snapshot_marks: list[dict[str, Any]]) -> dict[str, Any]:
-    a = [(m.get("num"), m.get("score")) for m in recomputed_marks]
-    b = [(m.get("num"), m.get("score")) for m in snapshot_marks]
-    return {"recomputed_matches_snapshot": a == b,
-            "recomputed_order": [n for n, _ in a], "snapshot_order": [n for n, _ in b]}
+    """再計算した marks が snapshot と完全に一致するか。1列でも違えば false（fail-closed）。"""
+    a = [tuple(m.get(k) for k in FIDELITY_KEYS) for m in recomputed_marks]
+    b = [tuple(m.get(k) for k in FIDELITY_KEYS) for m in snapshot_marks]
+    mismatches = []
+    for i, (row_a, row_b) in enumerate(zip(a, b)):
+        diff = [k for k, va, vb in zip(FIDELITY_KEYS, row_a, row_b) if va != vb]
+        if diff:
+            mismatches.append({"position": i + 1, "num": row_b[0], "fields": diff})
+    if len(a) != len(b):
+        mismatches.append({"position": None, "num": None, "fields": ["length"]})
+    return {"recomputed_matches_snapshot": not mismatches,
+            "compared_fields": list(FIDELITY_KEYS),
+            "mismatches": mismatches,
+            "recomputed_order": [r[0] for r in a], "snapshot_order": [r[0] for r in b]}
 
 
 def _latest_record(race_dir: Path) -> dict[str, Any] | None:
