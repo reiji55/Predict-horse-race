@@ -1,0 +1,61 @@
+{
+  "version": "shadow-research-v1",
+  "registered_at": "2026-09-27T00:00:00+09:00",
+  "note": "前向き検証の事前登録。Champion/自動Chappy/固定3人の買い目・p・妙味には一切使わない。発走時刻が registered_at 以降のレースだけを forward として集計し、それ以前は retrospective として分ける。ここを変えたら version を上げること。",
+  "calibration": {
+    "version": "calibration-monitor-v1",
+    "temperature_candidates": [4, 5, 6, 7, 8, 10, 12],
+    "entropy_match": {
+      "enabled": true,
+      "t_min": 1.0,
+      "t_max": 50.0
+    },
+    "walk_forward": {
+      "grid": [3, 4, 5, 6, 7, 8, 9, 10, 12, 15],
+      "min_history_races": 8
+    },
+    "min_pair_coverage": 0.8,
+    "eps": 1e-12
+  },
+  "chappy_shadow": {
+    "version": "chappy-shadow-v1",
+    "variants": {
+      "integrated_top4_same_pattern": {
+        "description": "signal_board.integrated の降順1〜4位を、現行と同じ役割名・同じ9点patternへそのまま割り当てる。役割スコアでの4頭選抜だけを外し、統合と点構成は現行と同一にする。",
+        "rank_by": "integrated",
+        "roles_in_order": ["win_anchor", "support", "top3_edge", "long_edge"]
+      }
+    }
+  },
+  "diversity": {
+    "version": "diversity-monitor-v1",
+    "characters": ["kei", "tetsu", "gen"],
+    "redundancy_flag": {
+      "require_axis_match": true,
+      "min_jaccard": 0.6
+    }
+  },
+  "rank_gap": {
+    "version": "rank-gap-v1",
+    "max_base_rank": 5,
+    "min_market_rank": 6,
+    "expected_method": "harville_top3_from_win_q"
+  },
+  "decision_log": {
+    "schema_version": "chat-chappy-decision-v1",
+    "total": 1000,
+    "amt_unit": 100,
+    "bet_types": ["ワイド", "馬連", "3連複"],
+    "hypothesis_tags": ["win_anchor", "top3_value", "ability_partner", "rank_gap", "insurance", "other"],
+    "drop_reason_codes": [
+      "insufficient_ability_evidence",
+      "insufficient_top3_evidence",
+      "data_missing",
+      "duplicate_rationale",
+      "condition_mismatch",
+      "budget",
+      "market_price_too_low",
+      "other"
+    ]
+  }
+}
