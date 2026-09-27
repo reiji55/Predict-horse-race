@@ -285,8 +285,9 @@
     .risk-card.chappy .rc-who .cname{font-size:1.02rem;letter-spacing:.05em}
     .risk-card.chappy .risk-tag{font-size:.45rem;padding:2px 4px;letter-spacing:.02em}
   }
-  .rc-hit{text-align:right;font-size:.58rem;font-weight:700;letter-spacing:.08em;opacity:.95;flex:none}
+  .rc-hit{text-align:right;font-size:.56rem;font-weight:700;letter-spacing:.05em;opacity:.96;flex:none;line-height:1.25}
   .rc-hit b{display:block;font-family:var(--mincho);font-size:1.05rem}
+  .rc-hit small{display:block;font-size:.48rem;font-weight:700;letter-spacing:.02em;opacity:.86;white-space:nowrap}
   .risk-card.low .rc-head{background:linear-gradient(120deg,#175A38,#2E7D4F)}
   .risk-card.mid .rc-head{background:linear-gradient(120deg,#8A6508,#B8860B)}
   .risk-card.high .rc-head{background:linear-gradient(120deg,#8E1F18,#C23028)}
@@ -783,6 +784,43 @@ let STATS = {
   ]
 };
 
+// レース詳細カードに出す「実績的中率」用。
+// Chappy/鳳は本線(manual_chat)と検証モデル(auto)を混ぜると意味が変わるため、source別に集計する。
+let CARD_STATS = {};
+
+function buildCardStats(results){
+  const out = {};
+  ((results || {}).results || []).forEach(race=>{
+    const manualRace = race.evaluation_scope === "manual_chat";
+    (race.cards || []).forEach(card=>{
+      if(card.action === "pass") return;
+      const isChappyLayer = card.char === "chappy" || card.char === "otori";
+      const layer = isChappyLayer ? (manualRace || card.source === "manual_chat" ? "manual" : "auto") : "auto";
+      const key = card.char + ":" + layer;
+      const s = out[key] || (out[key] = {hits:0, races:0});
+      s.races += 1;
+      if(card.hit) s.hits += 1;
+    });
+  });
+  Object.keys(out).forEach(key=>{
+    const s = out[key];
+    s.rate = s.races ? Math.round(s.hits / s.races * 100) : 0;
+  });
+  return out;
+}
+
+function cardActualStatsHtml(card){
+  const isChappyLayer = card.char === "chappy" || card.char === "otori";
+  const layer = isChappyLayer && card.manual ? "manual" : "auto";
+  const s = CARD_STATS[card.char + ":" + layer];
+  if(!s || !s.races){
+    return '<span class="rc-hit">実績的中率<b>—</b><small>検証数: 0レース</small></span>';
+  }
+  return '<span class="rc-hit">実績的中率<b>' + s.rate + '%</b>' +
+    '<small>' + s.hits + ' / ' + s.races + ' レース的中</small>' +
+    '<small>検証数: ' + s.races + 'レース</small></span>';
+}
+
 /* 実データを読み込めたかどうか。読めていなければ画面に「サンプル」と明示する。
    ★ 予想(predictions.json)と成績(results.json)は**別ファイル・別のタイミングで揃う**ので、
    フラグも分けている。以前は1つのフラグを予想の読み込みで false にしていたため、
@@ -955,7 +993,7 @@ function cardHtml(c){
         <span class="nickname">${ch.nickname}</span>
         <span class="cname"><span class="cname-text">${ch.name}</span><span class="risk-tag">${ch.risk}</span></span>
       </span>
-      <span class="rc-hit">${(c.char==="chappy"||c.char==="otori")?"参考的中率":"想定的中率"}<b>${c.hit}</b></span>
+      ${cardActualStatsHtml(c)}
     </div>
     <div class="rc-range"><span>${c.total.toLocaleString("ja-JP")}円 → ${c.range==="—"?"事前数値化なし":"想定払戻レンジ"}</span><b>${c.range}</b></div>
     ${bets}
@@ -998,7 +1036,7 @@ function renderDetail(r){
     <div class="kakuhen">
       <div class="kk-tag">◆ 確 変 ◆</div>
       <div class="kk-msg">複数シグナルが同時に基準を突破 — チャッピーから鳳へ。</div>
-      <div class="kk-sub">妙味・データ品質・参考的中率・実オッズの拒否権をすべて通過した高確信モードです。</div>
+      <div class="kk-sub">妙味・データ品質・実オッズなど、複数の内部ゲートを通過した検証モードです。</div>
     </div>` : ''}
     <div class="detail-head">
       <div class="rname">${raceTitleHtml(r.name)} ${gradeBadge(r.grade)}</div>
@@ -1011,7 +1049,7 @@ function renderDetail(r){
       <div class="marks-row">${marks}</div>
     </div>
     ${r.cards.map(cardHtml).join("")}
-    <p class="notice">${sampleNote()}想定的中率・払戻レンジはモデルの試算値であり、結果を保証するものではありません。</p>
+    <p class="notice">${sampleNote()}実績的中率は、これまでの予想で買い目のうち1点以上が的中したレースの割合です。払戻レンジはモデルの試算値で、結果を保証するものではありません。</p>
   `;
 }
 
@@ -1036,7 +1074,7 @@ function renderChars(){
   document.getElementById("scr-chars").innerHTML = `
     <div class="sec-title" style="margin-top:4px">予想師名鑑</div>
     ${html}
-    <p class="notice">※ ケイ・哲さん・源さんは固定ルールの予想師。チャッピーは複数シグナルを動的に統合する1000円枠で、高確信ゲート通過時は同じ枠が鳳へ昇格します。チャッピー/鳳の参考的中率は未校正モデルによる試算で、真の確率を保証するものではありません。</p>
+    <p class="notice">※ ケイ・哲さん・源さんは固定ルールの予想師。チャッピーは複数シグナルを動的に統合する1000円枠で、内部ゲート通過時は同じ枠が鳳へ昇格します。表示する的中率・回収率は実際の確定レース結果から集計します。</p>
   `;
 }
 
@@ -1078,7 +1116,7 @@ function renderStats(){
         </div>
       </div>
       <p class="notice">※ 的中率・回収率は<b>実際のレース結果からのみ</b>集計します。
-      レース画面に出ている「想定的中率」はモデルの試算値で、ここに出る実績とは別物です。</p>`;
+      レース画面の「実績的中率」も、確定済みレース結果だけから集計します。</p>`;
     return;
   }
 
@@ -1189,6 +1227,9 @@ async function boot(){
   if(results && results.results && results.results.length){
     STATS_IS_SAMPLE = false;
     STATS = W3CAdapter.toStats(results, predictions || {});
+    CARD_STATS = buildCardStats(results);
+  }else{
+    CARD_STATS = {};
   }
   renderStats();   // 成績が無い場合も、空状態に描き直すため必ず呼ぶ
 }
