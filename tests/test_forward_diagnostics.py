@@ -158,13 +158,40 @@ def test_fixture_snapshots_are_read_only_and_outputs_stay_in_diagnostics(tmp_pat
     assert written == ["out/diagnostics/20260927-hanshin-11.json", "out/diagnostics/20260927-nakayama-11.json",
                        "out/diagnostics_summary.json"]
     assert summary["official_results_untouched"] is True and summary["used_for_prediction"] is False
-    fwd = summary["forward"]
+    # 9/27 はラベル定義を作る前のレースなので forward ではなく retrospective
+    assert summary["forward"]["races"] == 0
+    assert summary["registered_at"] == "2026-09-28T00:00:00+09:00"
+    fwd = summary["retrospective"]
     assert fwd["available_races"] == 2
     assert fwd["fixed_three_axis_all_same_count"] == 2 and fwd["fixed_three_axis_all_same_rate"] == 1.0
     assert fwd["speed_used_races"] == 0
     assert fwd["by_char"]["gen"]["conversion_loss_count"] == 1
     assert fwd["recall"]["base"] == {"races": 2, "mean_at4": 0.1667, "mean_at6": 0.3333}
     assert summary["errors"] == []
+
+
+# ------------------------------------------------------------------ forward / retrospective
+
+def test_phase_uses_diagnostics_own_registered_at_not_shadow_research(tmp_path: Path):
+    cfg = fd.load_config()
+    shadow_registered = common.load_config()["registered_at"]
+    assert cfg["registered_at"] != shadow_registered            # 別研究の登録日時を流用しない
+    _, rows = _run(tmp_path)
+    for row in rows.values():
+        assert row["phase"] == "retrospective" and row["registered_at"] == cfg["registered_at"]
+
+    # 同じ fixture でも、diagnostics 側の登録日時が発走より前なら forward になる（判定は cfg だけで決まる）
+    early = dict(cfg, registered_at="2026-09-27T12:00:00+09:00")
+    summary = fd.run(_results(), snapshot_dir=FIX / "snapshots", prerace_dir=FIX / "prerace",
+                     output_dir=tmp_path / "early", summary_path=tmp_path / "early.json", cfg=early, now=NOW)
+    assert summary["forward"]["races"] == 2 and summary["retrospective"]["races"] == 0
+
+
+def test_missing_registered_at_is_refused(tmp_path: Path):
+    cfg = {k: v for k, v in fd.load_config().items() if k != "registered_at"}
+    with pytest.raises(ValueError):
+        fd.run(_results(), snapshot_dir=FIX / "snapshots", prerace_dir=FIX / "prerace",
+               output_dir=tmp_path / "d", summary_path=tmp_path / "s.json", cfg=cfg, now=NOW)
 
 
 # ------------------------------------------------------------------ 3. SHA 不一致は fail-closed
@@ -183,7 +210,7 @@ def test_snapshot_sha_mismatch_fails_closed_without_rebuilding_selection(tmp_pat
     for key in ("fixed_three", "candidate_orders", "recall", "cards", "chappy_stage"):
         assert key not in text          # 結果や snapshot から選定を作り直さない
     assert rows[NAKAYAMA]["status"] == "available"
-    assert summary["forward"]["unavailable"] == {"prerace_record_unmatched": 1}
+    assert summary["retrospective"]["unavailable"] == {"prerace_record_unmatched": 1}
 
 
 def test_missing_or_post_time_prerace_record_is_not_used(tmp_path: Path):
@@ -237,10 +264,10 @@ def test_pass_card_is_not_added_to_stake_or_conversion_denominators(tmp_path: Pa
     assert ft["axis_all_same"] is False                  # 3人揃っていないので「全員同じ軸」に数えない
     assert row["post_race"]["cards"]["gen"] == {"status": "pass"}
     assert "gen" not in row["post_race"]["failure_stage"]["by_card"]
-    gen = summary["forward"]["by_char"]["gen"]
+    gen = summary["retrospective"]["by_char"]["gen"]
     assert gen["cards"] == 1 and gen["passes"] == 1        # 中山の1枚だけが分母
     assert gen["conversion_loss_count"] == 0
-    assert summary["forward"]["fixed_three_full_races"] == 1
+    assert summary["retrospective"]["fixed_three_full_races"] == 1
 
 
 # ------------------------------------------------------------------ 5. 同一 pair の重複
@@ -259,6 +286,40 @@ def test_duplicate_pairs_are_normalized_to_one_unique_pair():
     assert conv["actual_top3_pairs_selected"] == [[1, 3]]
     assert conv["winning_pair_present_but_not_ticketed"] is True   # 1-3 は3連複にしか無い
     assert conv["stake_yen"] == 500
+
+
+# ------------------------------------------------------------------ 券種ごとの成立条件
+
+def test_umaren_on_first_and_third_is_conversion_loss():
+    """実着 A-B-C、選定 A/C、馬連 A-C のみ → 馬連は成立しないので loss。"""
+    conv = fd.conversion({"bets": [{"type": "馬連", "horses": [1, 3], "amt": 100}]}, [1, 2, 3])
+    assert conv["actual_top3_pairs_selected"] == [[1, 3]]
+    assert conv["actual_top3_pair_conversion"] == [
+        {"pair": [1, 3], "winnable_types": ["ワイド"], "ticketed_types": ["馬連"], "converted": False}]
+    assert conv["actual_top3_pairs_not_directly_ticketed"] == [[1, 3]]
+    assert conv["winning_pair_present_but_not_ticketed"] is True
+    labels, _ = fd._fixed_card_labels("kei", conv, [1, 2, 3], {}, fd.load_config())
+    assert "ticket_conversion_loss" in labels
+    # 券種をまたいだ構造上の組カバー率は、成立とは別に残す
+    assert conv["direct_pairs_ticketed"] == [[1, 3]] and conv["direct_pair_coverage_ratio"] == 1.0
+
+
+def test_wide_on_first_and_third_is_converted():
+    """同条件でワイド A-C あり → pair 側の conversion loss は無い。"""
+    conv = fd.conversion({"bets": [{"type": "馬連", "horses": [1, 3], "amt": 100},
+                                   {"type": "ワイド", "horses": [3, 1], "amt": 100}]}, [1, 2, 3])
+    assert conv["actual_top3_pairs_directly_ticketed"] == [[1, 3]]
+    assert conv["winning_pair_present_but_not_ticketed"] is False
+
+
+def test_umaren_on_first_and_second_is_covered():
+    """実着 A-B-C、馬連 A-B あり → 馬連側は covered。"""
+    conv = fd.conversion({"bets": [{"type": "馬連", "horses": [2, 1], "amt": 100}]}, [1, 2, 3])
+    assert conv["actual_top3_pair_conversion"] == [
+        {"pair": [1, 2], "winnable_types": ["ワイド", "馬連"], "ticketed_types": ["馬連"], "converted": True}]
+    assert conv["umaren_winning_pair"] == [1, 2]
+    assert conv["umaren_winning_pair_selected"] is True and conv["umaren_winning_pair_ticketed"] is True
+    assert conv["winning_pair_present_but_not_ticketed"] is False
 
 
 def test_winning_trio_selected_but_not_ticketed():

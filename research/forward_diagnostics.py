@@ -300,17 +300,54 @@ def recall(orders: dict[str, dict[str, Any]], top3: list[int], cfg: dict[str, An
     return out
 
 
+def winnable_pair_types(pair: tuple[int, int], top3: list[int]) -> list[str]:
+    """確定着順でこの2頭の組が成立する直接馬券の券種。
+
+    ワイド … 3着内の2頭ならどの組でも成立
+    馬連   … 1着-2着の組だけ成立
+    （3着内に2頭とも入っていない組は、どの券種でも成立しない）
+    """
+    if not set(pair) <= set(top3):
+        return []
+    types = [cards.WIDE]
+    if set(pair) == set(top3[:2]):
+        types.append(cards.UMAREN)
+    return types
+
+
+def _direct_types_by_pair(bets: list[tuple[str, tuple[int, ...], int]]) -> dict[tuple[int, int], set[str]]:
+    out: dict[tuple[int, int], set[str]] = {}
+    for bet_type, horses, _ in bets:
+        if bet_type in DIRECT_PAIR_TYPES and len(horses) == 2:
+            out.setdefault(horses, set()).add(bet_type)   # type: ignore[arg-type]
+    return out
+
+
 def conversion(card: dict[str, Any], top3: list[int]) -> dict[str, Any]:
-    """選定（買い目に登場した馬）と、直接の2頭馬券・3連複への変換。"""
+    """選定（買い目に登場した馬）と、直接の2頭馬券・3連複への変換。
+
+    direct_pair_coverage_ratio は券種をまたいだ構造上の組カバー率（成立するかは問わない）。
+    conversion loss は券種ごとの成立条件で判定する: 3着内の2頭を選んでいたのに、
+    その組が成立する券種（ワイド、1着-2着なら馬連も）の馬券を1枚も持っていなければ loss。
+    例: 1着A・3着C を選び、馬連A-C だけ持っている → 馬連は成立しないので loss。
+    """
     bets = _bets(card)
     selected = sorted({n for _, horses, _ in bets for n in horses})
     selected_top3 = [n for n in top3 if n in selected]           # 着順どおり
     available_pairs = _pairs(selected)
-    ticketed = sorted({horses for bet_type, horses, _ in bets
-                       if bet_type in DIRECT_PAIR_TYPES and len(horses) == 2})   # 同じ組の重複は1つ
-    ticketed_set = set(ticketed)
+    types_by_pair = _direct_types_by_pair(bets)                  # 同じ組・同じ券種の重複は1つ
+    ticketed = sorted(types_by_pair)
     top3_pairs = _pairs(selected_top3)
-    not_ticketed = [p for p in top3_pairs if p not in ticketed_set]
+    pair_rows = []
+    for pair in top3_pairs:
+        winnable = winnable_pair_types(pair, top3)
+        held = sorted(types_by_pair.get(pair, set()))
+        pair_rows.append({"pair": list(pair), "winnable_types": winnable, "ticketed_types": held,
+                          "converted": any(t in winnable for t in held)})
+    converted = [r["pair"] for r in pair_rows if r["converted"]]
+    not_converted = [r["pair"] for r in pair_rows if not r["converted"]]
+    umaren_pair = tuple(sorted(top3[:2]))
+    umaren_selected = set(umaren_pair) <= set(selected)
     trios = {horses for bet_type, horses, _ in bets if bet_type == TRIO_TYPE and len(horses) == 3}
     all_selected = len(selected_top3) == 3
     trio_ticketed = tuple(sorted(top3)) in trios
@@ -326,9 +363,14 @@ def conversion(card: dict[str, Any], top3: list[int]) -> dict[str, Any]:
         "direct_pairs_ticketed_count": len(ticketed),
         "direct_pair_coverage_ratio": round(len(ticketed) / len(available_pairs), 4) if available_pairs else None,
         "actual_top3_pairs_selected": [list(p) for p in top3_pairs],
-        "actual_top3_pairs_directly_ticketed": [list(p) for p in top3_pairs if p in ticketed_set],
-        "actual_top3_pairs_not_directly_ticketed": [list(p) for p in not_ticketed],
-        "winning_pair_present_but_not_ticketed": bool(not_ticketed),
+        "actual_top3_pair_conversion": pair_rows,
+        # 成立する券種の馬券を持っていた組 / 持っていなかった組
+        "actual_top3_pairs_directly_ticketed": converted,
+        "actual_top3_pairs_not_directly_ticketed": not_converted,
+        "winning_pair_present_but_not_ticketed": bool(not_converted),
+        "umaren_winning_pair": list(umaren_pair),
+        "umaren_winning_pair_selected": umaren_selected,
+        "umaren_winning_pair_ticketed": cards.UMAREN in types_by_pair.get(umaren_pair, set()),
         "all_top3_selected": all_selected,
         "winning_trio_ticketed": trio_ticketed,
         "winning_trio_selected_but_not_ticketed": all_selected and not trio_ticketed,
@@ -421,8 +463,12 @@ def chappy_stage(snapshot: dict[str, Any], orders: dict[str, dict[str, Any]],
     role_set = set(roles.values())
     bets = _bets(card)
     ticket_horses = {n for _, horses, _ in bets for n in horses}
-    direct = {horses for bet_type, horses, _ in bets if bet_type in DIRECT_PAIR_TYPES and len(horses) == 2}
+    types_by_pair = _direct_types_by_pair(bets)
+    direct = set(types_by_pair)
     trios = {horses for bet_type, horses, _ in bets if bet_type == TRIO_TYPE and len(horses) == 3}
+
+    def converted(pair: tuple[int, int]) -> bool:
+        return any(t in winnable_pair_types(pair, top3) for t in types_by_pair.get(pair, set()))
 
     role_pairs = _pairs(sorted(role_set))
     role_trios = [tuple(t) for t in itertools.combinations(sorted(role_set), 3)]
@@ -466,7 +512,7 @@ def chappy_stage(snapshot: dict[str, Any], orders: dict[str, dict[str, Any]],
                                        if u["direct_pairs_ticketed"] < u["direct_pairs_with_roles"]
                                        or u["trios_ticketed"] < u["trios_with_roles"]],
         "actual_top3_role_pairs": [list(p) for p in top3_role_pairs],
-        "actual_top3_role_pairs_not_directly_ticketed": [list(p) for p in top3_role_pairs if p not in direct],
+        "actual_top3_role_pairs_not_directly_ticketed": [list(p) for p in top3_role_pairs if not converted(p)],
         "actual_top3_drops": {
             # 3着内の馬が、どの遷移で落ちた／拾われたか（頭数）
             "integration_cut": sum(1 for n in top3 if n not in role_set
@@ -474,7 +520,7 @@ def chappy_stage(snapshot: dict[str, Any], orders: dict[str, dict[str, Any]],
             "role_cut": sum(1 for n in top3 if n not in role_set and _within(integrated, n, seen_k)),
             f"role_added_outside_integrated_top{seen_k}": sum(1 for n in top3 if n in role_set
                                                      and not _within(integrated, n, seen_k)),
-            "role_to_ticket_pairs_missing": sum(1 for p in top3_role_pairs if p not in direct),
+            "role_to_ticket_pairs_missing": sum(1 for p in top3_role_pairs if not converted(p)),
         },
     }
 
@@ -482,7 +528,7 @@ def chappy_stage(snapshot: dict[str, Any], orders: dict[str, dict[str, Any]],
 # ------------------------------------------------------------------ レース単位
 
 def diagnose_race(snapshot: dict[str, Any], snapshot_path: Path, result: dict[str, Any],
-                  prerace_dir: Path, cfg: dict[str, Any], shadow_config: dict[str, Any]) -> dict[str, Any]:
+                  prerace_dir: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     race_id = snapshot["race_id"]
     post = common.post_at(race_id, snapshot.get("post_time"))
     snapshot_sha = common.sha256_file(snapshot_path)
@@ -494,7 +540,10 @@ def diagnose_race(snapshot: dict[str, Any], snapshot_path: Path, result: dict[st
         "diagnostics_version": cfg.get("version"),
         "diagnostics_config_hash": common.config_hash(cfg),
         "race_id": race_id,
-        "phase": common.phase_of(post, shadow_config),
+        # diagnostics 自身の事前登録日時で分ける（ラベル定義は 9/27 の結果を見た後に作ったため、
+        # shadow_research.json の registered_at を流用すると 9/27 が forward に入ってしまう）
+        "phase": common.phase_of(post, cfg),
+        "registered_at": cfg.get("registered_at"),
         "official_results_untouched": True,
         "used_for_prediction": False,
         "evidence": {
@@ -682,14 +731,14 @@ def summarize(rows: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str, Any]
 
 def run(race_results: dict[str, Any], snapshot_dir: Path | None = None, prerace_dir: Path | None = None,
         output_dir: Path | None = None, summary_path: Path | None = None,
-        cfg: dict[str, Any] | None = None, shadow_config: dict[str, Any] | None = None,
-        now: datetime.datetime | None = None) -> dict[str, Any]:
+        cfg: dict[str, Any] | None = None, now: datetime.datetime | None = None) -> dict[str, Any]:
     snapshot_dir = snapshot_dir or snapshots.SNAPSHOT_DIR
     prerace_dir = prerace_dir or common.PRERACE_DIR
     output_dir = output_dir or DIAGNOSTICS_DIR
     summary_path = summary_path or SUMMARY_PATH
     cfg = cfg or load_config()
-    shadow_config = shadow_config or common.load_config()
+    if common.parse_dt(cfg.get("registered_at")) is None:
+        raise ValueError("config/forward_diagnostics.json に registered_at が必要です")
 
     targets = []
     for path in sorted(snapshot_dir.glob("*.json")):
@@ -710,7 +759,7 @@ def run(race_results: dict[str, Any], snapshot_dir: Path | None = None, prerace_
     errors: list[dict[str, Any]] = []
     for post, race_id, path, snap, result in targets:
         try:
-            row = diagnose_race(snap, path, result, prerace_dir, cfg, shadow_config)
+            row = diagnose_race(snap, path, result, prerace_dir, cfg)
         except Exception as exc:  # noqa: BLE001 — 1レースの失敗で全体を止めないが、黙らない
             logger.error("%s: diagnostics failed: %s: %s", race_id, type(exc).__name__, exc)
             errors.append({"race_id": race_id, "error": f"{type(exc).__name__}: {exc}"})
@@ -731,7 +780,7 @@ def run(race_results: dict[str, Any], snapshot_dir: Path | None = None, prerace_
         "diagnostics_version": cfg.get("version"),
         "diagnostics_config_hash": common.config_hash(cfg),
         "spec": cfg.get("spec"),
-        "registered_at": shadow_config.get("registered_at"),
+        "registered_at": cfg.get("registered_at"),
         "official_results_untouched": True,
         "used_for_prediction": False,
         "note": "失敗段階の観測記録。少数標本なので良し悪しの判定には使わない。"
