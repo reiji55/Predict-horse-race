@@ -1,0 +1,18 @@
+{
+  "version": "forward-diagnostics-v1",
+  "spec": "docs/audit/FORWARD_DIAGNOSTICS_SPEC_20260927.md",
+  "note": "結果確定後の監査用（observe-only）。Champion・自動Chappy・固定3人の予想・選定・買い目・重みには一切使わない。data/shadow/diagnostics* にだけ書く。ここを変えたら version を上げること。",
+  "rank_sources": ["base", "top3", "kei_sel", "tetsu_sel", "gen_sel", "chappy_integrated"],
+  "recall_k": [4, 6],
+  "cut_k": 4,
+  "seen_k": 6,
+  "fixed_three": ["kei", "tetsu", "gen"],
+  "redundancy_flag": {
+    "require_axis_match": true,
+    "min_jaccard": 0.6
+  },
+  "design_check": {
+    "version": "design-check-v1",
+    "require": ["speed_used", "win_odds_complete", "scores_complete"]
+  }
+}
