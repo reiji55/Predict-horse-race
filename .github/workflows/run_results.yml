@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_shadow_research.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_shadow_research.py tests/test_forward_diagnostics.py -q
 
       - name: 対象の週を決める
         id: target
@@ -101,6 +101,18 @@ jobs:
             python -m research.settle --results data/race_results.json
           else
             echo "結果がまだ無いため shadow 採点をスキップします"
+          fi
+
+      - name: forward diagnostics（observe-only）
+        # 失敗段階の監査（疑似コンセンサス・recall@4/@6・conversion loss・Chappy段階）。
+        # data/shadow/diagnostics* にだけ書く。予想pipelineはこの出力を読まない。
+        # 失敗しても成績集計は止めないが、失敗したレースはrace_idと理由をログに出し、終了コード1にする。
+        continue-on-error: true
+        run: |
+          if [ -f data/race_results.json ]; then
+            python -m research.forward_diagnostics --results data/race_results.json
+          else
+            echo "結果がまだ無いため diagnostics をスキップします"
           fi
 
       - name: 生成物をコミット

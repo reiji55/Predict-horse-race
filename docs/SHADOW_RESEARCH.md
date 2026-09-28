@@ -201,6 +201,36 @@ settle では、検証を通った案について次を記録します。
 
 ---
 
+## 6. Forward diagnostics（forward-diagnostics-v1）
+
+仕様: `docs/audit/FORWARD_DIAGNOSTICS_SPEC_20260927.md`。実装: `research/forward_diagnostics.py`、設定: `config/forward_diagnostics.json`。
+
+- 出力は `data/shadow/diagnostics/{race_id}.json` と `data/shadow/diagnostics_summary.json` だけ。予想pipelineは読まない。
+- **fail-closed:** 採点時の snapshot と SHA-256 が一致する、発走前（`captured_at < 発走`）の prerace record があるレースだけを診断する。無ければ `status=unavailable`（`prerace_record_unmatched` / `no_prerace_record`）で、snapshot や結果から選定を作り直さない。prerace record の fidelity が false なら `*_sel` だけ unavailable。
+- 発走前: 固定3人の軸・軸依存額（軸を含む bet の額 / 固定3人の総額。3連複も軸を含めば数える）・sel 順位相関・買い目馬 Jaccard、speed_quality 要約と `model_running_as_designed`（design-check-v1）、各順位（base / Top3 / 各キャラ sel / Chappy integrated / roles / 買い目馬）。
+- 結果確定後（監査専用）: 各順位の recall@4 / @6、カードごとの conversion、3連複化、Chappy の integrated → role → ticket 遷移、失敗段階ラベル。
+  - `direct_pair_coverage_ratio` は券種をまたいだ構造上の組カバー率（直接2頭馬券＝ワイド・馬連。3連複は数えない。同じ組は1つに正規化）。
+  - conversion loss は**券種ごとの成立条件**で判定する: ワイドは3着内のどの2頭の組でも、馬連は1着-2着の組だけ、3連複は3着内の3頭。1着・3着を選んで馬連だけ持っていた組は loss。
+- phase（forward / retrospective）は `config/forward_diagnostics.json` 自身の `registered_at`（2026-09-28 00:00 JST）で分ける。仕様とラベル定義は 9/27 の結果を見た後に作ったので、9/27 以前は retrospective。
+- PASS カードは購入額・conversion の分母に入れない。
+
+失敗段階ラベル（`cut_k=4`、`seen_k=6`）:
+
+| ラベル | 単位 | 条件 |
+|---|---|---|
+| `feature_miss` | 馬 | どの順位（base / Top3 / 各 sel / integrated）でも6位以内にいない |
+| | カード | そのカードの上流の順位（固定3人: base / Top3 / 自分の sel、Chappy: base / Top3 / integrated）で6位以内にいない |
+| `base_rank_cut` / `top3_rank_cut` | 馬 | その順位で5〜6位（Top6 にはいたが Top4 圏外） |
+| `character_selection_cut` | 固定3人カード | 上流で6位以内なのに買い目に不在 |
+| `chappy_integration_cut` | Chappy | base / Top3 で6位以内、integrated で6位圏外、role にも不在 |
+| `chappy_role_cut` | Chappy | integrated で6位以内なのに role に不在 |
+| `ticket_conversion_loss` | カード | 3着内の2頭を選んでいたのに、その組が成立する券種（ワイド、1着-2着なら馬連も）の馬券が無い／3頭とも選んでいたのに3連複が無い（Chappy は role にいたのに買い目に不在も含む） |
+| `no_structural_miss_detected` | 馬以外 | 上のどれにも当たらない |
+
+ラベルは観測記録で、単一原因の断定ではない。少数標本のうちは良し悪しの判定に使わない。
+
+---
+
 ## PR #12（Context Layers 監査基盤）との関係
 
 - PR #12 は、Context 証跡（Prediction / Context / Odds を SHA-256 で束ねる manifest）と、`anomaly_report` の race_audits を担当します。
