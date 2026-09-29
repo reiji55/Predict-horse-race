@@ -34,11 +34,13 @@ import datetime
 import hashlib
 import json
 import logging
+import re
 import statistics
 from pathlib import Path
 from typing import Any, Iterable
 
 from logic import speed_index
+from scraper.common import constants
 from scripts import build_base_times as bbt
 
 logger = logging.getLogger("scripts.base_times_v2")
@@ -49,6 +51,12 @@ FORMULA = "base_time = median(win_time - class_offset[class] * dist/2000), round
 QUANTILE_METHOD = "statistics.quantiles(method='inclusive')"
 OUTPUT_DIR = bbt.ROOT / "data" / "reference" / "base_times"
 CONFIG_DIR = bbt.ROOT / "config"
+# artifact_id はファイル名になる。パス区切り・「..」・絶対パスを入れさせない
+ARTIFACT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+# このスクリプトが絶対に書かない場所（Champion の表・予想の入力・コード・正式データ）
+PROTECTED_DIRS = tuple(bbt.ROOT / d for d in ("config", "raw", "logic", "scraper", "results", "research", "data"))
+# PROTECTED_DIRS の中でも、研究用 artifact だけは書いてよい場所
+ARTIFACT_ALLOWED_DIRS = (OUTPUT_DIR,)
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
 
@@ -228,19 +236,68 @@ def build_v2(records: Iterable[dict[str, Any]], *, cutoff: datetime.date, artifa
     return {"lookup": lookup, "meta": meta}
 
 
+def validate_artifact_id(artifact_id: Any) -> str:
+    """artifact_id はファイル名の slug に限る（`/`・`\\`・`..`・絶対パスで外へ抜けさせない）。"""
+    if not isinstance(artifact_id, str) or not ARTIFACT_ID_RE.fullmatch(artifact_id) or ".." in artifact_id:
+        raise ValueError(f"artifact_id は英数字・'.'・'_'・'-' だけの名前にしてください: {artifact_id!r}")
+    return artifact_id
+
+
+def _is_within(path: Path, directory: Path) -> bool:
+    resolved, base = path.resolve(), directory.resolve()
+    return resolved == base or base in resolved.parents
+
+
+def ensure_writable(path: Path, allowed: tuple[Path, ...] = ()) -> Path:
+    """
+    書き出し先の最終パスを resolve して検査する。
+
+    PROTECTED_DIRS（config/ raw/ logic/ scraper/ results/ research/ data/）の中へは書かない。
+    ただし allowed に含まれる場所（研究用 artifact の置き場）だけは例外。
+    """
+    if any(_is_within(path, d) for d in allowed):
+        return path
+    for protected in PROTECTED_DIRS:
+        if _is_within(path, protected):
+            raise ValueError(f"{path} には書き出しません（保護対象: {protected.relative_to(bbt.ROOT)}/）")
+    return path
+
+
+def _artifact_bytes(payload: Any) -> bytes:
+    return (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
 def write_artifacts(result: dict[str, Any], output_dir: Path = OUTPUT_DIR) -> tuple[Path, Path]:
-    """lookup と meta を書く。config/ 配下（Champion の表の置き場）へは書かない。"""
-    resolved = output_dir.resolve()
-    if resolved == CONFIG_DIR.resolve() or CONFIG_DIR.resolve() in resolved.parents:
-        raise ValueError("config/ 配下には書き出しません（Champion の base_times を守るため）")
-    artifact_id = result["meta"]["artifact_id"]
+    """
+    lookup と meta を書く。**一度書いた artifact は変えない**（forward 実験中に表が差し替わらないように）。
+
+    - 両方とも無い                   → 書く
+    - 両方あり、中身がバイト単位で同じ → 何もしない（同じ build の再実行）
+    - 片方だけある / 中身が違う       → ValueError（新しい artifact_id を使うこと）
+    書き出し先は ensure_writable で検査し、config/ などの保護対象には書かない。
+    """
+    artifact_id = validate_artifact_id(result["meta"]["artifact_id"])
+    lookup_path = ensure_writable(output_dir / f"{artifact_id}.json", ARTIFACT_ALLOWED_DIRS)
+    meta_path = ensure_writable(output_dir / f"{artifact_id}.meta.json", ARTIFACT_ALLOWED_DIRS)
+    for path in (lookup_path, meta_path):
+        if path.resolve().parent != output_dir.resolve():
+            raise ValueError(f"書き出し先が output_dir の外です: {path}")
+
+    planned = {lookup_path: _artifact_bytes(result["lookup"]), meta_path: _artifact_bytes(result["meta"])}
+    existing = [path for path in planned if path.exists()]
+    if len(existing) == len(planned):
+        if all(path.read_bytes() == data for path, data in planned.items()):
+            logger.info("artifact %s は同じ内容で書き出し済みのため何もしません", artifact_id)
+            return lookup_path, meta_path
+        raise ValueError(f"artifact {artifact_id} は別の内容で既に存在します。新しい artifact_id を使ってください")
+    if existing:
+        raise ValueError(f"artifact {artifact_id} の片方だけが存在します: {existing}。手で確認してください")
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    lookup_path = output_dir / f"{artifact_id}.json"
-    meta_path = output_dir / f"{artifact_id}.meta.json"
-    for path, payload in ((lookup_path, result["lookup"]), (meta_path, result["meta"])):
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=True)
-            f.write("\n")
+    for path, data in planned.items():
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_bytes(data)
+        tmp.replace(path)
     return lookup_path, meta_path
 
 
@@ -305,15 +362,24 @@ def coverage_report(raw_dir: Path, tables: dict[str, dict[str, Any]],
     （同じ raw から作った候補表なら、なおさら retrospective な参考値）。
     """
     speed_config = speed_config if speed_config is not None else speed_index.load_config()
+    # speed で使える走（JRA10場 × 芝/ダ）だけを需要として数える。
+    # 地方・海外・障害の走は基準タイムがあっても speed_index.is_usable で落ちるので別枠。
     demand: collections.Counter = collections.Counter()
+    ineligible: collections.Counter = collections.Counter()
     races: list[dict[str, Any]] = []
     for _name, raw in _iter_raw(raw_dir):
         for race in raw.get("races") or []:
             for entry in race.get("entries") or []:
                 for run in entry.get("past_runs") or []:
                     venue, surface, dist = run.get("venue"), run.get("surface"), run.get("dist")
-                    if venue and surface and dist:
+                    if not (venue and surface and dist):
+                        continue
+                    if venue in constants.JRA_VENUES and surface in speed_index.VALID_SURFACES:
                         demand[f"{venue}/{surface}/{int(dist)}"] += 1
+                    elif venue not in constants.JRA_VENUES:
+                        ineligible["non_jra_venue"] += 1
+                    else:
+                        ineligible["non_flat_surface"] += 1
             races.append(race)
     races.sort(key=lambda r: str(r.get("id")))
     if include_ceiling:
@@ -348,10 +414,13 @@ def coverage_report(raw_dir: Path, tables: dict[str, dict[str, Any]],
 
     return {
         "note": "カバレッジの見積もり。精度・成績の検証ではない。予想には使わない。"
+                "runs / courses は speed で使える走（JRA10場×芝/ダ）だけ。地方・海外・障害は ineligible に分ける。"
                 "ceiling_all_demanded は必要コースが全部埋まった場合の上限で、値はダミー（頭数だけ意味を持つ）。",
         "guard": {k: speed_config.get("guard", {}).get(k)
                   for k in ("same_surface_only", "min_usable_runs", "min_race_coverage")},
-        "demand": {"runs": total_runs, "courses": len(demand)},
+        "demand": {"eligible_runs": total_runs, "eligible_courses": len(demand),
+                   "ineligible_runs": sum(ineligible.values()),
+                   "ineligible_by_reason": dict(sorted(ineligible.items()))},
         "tables": out_tables,
         "races": race_rows,
     }
@@ -393,6 +462,12 @@ def main(argv: list[str] | None = None) -> int:
         inputs = [_file_digest(args.input)]
 
     artifact_id = args.artifact_id or f"base-times-v2-{args.source}-{args.cutoff.strftime('%Y%m%d')}"
+    try:
+        validate_artifact_id(artifact_id)
+        if args.report:
+            ensure_writable(args.report)
+    except ValueError as exc:
+        parser.error(str(exc))
     built_at = args.built_at or datetime.datetime.now(JST).isoformat(timespec="seconds")
     result = build_v2(records, cutoff=args.cutoff, artifact_id=artifact_id, built_at=built_at,
                       source={"kind": args.source, "inputs": inputs, "collector": collect_report},

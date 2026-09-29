@@ -229,6 +229,73 @@ def test_champion_base_times_are_never_written(tmp_path: Path, monkeypatch):
     assert (ROOT / "config" / "base_times.json").read_bytes() == champion
 
 
+# ------------------------------------------------------------------ 凍結 artifact は変えない
+
+def test_artifact_is_immutable_once_written(tmp_path: Path):
+    records = [_record(f"2026-05-0{d}", time=93.0 + d / 10) for d in range(1, 6)]
+    first = _build(records)
+    out = tmp_path / "ref"
+
+    lookup_path, meta_path = v2.write_artifacts(first, out)            # 1. 初回は書く
+    before = (lookup_path.read_bytes(), meta_path.read_bytes())
+
+    assert v2.write_artifacts(_build(records), out) == (lookup_path, meta_path)   # 2. 同じ内容は no-op
+    assert (lookup_path.read_bytes(), meta_path.read_bytes()) == before
+
+    changed = _build(records + [_record("2026-06-01", time=99.0)])      # 3. 同じ id で中身が違う → 拒否
+    with pytest.raises(ValueError, match="別の内容"):
+        v2.write_artifacts(changed, out)
+    meta_only = dict(first, meta={**first["meta"], "built_at": "2030-01-01T00:00:00+09:00"})
+    with pytest.raises(ValueError, match="別の内容"):                     #    meta だけ違っても拒否
+        v2.write_artifacts(meta_only, out)
+    assert (lookup_path.read_bytes(), meta_path.read_bytes()) == before
+
+    for missing in (meta_path, lookup_path):                            # 4. 片方だけ存在 → 拒否
+        other = tmp_path / f"partial-{missing.name}"
+        other.mkdir()
+        (other / lookup_path.name if missing is meta_path else other / meta_path.name).write_bytes(b"{}\n")
+        with pytest.raises(ValueError, match="片方だけ"):
+            v2.write_artifacts(first, other)
+        assert len(list(other.iterdir())) == 1
+
+
+# ------------------------------------------------------------------ 書き出し先のガード
+
+@pytest.mark.parametrize("bad_id", ["../../../config/base_times", "../escape", "sub/dir", "/abs/path",
+                                    "..", ".hidden", "a\\b", "", "a b"])
+def test_traversal_or_absolute_artifact_ids_are_rejected(tmp_path: Path, bad_id):
+    result = _build([_record("2026-05-10")], min_samples=1, artifact_id=bad_id)
+    with pytest.raises(ValueError):
+        v2.write_artifacts(result, tmp_path / "ref")
+    assert not (tmp_path / "ref").exists()
+
+
+def test_report_and_artifacts_never_land_in_protected_dirs(tmp_path: Path):
+    champion = (ROOT / "config" / "base_times.json").read_bytes()
+    common_args = ["--source", "raw", "--raw-dir", str(FIX_DIR), "--cutoff", "2026-09-27", "--built-at", BUILT_AT]
+
+    for report in ("config/base_times.json", str(ROOT / "config" / "base_times.json"),
+                   "data/results.json", "raw/x.json"):
+        with pytest.raises(SystemExit):
+            v2.main(common_args + ["--report", report])
+    with pytest.raises(SystemExit):
+        v2.main(common_args + ["--artifact-id", "../../../config/base_times", "--write",
+                               "--output-dir", str(tmp_path / "ref")])
+    with pytest.raises(ValueError):
+        v2.ensure_writable(ROOT / "data" / "reference" / "base_times" / ".." / ".." / "results.json",
+                           v2.ARTIFACT_ALLOWED_DIRS)
+    assert v2.ensure_writable(v2.OUTPUT_DIR / "x.json", v2.ARTIFACT_ALLOWED_DIRS)   # 研究用の置き場は可
+
+    # 正常なパスなら成功する
+    report_path = tmp_path / "reports" / "coverage.json"
+    assert v2.main(common_args + ["--artifact-id", "base-times-v2-test", "--write",
+                                  "--output-dir", str(tmp_path / "ref"), "--report", str(report_path)]) == 0
+    assert report_path.exists()
+    assert sorted(p.name for p in (tmp_path / "ref").iterdir()) == ["base-times-v2-test.json",
+                                                                   "base-times-v2-test.meta.json"]
+    assert (ROOT / "config" / "base_times.json").read_bytes() == champion
+
+
 def test_prediction_path_does_not_read_v2_artifacts():
     for directory in ("logic", "scraper", "results", "research"):
         for path in (ROOT / directory).rglob("*.py"):
@@ -244,9 +311,14 @@ def test_coverage_report_matches_guard_and_is_read_only():
     report = v2.coverage_report(FIX_DIR, {"champion_v1": champion, "empty": {}})
     assert json.dumps(champion, sort_keys=True) == before
 
-    runs = sum(len(e["past_runs"]) for r in json.loads((FIX_DIR / "2026-W39.json").read_text(encoding="utf-8"))["races"]
-               for e in r["entries"])
-    assert report["demand"]["runs"] == runs
+    all_runs = [run for r in json.loads((FIX_DIR / "2026-W39.json").read_text(encoding="utf-8"))["races"]
+                for e in r["entries"] for run in e["past_runs"]]
+    eligible = [run for run in all_runs if run["venue"] in bbt.constants.JRA_VENUES
+                and run["surface"] in speed_index.VALID_SURFACES]
+    demand = report["demand"]
+    assert demand["eligible_runs"] == len(eligible)
+    assert demand["eligible_runs"] + demand["ineligible_runs"] == len(all_runs)
+    assert demand["ineligible_runs"] > 0                     # 地方・海外・障害の走は需要に混ぜない
     assert report["tables"]["empty"]["runs_covered"] == 0
     assert report["tables"]["ceiling_all_demanded"]["runs_missing"] == 0
 
