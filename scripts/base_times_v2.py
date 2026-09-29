@@ -53,10 +53,11 @@ OUTPUT_DIR = bbt.ROOT / "data" / "reference" / "base_times"
 CONFIG_DIR = bbt.ROOT / "config"
 # artifact_id はファイル名になる。パス区切り・「..」・絶対パスを入れさせない
 ARTIFACT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-# このスクリプトが絶対に書かない場所（Champion の表・予想の入力・コード・正式データ）
-PROTECTED_DIRS = tuple(bbt.ROOT / d for d in ("config", "raw", "logic", "scraper", "results", "research", "data"))
-# PROTECTED_DIRS の中でも、研究用 artifact だけは書いてよい場所
+# リポジトリ内で書いてよい場所の**許可リスト**（それ以外のリポジトリ内パスには一切書かない）。
+# リポジトリの外（一時ディレクトリなど）は自由。
 ARTIFACT_ALLOWED_DIRS = (OUTPUT_DIR,)
+REPORT_DIR = OUTPUT_DIR / "reports"
+REPORT_ALLOWED_DIRS = (REPORT_DIR,)
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
 
@@ -250,17 +251,15 @@ def _is_within(path: Path, directory: Path) -> bool:
 
 def ensure_writable(path: Path, allowed: tuple[Path, ...] = ()) -> Path:
     """
-    書き出し先の最終パスを resolve して検査する。
+    書き出し先の最終パスを resolve して検査する（許可リスト方式）。
 
-    PROTECTED_DIRS（config/ raw/ logic/ scraper/ results/ research/ data/）の中へは書かない。
-    ただし allowed に含まれる場所（研究用 artifact の置き場）だけは例外。
+    - リポジトリの外 → 書いてよい
+    - リポジトリの中 → allowed のどれかの配下だけ。config/・コード・テスト・CI 設定などには書かない
     """
-    if any(_is_within(path, d) for d in allowed):
+    if not _is_within(path, bbt.ROOT) or any(_is_within(path, d) for d in allowed):
         return path
-    for protected in PROTECTED_DIRS:
-        if _is_within(path, protected):
-            raise ValueError(f"{path} には書き出しません（保護対象: {protected.relative_to(bbt.ROOT)}/）")
-    return path
+    where = ", ".join(str(d.relative_to(bbt.ROOT)) + "/" for d in allowed) or "（なし）"
+    raise ValueError(f"{path} には書き出しません。リポジトリ内で書けるのは {where} だけです")
 
 
 def _artifact_bytes(payload: Any) -> bytes:
@@ -446,7 +445,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--built-at", default=None, help="meta に記録する作成日時（既定は現在時刻）")
     parser.add_argument("--min-samples", type=int, default=bbt.DEFAULT_MIN_SAMPLES)
     parser.add_argument("--going", action="append", help="馬場で絞る（既定は全馬場＝v1 と同じ）")
-    parser.add_argument("--report", type=Path, help="カバレッジ報告の JSON をここへ書く")
+    parser.add_argument("--report", type=Path,
+                        help="カバレッジ報告の JSON をここへ書く（リポジトリ外か data/reference/base_times/reports/ のみ）")
     parser.add_argument("--write", action="store_true", help="lookup と meta を --output-dir に書く")
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     args = parser.parse_args(argv)
@@ -465,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         validate_artifact_id(artifact_id)
         if args.report:
-            ensure_writable(args.report)
+            ensure_writable(args.report, REPORT_ALLOWED_DIRS)
     except ValueError as exc:
         parser.error(str(exc))
     built_at = args.built_at or datetime.datetime.now(JST).isoformat(timespec="seconds")

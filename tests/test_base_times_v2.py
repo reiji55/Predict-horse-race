@@ -274,10 +274,19 @@ def test_report_and_artifacts_never_land_in_protected_dirs(tmp_path: Path):
     champion = (ROOT / "config" / "base_times.json").read_bytes()
     common_args = ["--source", "raw", "--raw-dir", str(FIX_DIR), "--cutoff", "2026-09-27", "--built-at", BUILT_AT]
 
-    for report in ("config/base_times.json", str(ROOT / "config" / "base_times.json"),
-                   "data/results.json", "raw/x.json"):
+    protected_files = ["config/base_times.json", "scripts/build_base_times.py", "tests/test_base_times_v2.py",
+                       ".github/workflows/ci.yml", "requirements-dev.txt"]
+    before = {name: (ROOT / name).read_bytes() for name in protected_files}
+    for report in (*protected_files, str(ROOT / "config" / "base_times.json"), "data/results.json",
+                   "raw/x.json", "docs/new_report.json", "data/reference/base_times/x.json"):
         with pytest.raises(SystemExit):
             v2.main(common_args + ["--report", report])
+    assert {name: (ROOT / name).read_bytes() for name in protected_files} == before
+    assert not (ROOT / "docs" / "new_report.json").exists()
+    # リポジトリ内で report を書けるのは専用ディレクトリだけ
+    assert v2.ensure_writable(v2.REPORT_DIR / "coverage.json", v2.REPORT_ALLOWED_DIRS)
+    with pytest.raises(ValueError):
+        v2.ensure_writable(ROOT / "scripts" / "x.json", v2.ARTIFACT_ALLOWED_DIRS)   # artifact も許可リスト外は不可
     with pytest.raises(SystemExit):
         v2.main(common_args + ["--artifact-id", "../../../config/base_times", "--write",
                                "--output-dir", str(tmp_path / "ref")])
