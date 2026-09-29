@@ -1,0 +1,65 @@
+name: TEMP acquire base_times v2 source
+
+on:
+  push:
+    branches:
+      - claude/content-review-full-rw32o2
+    paths:
+      - '.github/workflows/temp_acquire_base_times_v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/content-review-full-rw32o2
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Acquire controlled netkeiba source records
+        run: python -m scripts.acquire_base_times_v2 --start-year 2023 --end-year 2026
+
+      - name: Verify complete source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          FINAL="data/reference/base_times/sources/netkeiba-race-search-2023-2026.records.json"
+          PARTIAL="data/reference/base_times/sources/netkeiba-race-search-2023-2026.records.partial.json"
+          test -f "$FINAL"
+          test ! -e "$PARTIAL"
+          python - <<'PY'
+          import json
+          p="data/reference/base_times/sources/netkeiba-race-search-2023-2026.records.json"
+          with open(p, encoding="utf-8") as f:
+              d=json.load(f)
+          planned=d.get("planned_courses") or []
+          courses=d.get("courses") or {}
+          if len(planned) != 101 or len(courses) != 101:
+              raise SystemExit(f"incomplete: planned={len(planned)} courses={len(courses)}")
+          print("records", len(d.get("records") or []))
+          print("empty_courses", sum(1 for x in courses.values() if x.get("empty")))
+          print("records_sha256", d.get("records_sha256"))
+          PY
+
+      - name: Commit complete records only
+        shell: bash
+        run: |
+          set -euo pipefail
+          FINAL="data/reference/base_times/sources/netkeiba-race-search-2023-2026.records.json"
+          git config user.name "base-times-v2-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$FINAL"
+          git diff --cached --quiet && exit 0
+          git commit -m "data(reference): acquire netkeiba base-times v2 source records"
+          git push origin HEAD:claude/content-review-full-rw32o2
