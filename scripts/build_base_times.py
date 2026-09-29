@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime
 import json
 import logging
 import re
@@ -171,22 +172,21 @@ def normalize_win_time(record: dict[str, Any], class_offset: dict[str, float]) -
     return win_time - class_offset[klass] * (dist / 2000)
 
 
-def build_table(
+Bucket = dict[tuple[str, str, int], list[tuple[float, dict[str, Any]]]]
+
+
+def bucket_records(
     records: Iterable[dict[str, Any]],
-    class_offset: dict[str, float] | None = None,
-    min_samples: int = DEFAULT_MIN_SAMPLES,
+    class_offset: dict[str, float],
     goings: list[str] | None = None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[Bucket, int]:
     """
-    勝ちタイムレコードの集合から base_times 表を組み立てる（§4）。
+    レコードをコース（venue, surface, dist）ごとに振り分け、§4の正規化済み勝ちタイムを付ける。
 
-    goings: 馬場状態で絞る場合に指定（例 ["良"]）。None なら全馬場（仕様§4のとおり）。
-    戻り値: (表, レポート)。レポートは
-            {"counts": {"東京/芝/1600": 42, ...}, "skipped": [...], "courses_missing": [...]}
+    戻り値: ({(venue, surface, dist): [(正規化タイム, 元レコード), ...]}, 除外件数)
+    build_table（v1）と base_times_v2 が**同じ振り分け・同じ正規化**を使うための共通部品。
     """
-    class_offset = class_offset if class_offset is not None else load_class_offset()
-
-    buckets: dict[tuple[str, str, int], list[float]] = {}
+    buckets: Bucket = {}
     skipped = 0
     for record in records:
         venue = record.get("venue")
@@ -202,42 +202,107 @@ def build_table(
         if normalized is None:
             skipped += 1
             continue
-        buckets.setdefault((venue, surface, int(dist)), []).append(normalized)
+        buckets.setdefault((venue, surface, int(dist)), []).append((normalized, record))
+    return buckets, skipped
 
+
+def base_time_value(values: list[float]) -> float:
+    """§4の基準タイム＝正規化勝ちタイムの中央値（小数1桁）。v1・v2で共通。"""
+    return round(statistics.median(values), 1)
+
+
+def table_from_buckets(buckets: Bucket, min_samples: int) -> tuple[dict[str, Any], dict[str, int]]:
+    """振り分け済みのバケットから lookup 表（speed_index.lookup_base_time と同じ形）を作る。"""
     table: dict[str, dict[str, dict[str, float]]] = {}
     counts: dict[str, int] = {}
-    for (venue, surface, dist), values in sorted(buckets.items()):
-        key = f"{venue}/{surface}/{dist}"
-        counts[key] = len(values)
+    for (venue, surface, dist), items in sorted(buckets.items()):
+        values = [value for value, _ in items]
+        counts[f"{venue}/{surface}/{dist}"] = len(values)
         if len(values) < min_samples:
             continue
-        table.setdefault(venue, {}).setdefault(surface, {})[str(dist)] = round(statistics.median(values), 1)
+        table.setdefault(venue, {}).setdefault(surface, {})[str(dist)] = base_time_value(values)
+    return table, counts
 
-    missing = [
+
+def missing_courses(table: dict[str, Any]) -> list[str]:
+    """COURSES のうち、表に基準タイムが無いコース。"""
+    return [
         f"{venue}/{surface}/{dist}"
         for venue, by_surface in COURSES.items()
         for surface, dists in by_surface.items()
         for dist in dists
         if str(dist) not in table.get(venue, {}).get(surface, {})
     ]
-    report = {"counts": counts, "skipped": skipped, "courses_missing": missing}
+
+
+def build_table(
+    records: Iterable[dict[str, Any]],
+    class_offset: dict[str, float] | None = None,
+    min_samples: int = DEFAULT_MIN_SAMPLES,
+    goings: list[str] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    勝ちタイムレコードの集合から base_times 表を組み立てる（§4）。
+
+    goings: 馬場状態で絞る場合に指定（例 ["良"]）。None なら全馬場（仕様§4のとおり）。
+    戻り値: (表, レポート)。レポートは
+            {"counts": {"東京/芝/1600": 42, ...}, "skipped": [...], "courses_missing": [...]}
+    """
+    class_offset = class_offset if class_offset is not None else load_class_offset()
+    buckets, skipped = bucket_records(records, class_offset, goings)
+    table, counts = table_from_buckets(buckets, min_samples)
+    report = {"counts": counts, "skipped": skipped, "courses_missing": missing_courses(table)}
     return table, report
 
 
 # --------------------------------------------------------------------------- 経路1：raw から
 
 
-def collect_from_raw(raw_dir: Path = RAW_DIR) -> list[dict[str, Any]]:
+def record_key(record: dict[str, Any]) -> tuple:
+    """
+    同じレースの勝ちタイムを1件にまとめるための鍵。
+
+    raw の過去走にはレースIDが無いので、(日付, 場, 芝ダ, 距離, クラス, 馬場, 勝ちタイム) で同一レースとみなす。
+    旧実装の (日付, 場, 芝ダ, 距離, タイム) より細かくしたのは、同じ日・同じコースで別クラスのレースが
+    たまたま同タイムだったときに**別レースを1件に潰さない**ため。
+    （同じレースの同着1着が2頭いても、この鍵なら1件になる）
+    """
+    return (record.get("date"), record.get("venue"), record.get("surface"), record.get("dist"),
+            record.get("class"), record.get("going"), record.get("win_time"))
+
+
+def _parse_date(value: Any) -> datetime.date | None:
+    try:
+        return datetime.date.fromisoformat(str(value)) if value else None
+    except ValueError:
+        return None
+
+
+def _race_runners(race: dict[str, Any]) -> list[dict[str, Any]]:
+    """現行スキーマ races[].entries[] と、旧スキーマ races[].horses[] の両方を読む。"""
+    return [*(race.get("entries") or []), *(race.get("horses") or [])]
+
+
+def collect_raw_records(raw_dir: Path = RAW_DIR, cutoff: datetime.date | None = None
+                        ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """
     コミット済みの raw/*.json の past_runs から勝ちタイムを拾う（ネットワーク不要）。
 
-    `finish == 1` の走＝その馬が勝った走なので、その `time_sec` はそのレースの勝ちタイムそのもの。
-    同じレースが複数の raw / 複数の馬から重複して入りうるので (date, venue, dist, time) で重複排除する。
+    - 現行 raw は races[].entries[].past_runs。旧 races[].horses[].past_runs も読む（後方互換）。
+    - `finish == 1` の走＝その馬が勝った走なので、その `time_sec` はそのレースの勝ちタイムそのもの。
+    - cutoff を渡すと、日付が cutoff より後の走と、日付が読めない走を捨てる（fail-closed）。
+      cutoff 当日の走は使う。
+    - 同じレースが複数の raw / 複数の馬から入りうるので record_key で重複排除する。
+      ファイル名順 → raw 内の並び順で最初に見つけたものを残す（決定的）。
+
+    戻り値: (レコード, レポート)。レコードの `source` は最初に見つけた出どころ（監査用）。
     """
     records: list[dict[str, Any]] = []
+    report = {"files": 0, "unreadable_files": [], "winning_runs": 0,
+              "after_cutoff": 0, "missing_date": 0, "duplicates": 0}
     seen: set[tuple] = set()
     if not raw_dir.is_dir():
-        return records
+        return records, report
 
     for path in sorted(raw_dir.glob("*.json")):
         try:
@@ -245,18 +310,27 @@ def collect_from_raw(raw_dir: Path = RAW_DIR) -> list[dict[str, Any]]:
                 raw = json.load(f)
         except (OSError, json.JSONDecodeError) as exc:
             logger.warning("raw の読み込みに失敗したのでスキップします path=%s error=%s", path, exc)
+            report["unreadable_files"].append(path.name)
             continue
-        for race in raw.get("races", []):
-            for horse in race.get("horses", []):
-                for run in horse.get("past_runs", []) or []:
+        if not isinstance(raw, dict):
+            report["unreadable_files"].append(path.name)
+            continue
+        report["files"] += 1
+        for race in raw.get("races") or []:
+            for runner in _race_runners(race):
+                for run in runner.get("past_runs") or []:
                     if run.get("finish") != 1 or run.get("time_sec") is None:
                         continue
-                    key = (run.get("date"), run.get("venue"), run.get("surface"),
-                           run.get("dist"), run.get("time_sec"))
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    records.append({
+                    report["winning_runs"] += 1
+                    if cutoff is not None:
+                        run_date = _parse_date(run.get("date"))
+                        if run_date is None:
+                            report["missing_date"] += 1
+                            continue
+                        if run_date > cutoff:
+                            report["after_cutoff"] += 1
+                            continue
+                    record = {
                         "date": run.get("date"),
                         "venue": run.get("venue"),
                         "surface": run.get("surface"),
@@ -264,8 +338,21 @@ def collect_from_raw(raw_dir: Path = RAW_DIR) -> list[dict[str, Any]]:
                         "going": run.get("going"),
                         "class": run.get("class"),
                         "win_time": run.get("time_sec"),
-                    })
-    return records
+                    }
+                    key = record_key(record)
+                    if key in seen:
+                        report["duplicates"] += 1
+                        continue
+                    seen.add(key)
+                    record["source"] = {"file": path.name, "race_id": race.get("id"),
+                                        "horse": runner.get("horse_ref") or runner.get("name")}
+                    records.append(record)
+    return records, report
+
+
+def collect_from_raw(raw_dir: Path = RAW_DIR, cutoff: datetime.date | None = None) -> list[dict[str, Any]]:
+    """collect_raw_records のレコードだけを返す（従来の呼び出し口）。"""
+    return collect_raw_records(raw_dir, cutoff)[0]
 
 
 # --------------------------------------------------------------------------- 経路2：手元ファイルから
@@ -516,6 +603,12 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+    if args.source == "raw" and not args.dry_run:
+        # raw の過去走は数週ぶんしか無く、Champion の config/base_times.json を上書きすると
+        # 表が縮む。raw 由来の表は研究用の scripts.base_times_v2 で別ファイルに作る。
+        parser.error("--source raw は --dry-run 専用です（config/base_times.json は上書きしません）。"
+                     "研究用の表は python -m scripts.base_times_v2 で作ってください")
 
     if args.source == "raw":
         records = collect_from_raw()
