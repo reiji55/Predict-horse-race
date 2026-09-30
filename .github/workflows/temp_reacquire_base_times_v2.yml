@@ -60,13 +60,18 @@ jobs:
               ("2025-11-02","東京","芝",2000),
               ("2026-05-03","京都","芝",3200),
           ]
-          idx={(r.get("date"),r.get("venue"),r.get("surface"),r.get("dist")):r for r in records}
+          # 同じ日・同じコースに別クラスのレースがあるので、1件に潰さず全件を見る
+          idx={}
+          for r in records:
+              idx.setdefault((r.get("date"),r.get("venue"),r.get("surface"),r.get("dist")),[]).append(r)
           for key in expected:
-              r=idx.get(key)
-              if not r:
+              rows=idx.get(key) or []
+              if not rows:
                   raise SystemExit(f"expected Tianhuangsho record missing: {key}")
-              if r.get("class")!="g1":
-                  raise SystemExit(f"expected g1 but got {r.get('class')}: {key}")
+              classes=sorted(str(r.get("class")) for r in rows)
+              if classes.count("g1")!=1:
+                  raise SystemExit(f"expected exactly one g1 but got {classes}: {key}")
+              print("tenno_sho", key, classes)
           print("records", len(records))
           print("empty_courses", sum(1 for x in courses.values() if x.get("empty")))
           print("records_sha256", d.get("records_sha256"))
