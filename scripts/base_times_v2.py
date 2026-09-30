@@ -429,7 +429,8 @@ def coverage_report(raw_dir: Path, tables: dict[str, dict[str, Any]],
 
 
 def _file_digest(path: Path) -> dict[str, str]:
-    return {"path": str(path.relative_to(bbt.ROOT)) if path.resolve().is_relative_to(bbt.ROOT) else str(path),
+    resolved = path.resolve()
+    return {"path": str(resolved.relative_to(bbt.ROOT)) if resolved.is_relative_to(bbt.ROOT) else str(path),
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
