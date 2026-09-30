@@ -297,7 +297,7 @@ def build_race(race: dict, configs: dict, base_times: dict,
         context = {"mode": "observe_only", "status": "error",
                    "layer1": {"status": "active", "source": "existing_prediction_model"}}
 
-    return {
+    result = {
         "id": race.get("id"),
         "source_refs": race.get("source_refs", {"netkeiba": None, "jravan": None}),
         "day": race.get("day"),
@@ -327,6 +327,10 @@ def build_race(race: dict, configs: dict, base_times: dict,
         "marks": marks,
         "cards": generated_cards,
     }
+    if runtime.get("base_times_ref"):
+        # 専用の表を使った Challenger だけ。どの凍結表（id・hash・cutoff・推定式）で作ったかを残す
+        result["base_times_ref"] = runtime["base_times_ref"]
+    return result
 
 
 def build_predictions(raw: dict, configs: dict | None = None,
@@ -335,9 +339,14 @@ def build_predictions(raw: dict, configs: dict | None = None,
                       generated_at: str | None = None) -> dict:
     """raw/{week_id}.json から、指定したChampion/Challengerの予想を組み立てる。"""
     configs = configs if configs is not None else load_configs()
+    model_spec = model_spec or model_registry.load_registry()["champion"]
+    # 専用の凍結した基準タイム表を登録した Challenger だけ、表を差し替える（式・重み・guard は同じ）。
+    # 表が登録と違えば ValueError で止める（黙って Champion の表に戻さない）。
+    own_table = model_registry.load_model_base_times(model_spec)
+    if own_table is not None:
+        base_times = own_table[0]
     base_times = base_times if base_times is not None else speed_mod.load_base_times()
     speed_mod.warn_if_base_times_empty(base_times)
-    model_spec = model_spec or model_registry.load_registry()["champion"]
     runtime = model_registry.runtime_metadata(model_spec)
 
     overall_jockey_rate, overall_trainer_rate = _overall_rates(raw)
@@ -402,11 +411,17 @@ def main() -> None:
 
     # Challenger: UIには出さない。同じraw・同じrun_nowで発走前に凍結し、後で同じ結果で採点する。
     for challenger_spec in model_registry.enabled_challengers(registry):
-        challenger = build_predictions(
-            raw, configs=configs, base_times=base_times,
-            model_spec=challenger_spec, generated_at=generated_at,
-        )
         model_id = challenger_spec["id"]
+        try:
+            challenger = build_predictions(
+                raw, configs=configs, base_times=base_times,
+                model_spec=challenger_spec, generated_at=generated_at,
+            )
+        except (OSError, ValueError):
+            # 凍結表の不一致などで作れない Challenger は、その回だけ記録を残さない。
+            # Champion は書き出し済みで、他の Challenger も止めない（欠けたレースは比較の coverage に出る）
+            logger.exception("Challenger %s を作れませんでした（Champion には影響なし）", model_id)
+            continue
         root = CHALLENGER_ROOT / model_id
         snapshot_dir = root / "snapshots"
         output_path = root / "predictions.json"

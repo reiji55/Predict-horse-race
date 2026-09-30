@@ -74,6 +74,28 @@ def _aggregate_by_regime(results: list[dict[str, Any]]) -> dict[str, dict[str, A
         buckets.setdefault(label, []).append(race)
     return {label: _aggregate(rows) for label, rows in sorted(buckets.items())}
 
+def speed_quality_summary(races: list[dict[str, Any] | None]) -> dict[str, Any]:
+    """
+    発走前スナップショットの speed_quality を集計する（speed が起動した率・馬の充足率）。
+
+    スナップショットが無いレースは missing として数え、黙って分母から消さない。
+    """
+    present = [r for r in races if r is not None]
+    qualities = [r.get("speed_quality") or {} for r in present]
+    used = sum(1 for q in qualities if q.get("used"))
+    qualified = sum(int(q.get("qualified_horses") or 0) for q in qualities)
+    total = sum(int(q.get("total_horses") or 0) for q in qualities)
+    return {
+        "races": len(present),
+        "missing_snapshots": len(races) - len(present),
+        "speed_used_races": used,
+        "speed_used_rate": round(used / len(present), 4) if present else None,
+        "qualified_horses": qualified,
+        "total_horses": total,
+        "qualified_horse_rate": round(qualified / total, 4) if total else None,
+    }
+
+
 def compare(champion: dict[str, Any],
             challengers: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """
