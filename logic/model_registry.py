@@ -16,7 +16,8 @@ HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "
 BASE_TIMES_FILE = "base_times.json"
 # Challenger 専用の凍結した基準タイム表は、ここより下にあるものだけ読む（Champion の config/ は読まない）
 REFERENCE_BASE_TIMES_DIR = ROOT / "data" / "reference" / "base_times"
-BASE_TIMES_OVERRIDE_KEYS = ("artifact_id", "lookup_file", "meta_file", "lookup_sha256", "cutoff_date")
+BASE_TIMES_OVERRIDE_KEYS = ("artifact_id", "lookup_file", "meta_file", "lookup_sha256",
+                            "meta_content_sha256", "method_version", "cutoff_date")
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
@@ -100,13 +101,23 @@ def load_model_base_times(model: dict[str, Any]) -> tuple[dict[str, Any], dict[s
         raise ValueError(f"{model['id']}: meta の artifact_id が登録と違います（{meta.get('artifact_id')}）")
     if meta.get("cutoff_date") != override["cutoff_date"]:
         raise ValueError(f"{model['id']}: meta の cutoff_date が登録と違います（{meta.get('cutoff_date')}）")
+    # meta の中身（built_at と hashes を除く）も作り直して照合する。推定式・min_samples・入力の記録が
+    # 差し替わっていないことまで固定するため（表を作ったときの meta_content_sha256 と同じ計算）
+    content = {k: v for k, v in meta.items() if k not in ("built_at", "hashes")}
+    meta_content = _canonical_sha256(content)
+    if meta_content != override["meta_content_sha256"] or (meta.get("hashes") or {}).get("meta_content_sha256") != meta_content:
+        raise ValueError(f"{model['id']}: meta_content_sha256 が登録と違います（{meta_content}）")
+    method_version = (meta.get("estimator") or {}).get("version")
+    if method_version != override["method_version"]:
+        raise ValueError(f"{model['id']}: meta の推定式 version が登録と違います（{method_version}）")
 
     ref = {
         "artifact_id": override["artifact_id"],
         "lookup_file": override["lookup_file"],
         "lookup_sha256": actual,
         "cutoff_date": override["cutoff_date"],
-        "method_version": (meta.get("estimator") or {}).get("version"),
+        "meta_content_sha256": meta_content,
+        "method_version": method_version,
         "file_hash": hashlib.sha256(data).hexdigest()[:16],
     }
     return lookup, ref

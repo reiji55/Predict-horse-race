@@ -72,7 +72,9 @@ def build_all(race_results: dict[str, Any],
         challenger_results[model_id] = result
         logger.info("%s: %d races settled", model_id, len(result.get("results", [])))
 
-    comparison = model_compare.compare(champion_results, challenger_results)
+    registered_at = {spec["id"]: spec["registered_at"]
+                     for spec in model_registry.enabled_challengers(registry) if spec.get("registered_at")}
+    comparison = model_compare.compare(champion_results, challenger_results, registered_at=registered_at)
     champion_snaps = _snapshots_by_race(CHAMPION_SNAPSHOT_DIR)
     for row in comparison["comparisons"]:
         # speed が実際に使われたかを、同じ共通レースで Champion と並べる（採点とは別の観察値）

@@ -95,6 +95,8 @@ def test_frozen_table_loads_only_for_the_challenger_and_matches_the_artifact():
     ({"lookup_sha256": "0" * 64}, "lookup_sha256"),
     ({"artifact_id": "base-times-v2-other"}, "artifact_id"),
     ({"cutoff_date": "2026-09-20"}, "cutoff_date"),
+    ({"meta_content_sha256": "0" * 64}, "meta_content_sha256"),
+    ({"method_version": "v2-regression"}, "version"),
     ({"lookup_file": "config/base_times.json"}, "の下だけ"),
     ({"lookup_file": "data/reference/base_times/../../../config/base_times.json"}, "の下だけ"),
 ])
@@ -120,12 +122,26 @@ def test_edited_table_bytes_fail_closed(tmp_path: Path, monkeypatch):
         model_registry.load_model_base_times(_spec())
 
 
+def test_edited_meta_fails_closed(tmp_path: Path, monkeypatch):
+    """lookup が同じでも、meta（推定式・min_samples・入力の記録）を書き換えたら読まない。"""
+    ref_dir = tmp_path / "data" / "reference" / "base_times"
+    ref_dir.mkdir(parents=True)
+    shutil.copy(LOOKUP, ref_dir / LOOKUP.name)
+    meta = json.loads(META.read_text(encoding="utf-8"))
+    meta["estimator"]["min_samples"] = 3
+    (ref_dir / META.name).write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(model_registry, "ROOT", tmp_path)
+    monkeypatch.setattr(model_registry, "REFERENCE_BASE_TIMES_DIR", ref_dir)
+    with pytest.raises(ValueError, match="meta_content_sha256"):
+        model_registry.load_model_base_times(_spec())
+
+
 @pytest.mark.parametrize("mutate, message", [
     (lambda r: r["champion"].update(base_times=_spec()["base_times"]), "champion"),
     (lambda r: r["challengers"][-1]["base_times"].pop("meta_file"), "meta_file"),
     (lambda r: r["challengers"][-1].pop("registered_at"), "registered_at"),
     (lambda r: r["challengers"][-1].update(registered_at="2026-09-27T23:00:00+09:00"), "cutoff_date"),
-    (lambda r: r["challengers"][-1].update(registered_at="2026-10-01T03:00:00"), "タイムゾーン"),
+    (lambda r: r["challengers"][-1].update(registered_at="2026-10-02T00:00:00"), "タイムゾーン"),
 ])
 def test_registry_rejects_invalid_override(tmp_path: Path, mutate, message):
     registry = json.loads((ROOT / "config" / "models.json").read_text(encoding="utf-8"))
@@ -201,6 +217,7 @@ def test_challenger_uses_v2_table_and_records_it_in_snapshots(tmp_path: Path):
 
     ref = challenger["model"]["base_times_ref"]
     assert ref["artifact_id"] == ARTIFACT_ID
+    assert ref["meta_content_sha256"] == _spec()["base_times"]["meta_content_sha256"]
     for race in challenger["races"]:
         assert race["base_times_ref"] == ref and race["model_id"] == MODEL_ID
         assert race["base_times_hash"] == ref["file_hash"]
@@ -252,10 +269,15 @@ def test_prediction_path_never_reads_post_race_results():
 
 # ------------------------------------------------------------------ 採点：登録後のレースだけ・speed の起動率も並べる
 
-def _snapshot(race_id: str, post_time: str, model_id: str, used: bool, qualified: int) -> dict:
+BEFORE = "20260927-hanshin-11"       # 登録より前のレース（表に勝ちタイムが入っている）
+AFTER = "20261004-hanshin-11"        # 登録後・Champion と Challenger の両方にある
+AFTER_MISSING = "20261004-nakayama-11"   # 登録後なのに Challenger が作れなかった
+
+
+def _snapshot(race_id: str, model_id: str, used: bool, qualified: int) -> dict:
     return {
         "race_id": race_id, "week_id": "2026-W40", "frozen_at": "2026-10-03T10:00:00+09:00",
-        "pre_race": True, "post_time": post_time, "model_id": model_id, "model_role": "challenger",
+        "pre_race": True, "post_time": "15:40", "model_id": model_id, "model_role": "challenger",
         "speed_quality": {"used": used, "qualified_horses": qualified, "total_horses": 16},
         "cards": [{"char": "kei", "total": 500, "model_version": model_id, "model_role": "challenger",
                    "bets": [{"type": "ワイド", "horses": [1, 2], "amt": 500}]}],
@@ -263,25 +285,29 @@ def _snapshot(race_id: str, post_time: str, model_id: str, used: bool, qualified
     }
 
 
-def test_shadow_results_count_only_races_after_registration(tmp_path: Path, monkeypatch):
+def _write_snapshot(directory: Path, snapshot: dict) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / f"{snapshot['race_id']}.json").write_text(json.dumps(snapshot, ensure_ascii=False), encoding="utf-8")
+
+
+def _run_shadow(tmp_path: Path, monkeypatch, champion_ids: list[str], challenger_ids: list[str]) -> dict:
     challenger_root = tmp_path / "challengers"
     champion_dir = tmp_path / "snapshots"
     snap_dir = challenger_root / MODEL_ID / "snapshots"
     snap_dir.mkdir(parents=True)
-    champion_dir.mkdir()
-    before = "20260927-hanshin-11"     # 登録より前のレース（表に勝ちタイムが入っている）
-    after = "20261004-hanshin-11"
-    for race_id in (before, after):
-        (snap_dir / f"{race_id}.json").write_text(
-            json.dumps(_snapshot(race_id, "15:40", MODEL_ID, True, 15), ensure_ascii=False), encoding="utf-8")
-        (champion_dir / f"{race_id}.json").write_text(
-            json.dumps(_snapshot(race_id, "15:40", "champ", False, 0), ensure_ascii=False), encoding="utf-8")
+    for race_id in champion_ids:
+        # Champion は登録前も含めて全レース speed が切れていたとする
+        _write_snapshot(champion_dir, _snapshot(race_id, "champ", False, 0))
+    for race_id in challenger_ids:
+        # 登録前のレースで v2 が 16/16 通っていても、登録後だけを集計するなら数に入らない
+        _write_snapshot(snap_dir, _snapshot(race_id, MODEL_ID, True, 16 if race_id == BEFORE else 15))
 
     dividends = {"ワイド": [{"horses": [1, 2], "pay": 300}], "馬連": [], "3連複": []}
-    race_results = {rid: {"finish": [1, 2, 3], "dividends": dividends} for rid in (before, after)}
+    race_results = {rid: {"finish": [1, 2, 3], "dividends": dividends} for rid in champion_ids}
     champion_results = {"results": [
-        {"race_id": rid, "model_id": "champ", "cards": [{"char": "kei", "hit": False, "spent": 500, "payout": 0}]}
-        for rid in (before, after)
+        {"race_id": rid, "model_id": "champ", "meta": {"post_time": "15:40"},
+         "cards": [{"char": "kei", "hit": False, "spent": 500, "payout": 0}]}
+        for rid in champion_ids
     ]}
     registry = {"champion": {"id": "champ", "role": "champion"}, "challengers": [_spec()]}
 
@@ -289,14 +315,49 @@ def test_shadow_results_count_only_races_after_registration(tmp_path: Path, monk
     monkeypatch.setattr(build_shadow_results, "CHAMPION_SNAPSHOT_DIR", champion_dir)
     monkeypatch.setattr(build_shadow_results, "COMPARISON_PATH", tmp_path / "model_comparison.json")
     comparison = build_shadow_results.build_all(race_results, champion_results, registry=registry)
-
     settled = json.loads((challenger_root / MODEL_ID / "results.json").read_text(encoding="utf-8"))
-    assert [r["race_id"] for r in settled["results"]] == [after]
-    row = comparison["comparisons"][0]
-    assert row["common_race_ids"] == [after]
-    assert row["coverage"]["missing_in_challenger"] == [before]      # 登録前のレースは欠けとして見える
-    assert row["speed_quality"]["champion"]["speed_used_rate"] == 0.0
-    assert row["speed_quality"]["challenger"] == {
+    return {"comparison": comparison["comparisons"][0], "settled": [r["race_id"] for r in settled["results"]]}
+
+
+def test_pre_registration_races_are_excluded_not_missing(tmp_path: Path, monkeypatch):
+    """登録前の Champion レースは coverage の分母にも missing にも入れない（forward の欠けだけを見る）。"""
+    out = _run_shadow(tmp_path, monkeypatch, champion_ids=[BEFORE, AFTER], challenger_ids=[BEFORE, AFTER])
+    row = out["comparison"]
+    assert out["settled"] == [AFTER]
+    assert row["common_race_ids"] == [AFTER]
+    assert row["coverage"]["missing_in_challenger"] == []
+    assert row["coverage"]["excluded_pre_registration"] == [BEFORE]
+    assert row["coverage"]["registered_at"] == _spec()["registered_at"]
+    assert row["coverage"]["champion_races"] == 1 and row["coverage"]["coverage_rate"] == 1.0
+    assert row["champion"]["races"] == 1 and row["challenger"]["races"] == 1
+
+
+def test_forward_race_without_challenger_is_the_only_missing_one(tmp_path: Path, monkeypatch):
+    out = _run_shadow(tmp_path, monkeypatch, champion_ids=[BEFORE, AFTER, AFTER_MISSING],
+                      challenger_ids=[BEFORE, AFTER])
+    coverage = out["comparison"]["coverage"]
+    assert coverage["missing_in_challenger"] == [AFTER_MISSING]
+    assert coverage["excluded_pre_registration"] == [BEFORE]
+    assert coverage["champion_races"] == 2 and coverage["common_races"] == 1
+    assert coverage["coverage_rate"] == 0.5
+
+
+def test_speed_quality_counts_only_common_forward_races(tmp_path: Path, monkeypatch):
+    out = _run_shadow(tmp_path, monkeypatch, champion_ids=[BEFORE, AFTER, AFTER_MISSING],
+                      challenger_ids=[BEFORE, AFTER])
+    speed = out["comparison"]["speed_quality"]
+    assert speed["champion"]["races"] == 1 and speed["champion"]["speed_used_rate"] == 0.0
+    assert speed["challenger"] == {
         "races": 1, "missing_snapshots": 0, "speed_used_races": 1, "speed_used_rate": 1.0,
         "qualified_horses": 15, "total_horses": 16, "qualified_horse_rate": 0.9375,
     }
+
+
+def test_models_without_registered_at_keep_the_full_history():
+    """既存の Challenger（registered_at なし）の比較は今までどおり全共通レース。"""
+    from results import model_compare
+    champion = {"results": [{"race_id": rid, "meta": {"post_time": "15:40"}, "cards": []} for rid in (BEFORE, AFTER)]}
+    challenger = {"results": [{"race_id": BEFORE, "cards": []}]}
+    row = model_compare.compare(champion, {"top3-partner-v1": challenger})["comparisons"][0]
+    assert row["coverage"]["missing_in_challenger"] == [AFTER]
+    assert row["coverage"]["excluded_pre_registration"] == [] and row["coverage"]["registered_at"] is None

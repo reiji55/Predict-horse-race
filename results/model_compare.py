@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+from logic import snapshots
+
 JST = datetime.timezone(datetime.timedelta(hours=9))
 
 # Champion/Challengerは固定モデル同士の比較。Chappy/Otoriは独立した統合レイヤーなので除外。
@@ -96,25 +98,46 @@ def speed_quality_summary(races: list[dict[str, Any] | None]) -> dict[str, Any]:
     }
 
 
+def _posted_after(result: dict[str, Any], registered: datetime.datetime) -> bool:
+    """結果1件が registered より後に発走したか。発走時刻が判らなければ False（数えない側に倒す）。"""
+    post_at = snapshots.post_datetime({"id": result.get("race_id"),
+                                       "post_time": (result.get("meta") or {}).get("post_time")})
+    return post_at is not None and post_at > registered
+
+
 def compare(champion: dict[str, Any],
-            challengers: dict[str, dict[str, Any]]) -> dict[str, Any]:
+            challengers: dict[str, dict[str, Any]],
+            registered_at: dict[str, str] | None = None) -> dict[str, Any]:
     """
     ChampionとChallengerを**同じレースだけ**で比較する。
 
     Challenger導入前のChampion実績を混ぜると不公平なので、
     各challengerごとに race_id の共通部分(intersection)だけを集計する。
+
+    registered_at（model_id → ISO時刻）を持つ Challenger は、Champion 側も**登録より後に発走したレースだけ**に
+    絞ってから比べる。登録前のレースは missing_in_challenger（＝作るべきだったのに欠けた）ではないので、
+    excluded_pre_registration に分けて出す。coverage_rate の分母も登録後のレースだけ。
     """
-    champion_map = {
+    registered_at = registered_at or {}
+    all_champion = {
         r["race_id"]: r for r in champion.get("results", [])
         if _eligible(r) and r.get("race_id")
     }
 
     comparisons = []
     for model_id, payload in challengers.items():
+        champion_map = all_champion
         challenger_map = {
             r["race_id"]: r for r in payload.get("results", [])
             if _eligible(r) and r.get("race_id")
         }
+        excluded_pre_registration: list[str] = []
+        window = registered_at.get(model_id)
+        if window:
+            registered = datetime.datetime.fromisoformat(window)
+            champion_map = {rid: r for rid, r in all_champion.items() if _posted_after(r, registered)}
+            excluded_pre_registration = sorted(set(all_champion) - set(champion_map))
+            challenger_map = {rid: r for rid, r in challenger_map.items() if _posted_after(r, registered)}
         common_ids = sorted(set(champion_map) & set(challenger_map))
         champ_rows = [champion_map[rid] for rid in common_ids]
         chall_rows = [challenger_map[rid] for rid in common_ids]
@@ -156,6 +179,8 @@ def compare(champion: dict[str, Any],
             "common_races": len(common_ids),
             "missing_in_challenger": missing_in_challenger,
             "missing_in_champion": missing_in_champion,
+            "registered_at": window,
+            "excluded_pre_registration": excluded_pre_registration,
             "coverage_rate": (
                 round(len(common_ids) / len(champion_map), 4) if champion_map else None
             ),
@@ -189,7 +214,7 @@ def compare(champion: dict[str, Any],
     return {
         "generated_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
         "champion_model_id": next(
-            (r.get("model_id") for r in champion_map.values() if r.get("model_id")),
+            (r.get("model_id") for r in all_champion.values() if r.get("model_id")),
             None,
         ),
         "comparisons": comparisons,
