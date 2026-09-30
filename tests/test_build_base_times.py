@@ -409,3 +409,53 @@ def test_real_headers_parse_from_euc_jp_bytes():
     records = bbt.parse_race_search_html(bbt.decode_response(REAL_SEARCH_HTML.encode("euc-jp")))
     assert len(records) == 2
     assert records[0]["venue"] == "阪神" and records[0]["dist"] == 1400
+
+
+# --- クラス判定（PR #19 レビュー：天皇賞の取りこぼし）-------------------------
+
+@pytest.mark.parametrize("racename, expected", [
+    ("天皇賞(春)(GI)", "g1"),          # 括弧が2つ。旧実装は最初の (春) だけ見て None だった
+    ("天皇賞(秋)(GI)", "g1"),
+    ("スプリンターズS(GI)", "g1"),
+    ("京都新聞杯(GII)", "g2"),
+    ("阪急杯(GIII)", "g3"),
+    ("ポートアイランドS(L)", "op"),
+    ("3歳以上1勝クラス", "1win"),
+    ("3歳以上2勝クラス", "2win"),
+    ("3歳未勝利", "mi"),
+    ("2歳新馬", "mi"),
+    ("3歳以上オープン", "op"),
+    ("謎のレース", None),
+])
+def test_parse_class_reads_every_parenthesised_tag(racename, expected):
+    assert bbt._parse_class(racename) == expected
+
+
+def test_search_result_with_tenno_sho_keeps_class():
+    html = REAL_SEARCH_HTML.replace("阪急杯(GIII)", "天皇賞(春)(GI)")
+    assert bbt.parse_race_search_html(html)[0]["class"] == "g1"
+
+
+def test_fetch_dedupe_does_not_merge_different_races_with_same_time(monkeypatch):
+    """同じ日・同じコース・同タイムでもクラスが違えば別レース（record_key と同じ規則）。"""
+    page = """
+<table class="race_table_01"><thead><tr>
+  <th>開催日</th><th>開催</th><th>レース名</th><th>距離</th><th>頭数</th><th>馬場</th><th>タイム</th>
+</tr></thead><tbody>
+  <tr><td>2025/05/10</td><td>2東京5</td><td>3歳未勝利</td><td>芝1600</td><td>16</td><td>良</td><td>1:34.0</td></tr>
+  <tr><td>2025/05/10</td><td>2東京5</td><td>4歳以上1勝クラス</td><td>芝1600</td><td>16</td><td>良</td><td>1:34.0</td></tr>
+</tbody></table>"""
+
+    class Resp:
+        content = page.encode("euc_jp")   # db.netkeiba.com と同じ EUC-JP
+
+    calls = []
+
+    def fake_get(url, params=None):
+        calls.append(params["page"])
+        return Resp()
+
+    monkeypatch.setattr(bbt, "http_get", fake_get)
+    records = bbt.fetch_course_records("東京", "芝", 1600, 2025, 2025, max_pages=3)
+    assert [r["class"] for r in records] == ["mi", "1win"]
+    assert calls == ["1", "2"]          # 2ページ目は新規0件で打ち切り

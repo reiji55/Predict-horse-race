@@ -95,6 +95,17 @@ def within_course_outliers(records: list[dict[str, Any]], meta: dict[str, Any]) 
             "courses_with_outliers": len({r["course"] for r in rows}), "rows": rows}
 
 
+def skipped_records(records: list[dict[str, Any]], meta: dict[str, Any]) -> dict[str, Any]:
+    """推定の対象外になった記録を全件出す（件数だけだと、系統的な取りこぼしが見えないため）。"""
+    est = meta["estimator"]
+    kept, _ = v2.prepare_records(records, datetime.date.fromisoformat(meta["cutoff_date"]))
+    buckets, _ = bbt.bucket_records(kept, est["class_offset"], None if est["goings"] == "all" else est["goings"])
+    used = {id(r) for items in buckets.values() for _, r in items}
+    rows = [{k: r.get(k) for k in ("date", "venue", "surface", "dist", "class", "going", "win_time")}
+            for r in kept if id(r) not in used]
+    return {"count": len(rows), "rows": rows}
+
+
 def cross_course_trend(meta: dict[str, Any]) -> dict[str, Any]:
     """芝ダ別に「距離 → 基準タイム」を直線で近似し、大きく外れるコースを一覧化（場の差は正常にありうる）。"""
     out: dict[str, Any] = {"min_resid_sec": TREND_RESID_MIN_SEC, "robust_z": TREND_RESID_ROBUST_Z, "by_surface": {}}
@@ -187,6 +198,7 @@ def audit(lookup: dict[str, Any], meta: dict[str, Any], records: list[dict[str, 
         "focus_courses": [course_row(k) for k in FOCUS_COURSES],
         "top_demand_courses": [course_row(r["course"]) | {"raw_runs": r["runs"]}
                                for r in _top_demand(raw_dir)],
+        "skipped_by_estimator": skipped_records(records, meta),
         "outliers_within_course": within_course_outliers(records, meta),
         "wide_dispersion": {"threshold_iqr_sec_per_1000m": WIDE_IQR_SEC_PER_1000M,
                             "courses": sorted(wide, key=lambda r: -r["iqr_per_1000m"])},

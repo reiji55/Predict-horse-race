@@ -151,6 +151,15 @@ def test_audit_reproduces_artifact_and_checks_cutoff(tmp_path: Path):
     assert result["cutoff_check"]["within_cutoff"] is True
     assert result["cutoff_check"]["rejected"]["after_cutoff"] == 6               # 各コース1件の未来日付
     assert result["coverage"]["turf"]["filled"] == 6 and result["coverage"]["turf"]["total"] == 64
+    assert result["skipped_by_estimator"] == {"count": 0, "rows": []}
+
+    # クラスが判定できない記録は、件数だけでなく中身まで一覧に出る
+    unknown = records + [{"date": "2025-10-26", "venue": "東京", "surface": "芝", "dist": 2000,
+                          "going": "良", "class": None, "win_time": 117.0}]
+    rebuilt = v2.build_v2(unknown, cutoff=datetime.date(2026, 9, 27), artifact_id="x", built_at="t",
+                          source={}, class_offset=CLASS_OFFSET)
+    skipped = aud.skipped_records(unknown, rebuilt["meta"])
+    assert skipped["count"] == 1 and skipped["rows"][0]["date"] == "2025-10-26"
     assert result["sample_size"]["thin"] and result["sample_size"]["thin"][0]["n"] == 8
     focus = {r["course"]: r for r in result["focus_courses"]}
     assert focus["東京/芝/1600"]["status"] == "ok" and focus["東京/芝/1600"]["n"] == 8

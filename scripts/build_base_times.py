@@ -440,19 +440,16 @@ def _resolve_columns(table_el) -> dict[str, int]:
 
 
 def _parse_class(racename: str) -> str | None:
-    """レース名からクラス表記を正規化する（c_horse_history._parse_class と同じ規則）。"""
-    paren = re.search(r"\(([^)]+)\)", racename)
-    if paren:
-        tag = paren.group(1)
-        if tag in constants.GRADE_TAG_MAP:
-            return constants.GRADE_TAG_MAP[tag]
-        for keyword, cls in constants.CONDITION_GRADE_MAP:
-            if keyword in tag:
-                return cls
-    for keyword, cls in constants.CONDITION_GRADE_MAP:
-        if keyword in racename:
-            return cls
-    return None
+    """
+    レース名からクラス表記を正規化する（constants.normalize_class_label に委ねる）。
+
+    **括弧が複数あるレース名を取りこぼさないため。** 旧実装は最初の括弧だけを見ていたので、
+    「天皇賞(春)(GI)」「天皇賞(秋)(GI)」で `春`/`秋` を拾って None になり、
+    天皇賞が基準タイムの標本から系統的に落ちていた（PR #19 のレビューで発覚）。
+    normalize_class_label は括弧・空白で切った全トークンを GI/GII/GIII/L/OP と照合し、
+    次に未勝利・1勝クラス等の条件文字列を見る。
+    """
+    return constants.normalize_class_label(racename)
 
 
 def parse_race_search_html(html: str) -> list[dict[str, Any]]:
@@ -548,7 +545,8 @@ def fetch_course_records(venue_jp: str, surface: str, dist: int, start_year: int
             break
         added = 0
         for record in parse_race_search_html(decode_response(resp.content)):
-            key = (record["date"], record["venue"], record["dist"], record["win_time"])
+            # 重複判定は record_key と同じ（同じ日・同じコース・同タイムでもクラスや馬場が違えば別レース）
+            key = record_key(record)
             if key in seen:
                 continue
             seen.add(key)
