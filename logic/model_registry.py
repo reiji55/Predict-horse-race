@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
 import os
@@ -13,6 +14,10 @@ MODELS_PATH = CONFIG_DIR / "models.json"
 HASH_CONFIGS = ("cards.json", "chappy.json", "myomi.json", "speed_index.json", "models.json", "race_regime.json")
 # 自動で育つデータ表（＝ここが変わっても「モデルを変えた」わけではない）
 BASE_TIMES_FILE = "base_times.json"
+# Challenger 専用の凍結した基準タイム表は、ここより下にあるものだけ読む（Champion の config/ は読まない）
+REFERENCE_BASE_TIMES_DIR = ROOT / "data" / "reference" / "base_times"
+BASE_TIMES_OVERRIDE_KEYS = ("artifact_id", "lookup_file", "meta_file", "lookup_sha256",
+                            "meta_content_sha256", "method_version", "cutoff_date")
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
@@ -23,16 +28,99 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     champion = registry.get("champion")
     if not isinstance(champion, dict) or not champion.get("id"):
         raise ValueError("config/models.json に champion.id が必要です")
+    if "base_times" in champion:
+        # Champion は常に config/base_times.json を使う。専用の表は shadow の Challenger だけ
+        raise ValueError("champion に base_times の差し替えは指定できません")
 
     ids = [champion["id"]]
     for model in registry.get("challengers", []):
         if not isinstance(model, dict) or not model.get("id"):
             raise ValueError("challengers[] の各要素に id が必要です")
+        if "base_times" in model:
+            _validate_base_times_override(model)
         ids.append(model["id"])
     if len(ids) != len(set(ids)):
         raise ValueError(f"model id が重複しています: {ids}")
 
     return registry
+
+
+def _validate_base_times_override(model: dict[str, Any]) -> None:
+    """専用の基準タイム表を使う Challenger の登録内容を確かめる（ファイルはまだ読まない）。"""
+    override = model["base_times"]
+    missing = [k for k in BASE_TIMES_OVERRIDE_KEYS if not (isinstance(override, dict) and override.get(k))]
+    if missing:
+        raise ValueError(f"{model['id']}: base_times に {missing} が必要です")
+    registered_at = model.get("registered_at")
+    if not registered_at:
+        raise ValueError(f"{model['id']}: 凍結した表を使う Challenger には registered_at が必要です")
+    registered = datetime.datetime.fromisoformat(registered_at)
+    if registered.tzinfo is None:
+        raise ValueError(f"{model['id']}: registered_at はタイムゾーン付きで書いてください")
+    # 表に使った記録の最終日より後に登録していないと、登録前のレースを forward として数えてしまう
+    cutoff = datetime.date.fromisoformat(override["cutoff_date"])
+    if registered.date() <= cutoff:
+        raise ValueError(f"{model['id']}: registered_at は cutoff_date より後にしてください")
+
+
+def _reference_path(relative: str) -> Path:
+    path = (ROOT / relative).resolve()
+    if REFERENCE_BASE_TIMES_DIR.resolve() not in path.parents:
+        raise ValueError(f"基準タイム表は {REFERENCE_BASE_TIMES_DIR.relative_to(ROOT)} の下だけ読めます: {relative}")
+    return path
+
+
+def _canonical_sha256(payload: Any) -> str:
+    """凍結表の meta に記録した lookup_sha256 と同じ正規化（キー順・空白に依存しない）。"""
+    text = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def load_model_base_times(model: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """
+    Challenger 専用の凍結した基準タイム表を読み、(lookup, ref) を返す。専用の表が無いモデルは None。
+
+    登録した lookup_sha256・artifact_id・cutoff_date と中身が1つでも違えば ValueError（fail-closed）。
+    forward 検証の途中で表が差し替わると、同じ model id の中身が変わってしまうため。
+    """
+    override = model.get("base_times")
+    if override is None:
+        return None
+    lookup_path = _reference_path(override["lookup_file"])
+    meta_path = _reference_path(override["meta_file"])
+    data = lookup_path.read_bytes()
+    lookup = json.loads(data)
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+
+    actual = _canonical_sha256(lookup)
+    if actual != override["lookup_sha256"]:
+        raise ValueError(f"{model['id']}: 基準タイム表の lookup_sha256 が登録と違います（{actual}）")
+    if (meta.get("hashes") or {}).get("lookup_sha256") != actual:
+        raise ValueError(f"{model['id']}: meta の lookup_sha256 が lookup と一致しません")
+    if meta.get("artifact_id") != override["artifact_id"]:
+        raise ValueError(f"{model['id']}: meta の artifact_id が登録と違います（{meta.get('artifact_id')}）")
+    if meta.get("cutoff_date") != override["cutoff_date"]:
+        raise ValueError(f"{model['id']}: meta の cutoff_date が登録と違います（{meta.get('cutoff_date')}）")
+    # meta の中身（built_at と hashes を除く）も作り直して照合する。推定式・min_samples・入力の記録が
+    # 差し替わっていないことまで固定するため（表を作ったときの meta_content_sha256 と同じ計算）
+    content = {k: v for k, v in meta.items() if k not in ("built_at", "hashes")}
+    meta_content = _canonical_sha256(content)
+    if meta_content != override["meta_content_sha256"] or (meta.get("hashes") or {}).get("meta_content_sha256") != meta_content:
+        raise ValueError(f"{model['id']}: meta_content_sha256 が登録と違います（{meta_content}）")
+    method_version = (meta.get("estimator") or {}).get("version")
+    if method_version != override["method_version"]:
+        raise ValueError(f"{model['id']}: meta の推定式 version が登録と違います（{method_version}）")
+
+    ref = {
+        "artifact_id": override["artifact_id"],
+        "lookup_file": override["lookup_file"],
+        "lookup_sha256": actual,
+        "cutoff_date": override["cutoff_date"],
+        "meta_content_sha256": meta_content,
+        "method_version": method_version,
+        "file_hash": hashlib.sha256(data).hexdigest()[:16],
+    }
+    return lookup, ref
 
 
 def enabled_challengers(registry: dict[str, Any]) -> list[dict[str, Any]]:
@@ -84,10 +172,17 @@ def base_times_hash(config_dir: Path | None = None) -> str:
 
 
 def runtime_metadata(model: dict[str, Any]) -> dict[str, Any]:
-    return {
+    meta = {
         "model_id": model["id"],
         "model_role": model.get("role"),
         "git_commit": git_commit(),
         "config_hash": config_hash(),
         "base_times_hash": base_times_hash(),
     }
+    loaded = load_model_base_times(model)
+    if loaded is not None:
+        # 専用の表を使うモデルは、その表の指紋を残す（Champion の出力にはこのキーは出ない）
+        _lookup, ref = loaded
+        meta["base_times_hash"] = ref["file_hash"]
+        meta["base_times_ref"] = ref
+    return meta

@@ -305,11 +305,17 @@ def test_report_and_artifacts_never_land_in_protected_dirs(tmp_path: Path):
     assert (ROOT / "config" / "base_times.json").read_bytes() == champion
 
 
-def test_prediction_path_does_not_read_v2_artifacts():
+def test_prediction_path_reads_v2_artifacts_only_through_the_registry():
+    """
+    PR C から、登録した Challenger だけが凍結表を読む。読む入口は logic/model_registry.py の1か所だけで、
+    予想経路が表を作るスクリプト（scripts/base_times_v2 など）を import することは無い。
+    """
     for directory in ("logic", "scraper", "results", "research"):
         for path in (ROOT / directory).rglob("*.py"):
             text = path.read_text(encoding="utf-8")
             assert "base_times_v2" not in text and "data/reference" not in text, path
+            if path != ROOT / "logic" / "model_registry.py":
+                assert '"reference"' not in text and "reference/" not in text, path
 
 
 # ------------------------------------------------------------------ coverage dry-run

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import logging
 from pathlib import Path
@@ -17,6 +18,7 @@ CHALLENGER_ROOT = DATA_DIR / "challengers"
 DEFAULT_RACE_RESULTS = DATA_DIR / "race_results.json"
 DEFAULT_CHAMPION_RESULTS = DATA_DIR / "results.json"
 COMPARISON_PATH = DATA_DIR / "model_comparison.json"
+CHAMPION_SNAPSHOT_DIR = snapshots.SNAPSHOT_DIR
 
 
 def _write(path: Path, payload: dict[str, Any]) -> None:
@@ -24,6 +26,31 @@ def _write(path: Path, payload: dict[str, Any]) -> None:
     with path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
         f.write("\n")
+
+
+def _after_registration(predictions: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
+    """
+    registered_at を持つ Challenger は、登録より後に発走したレースだけを採点する。
+
+    登録前のレースを後から作り直して混ぜると forward 検証ではなくなるため（凍結表の cutoff より前のレースは
+    表そのものに勝ちタイムが入っている）。発走時刻が判らないレースも数えない。
+    """
+    registered_at = spec.get("registered_at")
+    if not registered_at:
+        return predictions
+    registered = datetime.datetime.fromisoformat(registered_at)
+    kept, dropped = [], []
+    for race in predictions.get("races", []):
+        post_at = snapshots.post_datetime(race)
+        (kept if post_at is not None and post_at > registered else dropped).append(race)
+    if dropped:
+        logger.warning("%s: 登録（%s）より前のレース %d 件は採点しません（%s）", spec["id"], registered_at,
+                       len(dropped), ", ".join(str(r.get("id")) for r in dropped[:5]))
+    return {**predictions, "races": kept}
+
+
+def _snapshots_by_race(directory: Path) -> dict[str, dict[str, Any]]:
+    return {s.get("race_id"): s for s in snapshots.load_all(directory) if s.get("pre_race")}
 
 
 def build_all(race_results: dict[str, Any],
@@ -35,7 +62,7 @@ def build_all(race_results: dict[str, Any],
     for spec in model_registry.enabled_challengers(registry):
         model_id = spec["id"]
         root = CHALLENGER_ROOT / model_id
-        predictions = snapshots.as_predictions(root / "snapshots")
+        predictions = _after_registration(snapshots.as_predictions(root / "snapshots"), spec)
         result = build_results.build_results(predictions, race_results)
         result["model"] = {
             "model_id": model_id,
@@ -45,7 +72,19 @@ def build_all(race_results: dict[str, Any],
         challenger_results[model_id] = result
         logger.info("%s: %d races settled", model_id, len(result.get("results", [])))
 
-    comparison = model_compare.compare(champion_results, challenger_results)
+    registered_at = {spec["id"]: spec["registered_at"]
+                     for spec in model_registry.enabled_challengers(registry) if spec.get("registered_at")}
+    comparison = model_compare.compare(champion_results, challenger_results, registered_at=registered_at)
+    champion_snaps = _snapshots_by_race(CHAMPION_SNAPSHOT_DIR)
+    for row in comparison["comparisons"]:
+        # speed が実際に使われたかを、同じ共通レースで Champion と並べる（採点とは別の観察値）
+        challenger_snaps = _snapshots_by_race(CHALLENGER_ROOT / row["challenger_model_id"] / "snapshots")
+        row["speed_quality"] = {
+            "champion": model_compare.speed_quality_summary(
+                [champion_snaps.get(rid) for rid in row["common_race_ids"]]),
+            "challenger": model_compare.speed_quality_summary(
+                [challenger_snaps.get(rid) for rid in row["common_race_ids"]]),
+        }
     for row in comparison["comparisons"]:
         cov = row["coverage"]
         if cov["missing_in_challenger"]:

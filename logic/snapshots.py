@@ -49,6 +49,14 @@ _RACE_FIELDS = (
     "myomi", "myomi_parts", "myomi_source", "legendary", "chappy_decision",
     "otori_card_ev", "card_ev_myomi", "model_disagreement_myomi", "evaluation_scope", "record_note", "marks", "cards",
 )
+# 一部のモデルにしか無い項目。値があるときだけ写す（Champion のスナップショットの形は変えない）
+_OPTIONAL_RACE_FIELDS = ("base_times_ref",)
+
+
+def _race_fields(source: dict[str, Any]) -> dict[str, Any]:
+    fields = {k: source.get(k) for k in _RACE_FIELDS if k != "id"}
+    fields.update({k: source[k] for k in _OPTIONAL_RACE_FIELDS if source.get(k) is not None})
+    return fields
 
 
 def post_datetime(race: dict[str, Any]) -> datetime.datetime | None:
@@ -85,7 +93,7 @@ def build_snapshot(race: dict[str, Any], week_id: str | None, frozen_at: str,
         "frozen_at": frozen_at,
         "pre_race": pre_race,
     }
-    snapshot.update({k: race.get(k) for k in _RACE_FIELDS if k != "id"})
+    snapshot.update(_race_fields(race))
     return snapshot
 
 
@@ -178,7 +186,7 @@ def restore_finished_races(predictions: dict[str, Any], now: datetime.datetime |
         if not snapshot.get("pre_race"):
             continue
 
-        frozen = {k: snapshot.get(k) for k in _RACE_FIELDS if k != "id"}
+        frozen = _race_fields(snapshot)
         frozen["id"] = snapshot.get("race_id")
         frozen["frozen_at"] = snapshot.get("frozen_at")
         predictions["races"][i] = frozen
@@ -216,7 +224,7 @@ def as_predictions(directory: Path | None = None) -> dict[str, Any]:
         if not snapshot.get("pre_race"):
             excluded.append(snapshot.get("race_id"))
             continue
-        race = {k: snapshot.get(k) for k in _RACE_FIELDS if k != "id"}
+        race = _race_fields(snapshot)
         race["id"] = snapshot.get("race_id")
         race["frozen_at"] = snapshot.get("frozen_at")
         races.append(race)
