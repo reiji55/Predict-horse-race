@@ -188,3 +188,12 @@ def test_audit_cli_writes_only_to_report_dir(tmp_path: Path):
     assert aud.main(["--artifact-id", "base-times-v2-test", "--artifact-dir", str(tmp_path / "ref"),
                      "--source", str(source), "--raw-dir", str(FIX_DIR), "--output", str(out)]) == 0
     assert json.loads(out.read_text(encoding="utf-8"))["schema"] == aud.AUDIT_SCHEMA
+
+
+def test_relative_input_path_is_recorded_repo_relative(monkeypatch):
+    """--input に相対パスを渡しても、入力の記録（パス・sha256）が作れる（PR B で見つかった不具合）。"""
+    monkeypatch.chdir(ROOT)
+    rel = Path("tests") / "fixtures" / "base_times_v2" / "2026-W39.json"
+    digest = v2._file_digest(rel)
+    assert digest["path"] == "tests/fixtures/base_times_v2/2026-W39.json" and len(digest["sha256"]) == 64
+    assert v2._file_digest(ROOT / rel) == digest
