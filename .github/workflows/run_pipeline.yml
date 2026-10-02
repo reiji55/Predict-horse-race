@@ -101,6 +101,14 @@ jobs:
           WEEK="${{ steps.target.outputs.week }}"
           python -m research.prerace_capture --week "${WEEK}" --phase pipeline
 
+      - name: speed-v2 forward評価の発走前記録（evaluation-only）
+        # Champion と speed-v2 Challenger の発走前 snapshot を読むだけ。全精度 score とキャラ別選定順を
+        # data/shadow/model_evaluation/prerace/ へ追記する。予想・snapshot は書き換えない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m research.model_evaluation capture --week "${WEEK}" --phase pipeline
+
       - name: 発走前contextを独立snapshotへ凍結
         # observe-only。失敗しても本番の予想生成・コミットは止めない。
         continue-on-error: true
