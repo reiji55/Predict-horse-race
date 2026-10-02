@@ -81,7 +81,9 @@ Champion（`win-v1-speed-guard`）と speed-v2 Challenger（`speed-base-times-v2
   - **Brier** = Σ_i (p_i − y_i)²（多クラス。勝ち馬だけ y=1）
 - **市場 q は参考の基準線で、モデルの p とは別に扱う**
   - 出走馬全員に正の単勝オッズがあるときだけ、1/odds を正規化して同じ指標を出す。
+    - 「全員」は、snapshot の marks の頭数が `speed_quality.total_horses` と一致することで確かめる。一致しなければ `market_field_incomplete`。
   - 欠けていれば `incomplete_market_odds` と欠けた馬番を残す。q のためにモデルの p を変えない。
+  - 累積の q（基準線の平均と calibration bucket）は、q が出たレースだけで作る。モデルの集計からはレースを落とさない。
 - **calibration bucket**
   - 全レースの (p, 勝ち/負け) をまとめ、固定した区切りで数・平均 p・実際の勝率を出す。
   - 区切りは [0, .02, .05, .1, .15, .2, .3, .5, 1.0]。

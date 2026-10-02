@@ -385,3 +385,34 @@ def test_secondary_failure_keeps_primary(world, monkeypatch):
     assert summary["coverage"]["evaluated_pairs"] == 4 and summary["errors"] == []
     assert summary["forward"]["primary"]["probability"]["races"] == 4
     assert summary["forward"]["secondary"]["champion"]["not_settled_races"] == 4
+
+
+def test_summary_survives_races_without_market_q(world):
+    """市場 q が欠けたレースがあっても summary まで通り、q の集計は q が出たレースだけで作る。"""
+    snap_path = world["champion_dir"] / "20260927-hanshin-11.json"
+    chall_path = world["challenger_root"] / SPEED_V2 / "snapshots" / "20260927-hanshin-11.json"
+    for path in (snap_path, chall_path):
+        snap = json.loads(path.read_text(encoding="utf-8"))
+        loser = next(m for m in snap["marks"] if m["num"] not in _results()["20260927-hanshin-11"]["finish"][:1])
+        loser["odds"] = None
+        path.write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
+    import shutil
+    shutil.rmtree(world["capture_dir"])                 # snapshot を書き換えたので capture は使わない
+    summary = _run(world)
+    prob = summary["forward"]["primary"]["probability"]
+    assert prob["races"] == 4 and prob["log_loss"]["n"] == 4 and prob["brier"]["n"] == 4
+    assert prob["q_market_reference"]["races"] == 3
+    q_n = sum(b["n"] for b in prob["calibration_buckets"]["q_market"])
+    model_n = sum(b["n"] for b in prob["calibration_buckets"]["champion"])
+    race = json.loads((world["tmp"] / "out" / "races" / "20260927-hanshin-11.json").read_text(encoding="utf-8"))
+    assert race["probability"]["market"]["status"] == "incomplete_market_odds"
+    assert q_n == model_n - len(race["probability"]["horses"])     # q は欠けたレースの馬を含まない
+    assert summary["errors"] == []
+
+
+def test_market_q_requires_every_runner():
+    snap = {"speed_quality": {"total_horses": 4},
+            "marks": [{"num": n, "score": 50.0 + n, "odds": 3.0} for n in (1, 2, 3)]}
+    out = me.probability_block(snap, snap, {"champion": None, "challenger": None}, 1, 10.0, "x", _cfg())
+    assert out["status"] == "evaluated"                             # モデルの比較は残る
+    assert out["market"] == {"status": "market_field_incomplete", "marks": 3, "total_horses": 4}

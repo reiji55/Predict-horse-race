@@ -325,7 +325,12 @@ def probability_block(champ: dict[str, Any], chall: dict[str, Any], captures: di
     out["models"] = {name: calibration.win_metrics(prob, winner, eps) for name, prob in probs.items()}
 
     odds = {int(m["num"]): m.get("odds") for m in champ.get("marks") or [] if m.get("num") is not None}
-    if all(isinstance(o, (int, float)) and o > 0 for o in odds.values()) and winner in odds:
+    total = (champ.get("speed_quality") or {}).get("total_horses")
+    if total is not None and int(total) != len(odds):
+        # marks が出走馬全員を含んでいない（score の無い馬がいる等）。全頭の q とは言えないので出さない
+        q = None
+        out["market"] = {"status": "market_field_incomplete", "marks": len(odds), "total_horses": int(total)}
+    elif all(isinstance(o, (int, float)) and o > 0 for o in odds.values()) and winner in odds:
         q = calibration._normalise({n: 1.0 / float(o) for n, o in odds.items()})
         out["market"] = {"status": "available", **calibration.win_metrics(q, winner, eps)}
     else:
@@ -627,7 +632,9 @@ def _secondary_summary(rows: list[dict[str, Any]], who: str, cfg: dict[str, Any]
 def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str, Any]:
     prob_rows = [r for r in evaluated if r["probability"]["status"] == "evaluated"]
     prob = {who: [r["probability"]["models"][who] for r in prob_rows] for who in ("champion", "challenger")}
-    market = [r["probability"]["market"] for r in prob_rows if r["probability"]["market"]["status"] == "available"]
+    # 市場 q は出走馬全員の正の単勝オッズが揃ったレースだけ（基準線と calibration を同じ集合にそろえる）
+    market_rows = [r for r in prob_rows if r["probability"]["market"]["status"] == "available"]
+    market = [r["probability"]["market"] for r in market_rows]
     edges = cfg["probability"]["calibration_bucket_edges"]
     ks = cfg["ranking"]["recall_k"]
 
@@ -664,8 +671,11 @@ def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str,
                                        "log_loss": _mean([m["log_loss"] for m in market]),
                                        "brier": _mean([m["brier"] for m in market]),
                                        "note": "参考の基準線。出走馬全員の正の単勝オッズが揃うレースだけ。"},
-                "calibration_buckets": {who: calibration_buckets(prob_rows, f"p_{who}", edges)
-                                        for who in ("champion", "challenger", "q_market")},
+                "calibration_buckets": {
+                    "champion": calibration_buckets(prob_rows, "p_champion", edges),
+                    "challenger": calibration_buckets(prob_rows, "p_challenger", edges),
+                    "q_market": calibration_buckets(market_rows, "p_q_market", edges),
+                },
             },
             "ranking": ranking_paired,
             "speed_quality": {who: _speed_summary(evaluated, who) for who in ("champion", "challenger")},
