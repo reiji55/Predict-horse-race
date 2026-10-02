@@ -1,0 +1,48 @@
+{
+  "version": "speed-v2-forward-eval-v2",
+  "spec": "docs/audit/SPEED_V2_FORWARD_EVALUATION_SPEC_20261002.md",
+  "registered_at": "2026-10-03T08:00:00+09:00",
+  "registered_at_note": "評価式そのものの事前登録日時（10/3 以降の結果を見る前）。forward の対象は post_time が max(この日時, Challenger の registered_at) より後のレースだけ。評価式・バケット・対象条件を変えたら version と registered_at を両方進め、それより前のレースは新しい式の forward に入れない。",
+  "note": "evaluation-only / observe-only。Champion・Challenger の予想・選定・買い目・重み・T・λ には一切使わない。data/shadow/model_evaluation/ にだけ書く。正式成績(data/results.json)・UI には混ぜない。",
+  "champion_model_id": "win-v1-speed-guard",
+  "challenger_model_id": "speed-base-times-v2-coverage",
+  "pairing": {
+    "require_same_frozen_at": true,
+    "require_same_config_hash": true,
+    "require_same_horses_and_odds": true,
+    "require_frozen_before_post": true,
+    "require_registered_artifact": true
+  },
+  "probability": {
+    "temperature_source": "凍結時の T だけを使う。両モデルの capture があれば capture に残した T（両モデル同じ・capture 時の設定 hash が snapshot と同じこと）。capture が無ければ snapshot の config_hash がいまの本番設定と同じときだけいまの T。どちらでもなければ確率評価をしない（temperature_unverifiable）",
+    "score_source": "両モデルの発走前 capture が snapshot と一致していればその全精度 score、どちらかでも無ければ両モデルとも snapshot.marks の score（0.1丸め）",
+    "model_p_field": "本番と同じく score のある全馬で softmax。単勝オッズの有無で馬を落とさない。両モデルで score のある馬が違えば比べない（score_set_mismatch）",
+    "market_q": "参考の基準線。出走馬全員（marks の頭数 = speed_quality.total_horses）の正の単勝オッズが揃うときだけ（揃わなければ incomplete_market_odds / market_field_incomplete）。q の累積と calibration は q が出たレースだけで作る",
+    "min_score_coverage": 0.8,
+    "eps": 1e-12,
+    "calibration_bucket_edges": [0.0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0]
+  },
+  "ranking": {
+    "recall_k": [4, 6],
+    "order_sources": ["base", "top3", "kei_sel", "tetsu_sel", "gen_sel"],
+    "card_selection_chars": ["kei", "tetsu", "gen"]
+  },
+  "speed_quality": {
+    "keys": ["used", "qualified_horses", "total_horses", "coverage", "raw_available_horses", "reason"]
+  },
+  "diversity": {
+    "fixed_three": ["kei", "tetsu", "gen"],
+    "redundancy_flag": {
+      "require_axis_match": true,
+      "min_jaccard": 0.6
+    }
+  },
+  "secondary": {
+    "fixed_three": ["kei", "tetsu", "gen"],
+    "auto_chappy_chars": ["chappy", "otori"]
+  },
+  "promotion": {
+    "status": "not_registered",
+    "note": "このバージョンは評価式と記録方式だけを固定する。何レース・何%で採用といった昇格基準は決めていない。historical dataset が揃った段階で chronological holdout・bootstrap CI・market baseline を含めて別途事前登録する。"
+  }
+}

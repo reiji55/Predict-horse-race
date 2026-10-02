@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py -q
 
       - name: 対象の週を決める
         id: target
@@ -113,6 +113,17 @@ jobs:
             python -m research.forward_diagnostics --results data/race_results.json
           else
             echo "結果がまだ無いため diagnostics をスキップします"
+          fi
+
+      - name: speed-v2 forward評価（evaluation-only）
+        # Champion と speed-v2 Challenger を同じレース・同じ発走前情報で対にして比べる（事前登録した評価式）。
+        # data/shadow/model_evaluation/ にだけ書く。正式成績・UI には混ぜない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          if [ -f data/race_results.json ]; then
+            python -m research.model_evaluation evaluate --results data/race_results.json
+          else
+            echo "結果がまだ無いため speed-v2 評価をスキップします"
           fi
 
       - name: 生成物をコミット
