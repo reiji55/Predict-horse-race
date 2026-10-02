@@ -1,7 +1,15 @@
 # speed-v2 Challenger forward 評価の事前登録 — 2026-10-02
 
 作成: Claude（2026-10-02、10/3 以降の結果を見る前）
-version: `speed-v2-forward-eval-v1`（`config/model_evaluation.json`）
+version: `speed-v2-forward-eval-v2`（`config/model_evaluation.json`）
+
+> **v2（2026-10-03 早朝、forward 開始前）：** レビューの指摘で v1 から次を直した。結果はまだ1レースも無い時点の変更で、v1 の数字は存在しない。
+> - モデルの p から、単勝オッズの無い馬を落としていた → 本番と同じく score のある全馬で softmax。市場 q は別扱い
+> - T を採点時の設定から読んでいた → 凍結時の T だけを使う
+> - 旧い評価式で取った capture を拾い得た → 同じ評価式の capture だけを使う
+> - 凍結表の照合を registry の全項目に揃えた
+>
+> 評価式の registered_at は 2026-10-03T08:00 JST に進めた。境界は Challenger の 10/3 09:00 のままなので、forward の対象は変わらない。
 実装: `research/model_evaluation.py`
 モード: **evaluation-only / observe-only。** Champion・Challenger の予想・選定・買い目・重み・T・λ・テンプレ・Chappy・鳳ゲート・基準タイム表（r2）は変えない。
 
@@ -18,7 +26,7 @@ Champion（`win-v1-speed-guard`）と speed-v2 Challenger（`speed-base-times-v2
 
 **forward の境界**
 - `max(評価式の registered_at, Challenger の registered_at)` を境界にする。
-  - 評価式の registered_at は 2026-10-02T22:00 JST、Challenger の registered_at は 2026-10-03T09:00 JST。
+  - 評価式の registered_at は 2026-10-03T08:00 JST、Challenger の registered_at は 2026-10-03T09:00 JST。
   - いまの境界は 2026-10-03T09:00 JST。
 - この時刻より**後に発走した**レースだけを数える。
 
@@ -28,7 +36,7 @@ Champion（`win-v1-speed-guard`）と speed-v2 Challenger（`speed-base-times-v2
   2. 両モデルの snapshot が発走前に凍結されている（`pre_race=true`、`frozen_at < 発走`）
   3. 同じビルドで作られている（`frozen_at`・`config_hash` が同じ）
   4. 出走馬と単勝オッズが同じ
-  5. Challenger の snapshot が、登録どおりの凍結表で作られている（`base_times_ref` の artifact_id・lookup_sha256 が registry と一致）
+  5. Challenger の snapshot が、登録どおりの凍結表で作られている（`base_times_ref` の artifact_id・lookup_sha256・meta_content_sha256・method_version・cutoff_date が registry とすべて一致）
 
 **評価しないレースの扱い**
 - 満たさないレースは評価せず、理由付きで `coverage.not_evaluated` に残す。黙って落とさない。
@@ -48,7 +56,10 @@ Champion（`win-v1-speed-guard`）と speed-v2 Challenger（`speed-base-times-v2
 - 発走後は記録しない。
 
 **採点時の照合**
-- 採点時の snapshot と SHA-256 が一致し、発走前に取られた capture だけを使う。
+- 次をすべて満たす capture だけを使う。
+  - 採点時の snapshot と SHA-256 が一致する
+  - 発走前に取られている
+  - いまと同じ評価式（`evaluation_config_hash`）で取られている。評価式を変えたあとに旧い capture を混ぜないため
 
 **公平のための規則**
 - 全精度 score とキャラ別選定順は、**両モデルとも揃ったときだけ**使う。
@@ -57,14 +68,20 @@ Champion（`win-v1-speed-guard`）と speed-v2 Challenger（`speed-base-times-v2
 ## 3. Primary metrics
 
 ### 3.1 確率評価
-- 単勝 p = softmax(score / T)。T は `config/myomi.json` の本番値で、両モデル共通。
-- 評価する馬の集合
-  - score と正の単勝オッズを、両モデルとも持つ馬に限る。
-  - その馬数がフィールドの 80% 未満、または勝ち馬が対象外なら、そのレースの確率評価はしない（status に理由を残す）。
+- **モデルの p は本番と同じ**：score のある全馬で p = softmax(score / T)。
+  - 単勝オッズの有無で馬を落とさない（落とすと、評価する分布そのものを条件付け直してしまう）。
+  - 両モデルで score のある馬の集合が違えば比べない（`score_set_mismatch`）。
+  - score のある馬がフィールドの 80% 未満、または勝ち馬に score が無ければ、確率評価はしない（status に理由を残す）。
+- **T は凍結時の値だけを使う**（後から T を変えても過去の数字は書き換わらない）
+  1. 両モデルの capture がある：capture に残した T を使う。両モデル同じで、capture 時の本番設定 hash が snapshot の `config_hash` と同じことを確かめる。
+  2. capture が無い：snapshot の `config_hash` がいまの本番設定と同じときだけ、いまの T を使う（`config_hash` は myomi.json を含むので、同じなら T も同じ）。
+  3. どちらでもない：確率評価をしない（`temperature_unverifiable`）。他の Primary は残す。
 - 指標
   - **log loss** = −ln p(勝ち馬)
   - **Brier** = Σ_i (p_i − y_i)²（多クラス。勝ち馬だけ y=1）
-  - 参考：市場 q（1/odds を正規化）の同じ指標も並べる（モデルではなく基準線）。
+- **市場 q は参考の基準線で、モデルの p とは別に扱う**
+  - 出走馬全員に正の単勝オッズがあるときだけ、1/odds を正規化して同じ指標を出す。
+  - 欠けていれば `incomplete_market_odds` と欠けた馬番を残す。q のためにモデルの p を変えない。
 - **calibration bucket**
   - 全レースの (p, 勝ち/負け) をまとめ、固定した区切りで数・平均 p・実際の勝率を出す。
   - 区切りは [0, .02, .05, .1, .15, .2, .3, .5, 1.0]。

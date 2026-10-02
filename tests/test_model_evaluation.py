@@ -64,10 +64,11 @@ def world(tmp_path: Path) -> dict:
     return {**dirs, "registry": registry, "report": report, "tmp": tmp_path}
 
 
-def _run(world: dict, cfg: dict | None = None, registry: dict | None = None, results: dict | None = None) -> dict:
+def _run(world: dict, cfg: dict | None = None, registry: dict | None = None, results: dict | None = None,
+         **kwargs) -> dict:
     return me.run(results or _results(), champion_dir=world["champion_dir"], challenger_root=world["challenger_root"],
                   capture_dir=world["capture_dir"], output_dir=world["tmp"] / "out",
-                  cfg=cfg or _cfg(), registry=registry or world["registry"])
+                  cfg=cfg or _cfg(), registry=registry or world["registry"], **kwargs)
 
 
 # ------------------------------------------------------------------ capture（発走前）
@@ -211,6 +212,9 @@ def _pair(world, race_id="20260927-hanshin-11"):
     (lambda c, h: h.update(frozen_at="2026-09-01T09:05:00+09:00"), "frozen_at_mismatch"),
     (lambda c, h: h.update(config_hash="0" * 16), "config_hash_mismatch"),
     (lambda c, h: h["base_times_ref"].update(lookup_sha256="0" * 64), "challenger_artifact_mismatch"),
+    (lambda c, h: h["base_times_ref"].update(meta_content_sha256="0" * 64), "challenger_artifact_mismatch"),
+    (lambda c, h: h["base_times_ref"].update(method_version="v9"), "challenger_artifact_mismatch"),
+    (lambda c, h: h["base_times_ref"].update(cutoff_date="2026-09-20"), "challenger_artifact_mismatch"),
     (lambda c, h: h["marks"][0].update(odds=99.9), "prerace_inputs_differ"),
     (lambda c, h: (c.update(frozen_at="2026-09-27T16:00:00+09:00"), h.update(frozen_at="2026-09-27T16:00:00+09:00")),
      "champion_frozen_after_post"),
@@ -231,22 +235,86 @@ def test_probability_formulas():
     champ = snap([(1, 60.0, 2.0), (2, 50.0, 4.0), (3, 40.0, 4.0)])
     chall = snap([(1, 50.0, 2.0), (2, 60.0, 4.0), (3, 40.0, 4.0)])
     out = me.probability_block(champ, chall, {"champion": None, "challenger": None}, winner=2,
-                               temperature=10.0, cfg=_cfg())
+                               temperature=10.0, temperature_source="current_config_verified", cfg=_cfg())
     z = math.exp(1) + 1 + math.exp(-1)
     p_champ = {1: math.exp(1) / z, 2: 1 / z, 3: math.exp(-1) / z}
     assert out["models"]["champion"]["log_loss"] == round(-math.log(p_champ[2]), 6)
     brier = (p_champ[1]) ** 2 + (p_champ[2] - 1) ** 2 + (p_champ[3]) ** 2
     assert out["models"]["champion"]["brier"] == round(brier, 6)
     assert out["models"]["challenger"]["p_winner"] == round(math.exp(1) / z, 6)
-    assert out["models"]["q_market"]["p_winner"] == 0.25          # 1/4 ÷ (1/2+1/4+1/4)
+    assert out["market"]["p_winner"] == 0.25                      # 1/4 ÷ (1/2+1/4+1/4)
     assert out["score_source"] == "snapshot_marks_rounded"
 
 
 def test_probability_requires_coverage_and_evaluable_winner():
-    champ = {"marks": [{"num": 1, "score": 60.0, "odds": 2.0}, {"num": 2, "score": 50.0, "odds": None},
-                       {"num": 3, "score": 40.0, "odds": None}]}
-    out = me.probability_block(champ, champ, {"champion": None, "challenger": None}, 1, 10.0, _cfg())
-    assert out["status"] == "insufficient_coverage"
+    champ = {"marks": [{"num": 1, "score": 60.0, "odds": 2.0}, {"num": 2, "score": None, "odds": 3.0},
+                       {"num": 3, "score": None, "odds": 4.0}]}
+    none = {"champion": None, "challenger": None}
+    assert me.probability_block(champ, champ, none, 1, 10.0, "x", _cfg())["status"] == "insufficient_coverage"
+    full = {"marks": [{"num": n, "score": 50.0 + n, "odds": 3.0} for n in (1, 2, 3)]}
+    assert me.probability_block(full, full, none, 9, 10.0, "x", _cfg())["status"] == "winner_not_evaluable"
+
+
+def test_missing_odds_never_renormalise_model_p():
+    """
+    単勝オッズが無い馬も、モデルの p には本番と同じく入れる（q のために馬を落とさない）。
+    その馬に Champion は大きな確率、Challenger は小さな確率を置いている例。
+    """
+    champ = {"marks": [{"num": 1, "score": 50.0, "odds": 2.0}, {"num": 2, "score": 70.0, "odds": None},
+                       {"num": 3, "score": 40.0, "odds": 4.0}]}
+    chall = {"marks": [{"num": 1, "score": 50.0, "odds": 2.0}, {"num": 2, "score": 20.0, "odds": None},
+                       {"num": 3, "score": 40.0, "odds": 4.0}]}
+    out = me.probability_block(champ, chall, {"champion": None, "challenger": None}, 1, 10.0, "x", _cfg())
+    assert out["status"] == "evaluated" and out["evaluation_set"]["scored_horses"] == 3
+    z_champ = math.exp(5.0) + math.exp(7.0) + math.exp(4.0)
+    assert out["models"]["champion"]["p_winner"] == round(math.exp(5.0) / z_champ, 6)   # 3頭で正規化
+    assert out["models"]["champion"]["log_loss"] == round(-math.log(math.exp(5.0) / z_champ), 6)
+    assert out["models"]["challenger"]["log_loss"] < out["models"]["champion"]["log_loss"]
+    assert out["market"] == {"status": "incomplete_market_odds", "missing_odds": [2]}
+    assert all(h["p_q_market"] is None for h in out["horses"])
+    assert sum(h["p_champion"] for h in out["horses"]) == pytest.approx(1.0, abs=1e-5)
+
+
+def test_different_scored_horses_fail_closed():
+    champ = {"marks": [{"num": n, "score": 50.0 + n, "odds": 3.0} for n in (1, 2, 3)]}
+    chall = {"marks": [{"num": 1, "score": 51.0, "odds": 3.0}, {"num": 2, "score": 52.0, "odds": 3.0},
+                       {"num": 3, "score": None, "odds": 3.0}]}
+    out = me.probability_block(champ, chall, {"champion": None, "challenger": None}, 1, 10.0, "x", _cfg())
+    assert out["status"] == "score_set_mismatch" and "models" not in out
+
+
+# ------------------------------------------------------------------ T は凍結時の値（後から変えても過去の数字は変わらない）
+
+def test_temperature_comes_from_the_capture_not_the_current_config(world):
+    base = _run(world, temperature=10.0)
+    changed = _run(world, temperature=3.0)            # 採点時に本番の T が変わっていても
+    for key in ("log_loss", "brier"):
+        assert changed["forward"]["primary"]["probability"][key] == base["forward"]["primary"]["probability"][key]
+    assert base["forward"]["primary"]["probability"]["temperature_sources"] == ["capture"]
+    race = json.loads((world["tmp"] / "out" / "races" / "20260927-hanshin-11.json").read_text(encoding="utf-8"))
+    assert race["probability"]["temperature"] == bp.load_configs()["myomi"]["prob_model"]["temperature"]
+
+
+def test_without_capture_temperature_must_be_verifiable(world):
+    import shutil
+    shutil.rmtree(world["capture_dir"])
+    ok = _run(world)                                   # snapshot の config_hash = いまの本番設定 → いまの T
+    assert ok["forward"]["primary"]["probability"]["temperature_sources"] == ["current_config_verified"]
+    assert ok["forward"]["primary"]["probability"]["races"] == 4
+
+    changed = _run(world, current_config_hash="0" * 16)   # 本番設定が変わったあと → T を確かめられない
+    prob = changed["forward"]["primary"]["probability"]
+    assert prob["races"] == 0 and prob["log_loss"]["n"] == 0
+    assert {r["reason"] for r in prob["not_evaluated"]} == {"temperature_unverifiable"}
+    assert changed["coverage"]["evaluated_pairs"] == 4          # ほかの Primary は残る
+
+
+def test_captures_from_another_evaluation_config_are_not_used(world):
+    cfg = _cfg()
+    cfg["probability"]["calibration_bucket_edges"] = [0.0, 0.5, 1.0]    # 評価式が変わった
+    summary = _run(world, cfg=cfg)
+    assert summary["forward"]["primary"]["probability"]["score_sources"] == ["snapshot_marks_rounded"]
+    assert summary["forward"]["primary"]["ranking"]["kei_sel_recall@4"]["n"] == 0
 
 
 def test_calibration_buckets_and_paired_directions():

@@ -52,6 +52,8 @@ CONFIG_PATH = common.ROOT / "config" / "model_evaluation.json"
 EVAL_DIR = common.SHADOW_DIR / "model_evaluation"
 CAPTURE_DIR = EVAL_DIR / "prerace"
 CHALLENGER_ROOT = common.ROOT / "data" / "challengers"
+# registry に登録した凍結表の項目。snapshot の base_times_ref と全部一致したときだけ「登録どおり」とみなす
+ARTIFACT_PIN_KEYS = ("artifact_id", "lookup_sha256", "meta_content_sha256", "method_version", "cutoff_date")
 
 # paired の向き。lower/higher は良し悪しの向き、descriptive は向きを決めない観察値（多様性）
 LOWER_IS_BETTER = "lower_is_better"
@@ -141,6 +143,8 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
         },
         "fidelity": fidelity,
         "temperature": temperature,
+        # capture 時点の本番設定の指紋。snapshot の config_hash と同じなら、この temperature は凍結時と同じ
+        "model_config_hash": model_registry.config_hash(),
         "scores": ([{"num": h["num"], "score": h["score"], "odds": h["odds"]}
                     for h in horses if h.get("num") is not None] if ok else None),
         "sel_orders": (diversity.character_orders(horses, configs["cards"], temperature,
@@ -201,8 +205,11 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None, phase: st
 # ================================================================== evaluate（結果確定後）
 
 def matched_capture(model_id: str, race_id: str, post: datetime.datetime, snapshot_sha: str,
-                    capture_dir: Path) -> dict[str, Any] | None:
-    """採点時の snapshot と SHA-256 が一致し、発走前に取られた capture のうち最新のもの。"""
+                    capture_dir: Path, cfg_hash: str) -> dict[str, Any] | None:
+    """採点時の snapshot と SHA-256 が一致し、発走前に、いまと同じ評価式で取られた capture のうち最新のもの。
+
+    評価式（config）が変わったあとは、旧い評価式で取った capture を新しい式に混ぜない。
+    """
     race_dir = capture_dir / model_id / race_id
     if not race_dir.is_dir():
         return None
@@ -212,8 +219,10 @@ def matched_capture(model_id: str, race_id: str, post: datetime.datetime, snapsh
         if not isinstance(row, dict):
             continue
         captured = common.parse_dt(row.get("captured_at"))
-        sha = (((row.get("provenance") or {}).get("snapshot")) or {}).get("sha256")
-        if captured is not None and captured < post and sha == snapshot_sha:
+        prov = row.get("provenance") or {}
+        sha = (prov.get("snapshot") or {}).get("sha256")
+        if captured is not None and captured < post and sha == snapshot_sha \
+                and prov.get("evaluation_config_hash") == cfg_hash:
             matched.append((captured, row))
     return max(matched, key=lambda t: t[0])[1] if matched else None
 
@@ -234,7 +243,7 @@ def pairing_problem(champ: dict[str, Any], chall: dict[str, Any], post: datetime
         return "challenger_model_id_mismatch"
     if rules["require_registered_artifact"]:
         ref, pin = chall.get("base_times_ref") or {}, challenger.get("base_times") or {}
-        if ref.get("artifact_id") != pin.get("artifact_id") or ref.get("lookup_sha256") != pin.get("lookup_sha256"):
+        if any(ref.get(k) != pin.get(k) for k in ARTIFACT_PIN_KEYS):
             return "challenger_artifact_mismatch"
     if rules["require_same_horses_and_odds"]:
         odds = [{int(m["num"]): m.get("odds") for m in s.get("marks") or [] if m.get("num") is not None}
@@ -252,37 +261,81 @@ def _scores(snapshot: dict[str, Any], capture_row: dict[str, Any] | None, full: 
             if m.get("num") is not None and m.get("score") is not None}
 
 
+def resolve_temperature(captures: dict[str, Any], snapshot_config_hash: str | None,
+                        current_config_hash: str, current_temperature: float) -> tuple[float | None, str]:
+    """
+    log loss / Brier に使う T を、**凍結時の値**として確かめられる経路だけで決める。
+
+    1. 両モデルの capture がある → capture に残した T（両モデル同じで、capture 時の設定が snapshot と同じこと）
+    2. capture が無い → snapshot の config_hash がいまの本番設定と同じときだけ、いまの T
+       （config_hash は myomi.json を含むので、同じなら T も同じ）
+    それ以外は T を確かめられないので確率評価をしない。後から T を変えても過去の数字は書き換わらない。
+    """
+    if all(c is not None for c in captures.values()):
+        temps = {c.get("temperature") for c in captures.values()}
+        hashes = {c.get("model_config_hash") for c in captures.values()}
+        if len(temps) != 1 or None in temps:
+            return None, "capture_temperature_mismatch"
+        if hashes != {snapshot_config_hash}:
+            return None, "capture_config_differs_from_snapshot"
+        return float(temps.pop()), "capture"
+    if snapshot_config_hash is not None and snapshot_config_hash == current_config_hash:
+        return float(current_temperature), "current_config_verified"
+    return None, "temperature_unverifiable"
+
+
 def probability_block(champ: dict[str, Any], chall: dict[str, Any], captures: dict[str, Any],
-                      winner: int, temperature: float, cfg: dict[str, Any]) -> dict[str, Any]:
-    """単勝 p の log loss / Brier。両モデルとも同じ馬の集合・同じ T・同じ精度の score で比べる。"""
+                      winner: int, temperature: float | None, temperature_source: str,
+                      cfg: dict[str, Any]) -> dict[str, Any]:
+    """
+    単勝 p の log loss / Brier。
+
+    モデルの p は本番と同じく **score のある全馬**で softmax(score/T) する。単勝オッズの有無で馬を落とさない。
+    両モデルで score のある馬の集合が違えば比べない（fail-closed）。
+    市場 q は参考の基準線で、出走馬全員の正の単勝オッズが揃うときだけ出す（q のためにモデルの p を変えない）。
+    """
     pcfg = cfg["probability"]
     full = all(c is not None and c.get("scores") for c in captures.values())
     scores = {"champion": _scores(champ, captures["champion"], full),
               "challenger": _scores(chall, captures["challenger"], full)}
-    odds = {int(m["num"]): float(m["odds"]) for m in champ.get("marks") or []
-            if m.get("num") is not None and isinstance(m.get("odds"), (int, float)) and m["odds"] > 0}
     field = [int(m["num"]) for m in champ.get("marks") or [] if m.get("num") is not None]
-    nums = sorted(n for n in field if n in odds and n in scores["champion"] and n in scores["challenger"])
-    coverage = len(nums) / len(field) if field else 0.0
+    scored = sorted(n for n in field if n in scores["champion"])
+    coverage = len(scored) / len(field) if field else 0.0
     out: dict[str, Any] = {
         "score_source": "capture_full_precision" if full else "snapshot_marks_rounded",
         "temperature": temperature,
-        "evaluation_set": {"field_size": len(field), "evaluated_horses": len(nums),
-                           "coverage": round(coverage, 6)},
+        "temperature_source": temperature_source,
+        "evaluation_set": {"field_size": len(field), "scored_horses": len(scored), "coverage": round(coverage, 6)},
         "winner": winner,
     }
-    if len(nums) < 2 or coverage < float(pcfg["min_pair_coverage"]):
+    if temperature is None:
+        out["status"] = temperature_source
+        return out
+    if set(scores["champion"]) != set(scores["challenger"]):
+        out["status"] = "score_set_mismatch"
+        return out
+    if len(scored) < 2 or coverage < float(pcfg["min_score_coverage"]):
         out["status"] = "insufficient_coverage"
         return out
-    if winner not in nums:
+    if winner not in scored:
         out["status"] = "winner_not_evaluable"
         return out
     eps = float(pcfg["eps"])
-    probs = {name: calibration._softmax({n: s[n] for n in nums}, temperature) for name, s in scores.items()}
-    probs["q_market"] = calibration._normalise({n: 1.0 / odds[n] for n in nums})
+    probs = {name: calibration._softmax({n: s[n] for n in scored}, temperature) for name, s in scores.items()}
     out["models"] = {name: calibration.win_metrics(prob, winner, eps) for name, prob in probs.items()}
+
+    odds = {int(m["num"]): m.get("odds") for m in champ.get("marks") or [] if m.get("num") is not None}
+    if all(isinstance(o, (int, float)) and o > 0 for o in odds.values()) and winner in odds:
+        q = calibration._normalise({n: 1.0 / float(o) for n, o in odds.items()})
+        out["market"] = {"status": "available", **calibration.win_metrics(q, winner, eps)}
+    else:
+        q = None
+        out["market"] = {"status": "incomplete_market_odds",
+                         "missing_odds": sorted(n for n, o in odds.items()
+                                                if not (isinstance(o, (int, float)) and o > 0))}
     out["horses"] = [{"num": n, "y": int(n == winner),
-                      **{f"p_{name}": round(prob[n], 6) for name, prob in probs.items()}} for n in nums]
+                      "p_champion": round(probs["champion"][n], 6), "p_challenger": round(probs["challenger"][n], 6),
+                      "p_q_market": round(q[n], 6) if q is not None and n in q else None} for n in scored]
     out["status"] = "evaluated"
     return out
 
@@ -397,7 +450,7 @@ def secondary_block(snapshot: dict[str, Any], result: dict[str, Any], top3: list
 
 def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], paths: dict[str, Path],
                   result: dict[str, Any], challenger: dict[str, Any], capture_dir: Path,
-                  temperature: float, cfg: dict[str, Any]) -> dict[str, Any]:
+                  current_temperature: float, current_config_hash: str, cfg: dict[str, Any]) -> dict[str, Any]:
     finish = [int(n) for n in result.get("finish") or []]
     top3, winner = finish[:3], finish[0]
     base = {"schema": RACE_SCHEMA, "race_id": race_id, "post_time": snaps["champion"].get("post_time"),
@@ -409,8 +462,11 @@ def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], 
 
     shas = {who: common.sha256_file(paths[who]) for who in ("champion", "challenger")}
     model_ids = {"champion": snaps["champion"].get("model_id"), "challenger": challenger["id"]}
-    captures = {who: matched_capture(model_ids[who], race_id, post, shas[who], capture_dir)
+    cfg_hash = common.config_hash(cfg)
+    captures = {who: matched_capture(model_ids[who], race_id, post, shas[who], capture_dir, cfg_hash)
                 for who in ("champion", "challenger")}
+    temperature, temperature_source = resolve_temperature(
+        captures, snaps["champion"].get("config_hash"), current_config_hash, current_temperature)
     # キャラ別選定順は両モデルとも揃ったときだけ使う（片方だけの比較にしない）
     both_sel = all(c is not None and c.get("sel_orders") for c in captures.values())
     models = {}
@@ -432,7 +488,8 @@ def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], 
     return {**base, "status": "evaluated", "phase": "forward",
             "frozen_at": snaps["champion"].get("frozen_at"), "config_hash": snaps["champion"].get("config_hash"),
             "top3": top3, "sel_orders_paired": both_sel,
-            "probability": probability_block(snaps["champion"], snaps["challenger"], captures, winner, temperature, cfg),
+            "probability": probability_block(snaps["champion"], snaps["challenger"], captures, winner,
+                                             temperature, temperature_source, cfg),
             "models": models}
 
 
@@ -466,7 +523,9 @@ def calibration_buckets(rows: list[dict[str, Any]], key: str, edges: list[float]
     buckets = [{"lo": lo, "hi": hi, "n": 0, "sum_p": 0.0, "wins": 0} for lo, hi in zip(edges, edges[1:])]
     for row in rows:
         for horse in row["probability"].get("horses") or []:
-            p = horse[key]
+            p = horse.get(key)
+            if p is None:
+                continue
             for i, b in enumerate(buckets):
                 last = i == len(buckets) - 1
                 if b["lo"] <= p < b["hi"] or (last and p == b["hi"]):
@@ -567,7 +626,8 @@ def _secondary_summary(rows: list[dict[str, Any]], who: str, cfg: dict[str, Any]
 
 def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str, Any]:
     prob_rows = [r for r in evaluated if r["probability"]["status"] == "evaluated"]
-    prob = {who: [r["probability"]["models"][who] for r in prob_rows] for who in ("champion", "challenger", "q_market")}
+    prob = {who: [r["probability"]["models"][who] for r in prob_rows] for who in ("champion", "challenger")}
+    market = [r["probability"]["market"] for r in prob_rows if r["probability"]["market"]["status"] == "available"]
     edges = cfg["probability"]["calibration_bucket_edges"]
     ks = cfg["ranking"]["recall_k"]
 
@@ -594,11 +654,16 @@ def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str,
             "probability": {
                 "races": len(prob_rows),
                 "score_sources": sorted({r["probability"]["score_source"] for r in prob_rows}),
+                "temperature_sources": sorted({r["probability"]["temperature_source"] for r in prob_rows}),
+                "not_evaluated": [{"race_id": r["race_id"], "reason": r["probability"]["status"]}
+                                  for r in evaluated if r["probability"]["status"] != "evaluated"],
                 "log_loss": paired([m["log_loss"] for m in prob["champion"]], [m["log_loss"] for m in prob["challenger"]],
                                    LOWER_IS_BETTER),
                 "brier": paired([m["brier"] for m in prob["champion"]], [m["brier"] for m in prob["challenger"]], LOWER_IS_BETTER),
-                "q_market_reference": {"log_loss": _mean([m["log_loss"] for m in prob["q_market"]]),
-                                       "brier": _mean([m["brier"] for m in prob["q_market"]])},
+                "q_market_reference": {"races": len(market),
+                                       "log_loss": _mean([m["log_loss"] for m in market]),
+                                       "brier": _mean([m["brier"] for m in market]),
+                                       "note": "参考の基準線。出走馬全員の正の単勝オッズが揃うレースだけ。"},
                 "calibration_buckets": {who: calibration_buckets(prob_rows, f"p_{who}", edges)
                                         for who in ("champion", "challenger", "q_market")},
             },
@@ -619,7 +684,7 @@ def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str,
 def run(race_results: dict[str, Any], champion_dir: Path | None = None, challenger_root: Path | None = None,
         capture_dir: Path | None = None, output_dir: Path | None = None, cfg: dict[str, Any] | None = None,
         registry: dict[str, Any] | None = None, temperature: float | None = None,
-        now: datetime.datetime | None = None) -> dict[str, Any]:
+        current_config_hash: str | None = None, now: datetime.datetime | None = None) -> dict[str, Any]:
     champion_dir = champion_dir or snapshots.SNAPSHOT_DIR
     challenger_root = challenger_root or CHALLENGER_ROOT
     capture_dir = capture_dir or CAPTURE_DIR
@@ -629,6 +694,7 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
     output_dir = output_dir or EVAL_DIR / challenger["id"]
     if temperature is None:
         temperature = float((common.read_json(common.ROOT / "config" / "myomi.json") or {})["prob_model"]["temperature"])
+    current_config_hash = current_config_hash or model_registry.config_hash()
     chall_dir = snapshot_dir_for(challenger, champion_dir, challenger_root)
 
     race_ids = sorted({p.stem for d in (champion_dir, chall_dir) if d.is_dir() for p in d.glob("*.json")})
@@ -657,7 +723,8 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
             row = {"race_id": race_id, "reason": "challenger_not_prerace"}
         else:
             try:
-                row = evaluate_race(race_id, post, snaps, paths, result, challenger, capture_dir, temperature, cfg)
+                row = evaluate_race(race_id, post, snaps, paths, result, challenger, capture_dir,
+                                    temperature, current_config_hash, cfg)
             except Exception as exc:  # noqa: BLE001 — 1レースの失敗で全体を止めないが、黙らない
                 logger.error("%s: model evaluation failed: %s: %s", race_id, type(exc).__name__, exc)
                 errors.append({"race_id": race_id, "error": f"{type(exc).__name__}: {exc}"})
