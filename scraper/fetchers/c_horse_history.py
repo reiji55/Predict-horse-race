@@ -23,8 +23,9 @@ Cページ：馬の戦績ページ（db.netkeiba.com/horse/）
 - レース名列にクラス情報が同居している：
   括弧内グレード表記 "(GIII)"/"(GII)"/"(GI)"/"(L)" と、括弧内条件表記 "(1勝クラス)" 等、
   括弧なし表記 "3歳未勝利"/"2歳新馬" の3パターンが混在する。
-  → constants.GRADE_TAG_MAP（括弧内グレード）と constants.CONDITION_GRADE_MAP（条件文字列）の
-    両方をこの順で試す（b_shutuba.pyと共有・二重定義しない）
+  → constants.normalize_class_label が GRADE_TAG_MAP（括弧・空白で区切った全トークン）と
+    CONDITION_GRADE_MAP（条件文字列）をこの順で試す（他の取得経路と共有・二重定義しない）。
+    "天皇賞(春)(GI)" のように括弧が2つ以上あっても、後ろの "(GI)" まで見る
   → 【要確認】"新馬"（新馬戦）はclass_offsetに専用キーが無いため、"未勝利"と同じ mi に丸めている。
     新馬戦は本来「同条件での実績が皆無」という点で未勝利ともニュアンスが違うが、v1では割り切り。
   → 【既知の限界】グレード表記も条件表記も括弧内に見つからない場合（無印の特別戦など）は
@@ -57,9 +58,6 @@ HORSE_URL_TMPL = "https://db.netkeiba.com/horse/{horse_id}"
 
 # 開催列（例 "3東京6"）から場名部分だけを抜き出す：先頭の回数・末尾の開催日数（ともに数字）を除いた中央部分
 _VENUE_IN_KAISAI_RE = re.compile(r"^\d*(\D+?)\d*$")
-
-# レース名列の括弧内文字列を抽出（グレード表記 "(GIII)" も条件表記 "(1勝クラス)" もここで拾う）
-_PAREN_RE = re.compile(r"\(([^)]+)\)")
 
 _DIST_RE = re.compile(r"(芝|ダ|障)(\d+)")
 _BODY_WEIGHT_RE = re.compile(r"^(\d{3,4})\(\s*([+\-]?\d+)\s*\)$")
@@ -96,22 +94,15 @@ def _parse_venue(kaisai_text: str) -> str:
 
 def _parse_class(racename: str) -> str | None:
     """
-    レース名列からクラス表記を正規化する。
-    優先順：①括弧内グレード（GI/GII/GIII/L） ②括弧内・括弧外の条件文字列（未勝利/1勝クラス等）
+    レース名列からクラス表記を正規化する（constants.normalize_class_label に委ねる）。
+    優先順：①括弧・空白で区切ったグレード表記（GI/GII/GIII/L/OP） ②条件文字列（未勝利/1勝クラス等）
     どちらにも当てはまらない場合は None（取得項目仕様§2.0「取れなかったらnull」）。
+
+    以前は最初の括弧だけを見ていたため、"天皇賞(春)(GI)" / "天皇賞(秋)(GI)" では "春"/"秋" を拾って
+    後ろの "(GI)" を見ず、class=None になっていた。出馬表の過去5走（c2_shutuba_past）・基準タイム表の
+    取得（scripts/build_base_times）と同じ正規化に揃える。
     """
-    paren_m = _PAREN_RE.search(racename)
-    if paren_m:
-        tag = paren_m.group(1)
-        if tag in constants.GRADE_TAG_MAP:
-            return constants.GRADE_TAG_MAP[tag]
-        for keyword, cls in constants.CONDITION_GRADE_MAP:
-            if keyword in tag:
-                return cls
-    for keyword, cls in constants.CONDITION_GRADE_MAP:
-        if keyword in racename:
-            return cls
-    return None
+    return constants.normalize_class_label(racename)
 
 
 def _parse_finish(text: str) -> tuple[int | None, str | None]:
