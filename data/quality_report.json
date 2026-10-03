@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-09-27T18:55:29+09:00",
-  "week_id": "2026-W39",
+  "generated_at": "2026-10-03T10:24:49+09:00",
+  "week_id": "2026-W40",
   "status": "warning",
   "publish_blocked": false,
   "blocking_reasons": [],
   "summary": {
-    "raw_races": 4,
-    "prediction_races": 4,
+    "raw_races": 2,
+    "prediction_races": 2,
     "critical_races": 0,
-    "warning_races": 3,
+    "warning_races": 2,
     "races_in_this_run": [
-      "20260927-hanshin-11",
-      "20260927-nakayama-11"
+      "20261003-kyoto-11",
+      "20261003-tokyo-11"
     ],
     "selected_this_run": 2,
     "built_this_run": 2,
@@ -19,42 +19,42 @@
     "entry_coverage": {
       "past_runs": 1.0,
       "win_odds": 1.0,
-      "jockey_stats": 0.629,
-      "trainer_stats": 1.0
+      "jockey_stats": 0.9091,
+      "trainer_stats": 0.4848
     }
   },
   "collection_report": {
     "requested_dates": [
-      "2026-09-27"
+      "2026-10-03"
     ],
     "selected": [
       {
-        "date": "2026-09-27",
-        "venue": "中山",
+        "date": "2026-10-03",
+        "venue": "京都",
         "race_no": 11,
-        "source_ref": "202606040911"
+        "source_ref": "202608040111"
       },
       {
-        "date": "2026-09-27",
-        "venue": "阪神",
+        "date": "2026-10-03",
+        "venue": "東京",
         "race_no": 11,
-        "source_ref": "202609040911"
+        "source_ref": "202605040111"
       }
     ],
     "built": [
       {
-        "date": "2026-09-27",
-        "venue": "中山",
+        "date": "2026-10-03",
+        "venue": "京都",
         "race_no": 11,
-        "source_ref": "202606040911",
-        "race_id": "20260927-nakayama-11"
+        "source_ref": "202608040111",
+        "race_id": "20261003-kyoto-11"
       },
       {
-        "date": "2026-09-27",
-        "venue": "阪神",
+        "date": "2026-10-03",
+        "venue": "東京",
         "race_no": 11,
-        "source_ref": "202609040911",
-        "race_id": "20260927-hanshin-11"
+        "source_ref": "202605040111",
+        "race_id": "20261003-tokyo-11"
       }
     ],
     "failed": []
@@ -62,112 +62,65 @@
   "global_issues": [],
   "races": [
     {
-      "race_id": "20260926-hanshin-11",
-      "venue": "阪神",
+      "race_id": "20261003-kyoto-11",
+      "venue": "京都",
       "race_no": 11,
-      "name": "シリウスS",
-      "status": "ok",
+      "name": "オパールS",
+      "status": "warning",
       "raw": {
-        "entries": 16,
+        "entries": 18,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.4375,
-        "trainer_stats_coverage": 1.0,
+        "jockey_stats_coverage": 0.9444,
+        "trainer_stats_coverage": 0.3889,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 16,
+        "marks": 18,
+        "cards": 4,
+        "speed_used": false,
+        "speed_coverage": 0.1111,
+        "model_id": "win-v1-speed-guard"
+      },
+      "issues": [
+        {
+          "severity": "warning",
+          "code": "low_trainer_stats_coverage",
+          "message": "厩舎成績カバレッジが 39% です"
+        },
+        {
+          "severity": "warning",
+          "code": "speed_guard_disabled",
+          "message": "speed guard によりスピード指数がレース全体でOFFです"
+        }
+      ]
+    },
+    {
+      "race_id": "20261003-tokyo-11",
+      "venue": "東京",
+      "race_no": 11,
+      "name": "グリーンチャンネルC",
+      "status": "warning",
+      "raw": {
+        "entries": 15,
+        "past_runs_coverage": 1.0,
+        "win_odds_coverage": 1.0,
+        "jockey_stats_coverage": 0.8667,
+        "trainer_stats_coverage": 0.6,
+        "combo_type_coverage": 1.0
+      },
+      "prediction": {
+        "marks": 15,
         "cards": 4,
         "speed_used": true,
-        "speed_coverage": 0.6875,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": []
-    },
-    {
-      "race_id": "20260926-nakayama-11",
-      "venue": "中山",
-      "race_no": 11,
-      "name": "秋風S",
-      "status": "warning",
-      "raw": {
-        "entries": 14,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.5714,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 14,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.4286,
+        "speed_coverage": 0.8,
         "model_id": "win-v1-speed-guard"
       },
       "issues": [
         {
           "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20260927-hanshin-11",
-      "venue": "阪神",
-      "race_no": 11,
-      "name": "ポートアイランドS",
-      "status": "warning",
-      "raw": {
-        "entries": 16,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.6875,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 16,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20260927-nakayama-11",
-      "venue": "中山",
-      "race_no": 11,
-      "name": "スプリンターズS",
-      "status": "warning",
-      "raw": {
-        "entries": 16,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.8125,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 16,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0625,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
+          "code": "low_trainer_stats_coverage",
+          "message": "厩舎成績カバレッジが 60% です"
         }
       ]
     }
