@@ -1,0 +1,206 @@
+{
+  "schema": "shadow-race-result-v1",
+  "race_id": "20260919-nakayama-11",
+  "phase": "retrospective",
+  "evidence": "derived_from_snapshot",
+  "post_at": "2026-09-19T15:45:00+09:00",
+  "snapshot": {
+    "sha256": "1ce9a0bbc9bccc97733c4e750b592fb7489a39b102aea57963d054cb975279fc",
+    "frozen_at": "2026-09-19T14:14:27+09:00",
+    "model_id": null,
+    "config_hash": null
+  },
+  "prerace_record_captured_at": null,
+  "finish": [
+    1,
+    7,
+    13
+  ],
+  "official_results_untouched": true,
+  "experiments": {
+    "calibration": {
+      "experiment": "calibration",
+      "version": "calibration-monitor-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "score_source": "snapshot_marks_rounded",
+      "temperature_current": 10.0,
+      "temperature_source": "config_at_settlement",
+      "evaluation_set": {
+        "field_size": 14,
+        "evaluated_horses": 14,
+        "coverage": 1.0,
+        "usable": true
+      },
+      "winner": 1,
+      "models": {
+        "p_current": {
+          "log_loss": 3.461648,
+          "brier": 1.049839,
+          "p_winner": 0.031378,
+          "temperature": 10.0
+        },
+        "q_market": {
+          "log_loss": 3.922367,
+          "brier": 1.086577,
+          "p_winner": 0.019794,
+          "temperature": null
+        },
+        "p_T4": {
+          "log_loss": 5.497433,
+          "brier": 1.335187,
+          "p_winner": 0.004097,
+          "temperature": 4.0
+        },
+        "p_T5": {
+          "log_loss": 4.739339,
+          "brier": 1.227228,
+          "p_winner": 0.008744,
+          "temperature": 5.0
+        },
+        "p_T6": {
+          "log_loss": 4.274054,
+          "brier": 1.161619,
+          "p_winner": 0.013925,
+          "temperature": 6.0
+        },
+        "p_T7": {
+          "log_loss": 3.964455,
+          "brier": 1.118783,
+          "p_winner": 0.018978,
+          "temperature": 7.0
+        },
+        "p_T8": {
+          "log_loss": 3.745969,
+          "brier": 1.088856,
+          "p_winner": 0.023613,
+          "temperature": 8.0
+        },
+        "p_T10": {
+          "log_loss": 3.461648,
+          "brier": 1.049839,
+          "p_winner": 0.031378,
+          "temperature": 10.0
+        },
+        "p_T12": {
+          "log_loss": 3.28728,
+          "brier": 1.025497,
+          "p_winner": 0.037355,
+          "temperature": 12.0
+        },
+        "p_entropy_match": {
+          "log_loss": 3.646456,
+          "brier": 1.075242,
+          "p_winner": 0.026083,
+          "temperature": 8.583185
+        }
+      },
+      "walk_forward": {
+        "history_races": 1,
+        "temperature": null
+      },
+      "status": "evaluated"
+    },
+    "rank_gap": {
+      "experiment": "rank_gap",
+      "version": "rank-gap-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "n": 1,
+      "observed_top3": 0,
+      "expected_top3": 0.07772,
+      "observed_minus_expected": -0.07772,
+      "horses": [
+        {
+          "num": 5,
+          "name": "カンピオーネ",
+          "base_rank": 5,
+          "market_rank": 10,
+          "win_odds": 34.9,
+          "q": 0.022743,
+          "market_top3_prob": 0.07772,
+          "top3": false
+        }
+      ]
+    },
+    "chappy_shadow": {
+      "experiment": "chappy_shadow",
+      "version": "chappy-shadow-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "chappy_version": "chappy-signal-v1",
+      "variants": {}
+    },
+    "diversity": {
+      "experiment": "diversity",
+      "version": "diversity-monitor-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "sel_orders_available": false,
+      "axes": {
+        "kei": 9,
+        "tetsu": 9,
+        "gen": 5
+      },
+      "horse_sets": {
+        "kei": [
+          5,
+          9,
+          13
+        ],
+        "tetsu": [
+          5,
+          9,
+          13,
+          14
+        ],
+        "gen": [
+          5,
+          9,
+          11,
+          14
+        ]
+      },
+      "pairs": [
+        {
+          "pair": "kei-tetsu",
+          "sel_spearman": null,
+          "axis": [
+            9,
+            9
+          ],
+          "axis_match": true,
+          "jaccard": 0.75,
+          "redundancy_flag": true
+        },
+        {
+          "pair": "kei-gen",
+          "sel_spearman": null,
+          "axis": [
+            9,
+            5
+          ],
+          "axis_match": false,
+          "jaccard": 0.4,
+          "redundancy_flag": false
+        },
+        {
+          "pair": "tetsu-gen",
+          "sel_spearman": null,
+          "axis": [
+            9,
+            5
+          ],
+          "axis_match": false,
+          "jaccard": 0.6,
+          "redundancy_flag": false
+        }
+      ]
+    },
+    "chat_chappy": []
+  }
+}
