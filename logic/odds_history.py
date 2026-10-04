@@ -11,12 +11,22 @@
 追記する形だと両者が同じJSONを書き換えてrebaseが衝突する。1観測1ファイルなら
 互いに新規ファイルを足すだけで、push競合時も `git pull --rebase` で必ず合流できる。
 
+時刻の意味（PR-A で統一）：
+  observed_at … 単勝APIの HTTP 取得が終わった時刻（market_meta.win.observed_at と同じ）
+  recorded_at … このファイルを書いた時刻（通常pipelineなら raw 全体の構築完了 fetched_at）
+  source_time … provider が返した単勝の official_datetime（価格の時刻）
+
+研究用の時系列は「同じ価格」を重複保存しないが、取得した事実は別に残す：
+実際に取りに行った1回ごとに data/odds_history/{race_id}/attempts/ へ1ファイル追加する
+（値が前回と同じでも残すので、「15:35 時点でもまだ 14:40 の価格だった」ことを後から示せる）。
+
 予想ロジックとは独立した観測ログで、p・妙味・カードには一切使わない。
 """
 from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -35,8 +45,17 @@ MAX_RAW_AGE = datetime.timedelta(minutes=60)
 ADDED = "added"
 DUPLICATE = "duplicate"
 NO_ODDS = "no_odds"
+FETCH_FAILED = "fetch_failed"
 AFTER_POST = "after_post"
 UNKNOWN_POST_TIME = "unknown_post_time"
+
+# 観測の observed_at が何の時刻か
+OBSERVED_AT_WIN_HTTP = "win_http_completed"   # 単勝APIのHTTP取得完了時刻（通常はこれ）
+OBSERVED_AT_RECORDED = "recorded_at"           # 単勝のHTTP時刻が無いので記録時刻を使った
+
+# 実際の取得1回ごとの記録（値が同じでも残す）。{race_id}/attempts/ に置くので、
+# 観測の読み出し（{race_id}/*.json）には混ざらない。
+ATTEMPTS_SUBDIR = "attempts"
 
 
 def _rows_from_race(race: dict[str, Any]) -> list[dict[str, Any]]:
@@ -121,18 +140,36 @@ def pre_race_status(race: dict[str, Any], observed_at: datetime.datetime,
     return None
 
 
+def _win_http_observed_at(market_meta: dict[str, Any] | None) -> datetime.datetime | None:
+    """単勝のHTTP取得が成功していれば、その完了時刻。odds の行は単勝なので、観測の observed_at はこれ。"""
+    win = (market_meta or {}).get("win") or {}
+    if win.get("status") != "ok":
+        return None
+    return parse_source_time(win.get("observed_at"))
+
+
 def build_observation(race: dict[str, Any], phase: str,
                       observed_at: datetime.datetime | None = None) -> dict[str, Any] | None:
+    """1観測ぶんの中身。
+
+    observed_at は**単勝の HTTP 取得が終わった時刻**（market_meta.win.observed_at）。
+    呼び出し側が渡す時刻（通常pipelineなら raw 全体の構築完了 fetched_at）は recorded_at に入れる。
+    単勝の HTTP 時刻が無い（単勝APIの取得に失敗し、出馬表の別ページの値で埋まった等）ときだけ
+    recorded_at を observed_at に使い、observed_at_basis でそれと分かるようにする。
+    """
     rows = _rows_from_race(race)
     if not rows:
         return None
-    now = observed_at or datetime.datetime.now(JST)
+    recorded_at = observed_at or datetime.datetime.now(JST)
     market_meta = (race.get("odds_market_meta") or {}).get("markets") or None
+    http_at = _win_http_observed_at(market_meta)
     observation = {
         "race_id": race.get("id"),
         "source_ref": (race.get("source_refs") or {}).get("netkeiba"),
         "post_time": race.get("post_time"),
-        "observed_at": now.isoformat(timespec="seconds"),
+        "observed_at": (http_at or recorded_at).isoformat(timespec="seconds"),
+        "observed_at_basis": OBSERVED_AT_WIN_HTTP if http_at else OBSERVED_AT_RECORDED,
+        "recorded_at": recorded_at.isoformat(timespec="seconds"),
         # 単勝の source_time（provider が返した official_datetime）。odds の行と同じく単勝だけの時刻。
         "source_time": race.get("odds_updated_at"),
         "phase": phase,
@@ -146,8 +183,7 @@ def build_observation(race: dict[str, Any], phase: str,
     return observation
 
 
-def load_observations(race_id: str, directory: Path | None = None) -> list[dict[str, Any]]:
-    """1レースの観測を observed_at 順に返す（研究用の読み出し口）。"""
+def _observation_files(race_id: str, directory: Path | None = None) -> list[tuple[Path, dict[str, Any]]]:
     race_dir = (directory or HISTORY_DIR) / race_id
     if not race_dir.is_dir():
         return []
@@ -159,37 +195,135 @@ def load_observations(race_id: str, directory: Path | None = None) -> list[dict[
         except (OSError, json.JSONDecodeError):
             continue
         if isinstance(loaded, dict):
-            rows.append(loaded)
-    return sorted(rows, key=lambda row: row.get("observed_at") or "")
+            rows.append((path, loaded))
+    return sorted(rows, key=lambda row: row[1].get("observed_at") or "")
+
+
+def load_observations(race_id: str, directory: Path | None = None) -> list[dict[str, Any]]:
+    """1レースの観測を observed_at 順に返す（研究用の読み出し口）。取得試行の記録は含めない。"""
+    return [payload for _, payload in _observation_files(race_id, directory)]
+
+
+def _odds_digest(rows: list[dict[str, Any]]) -> str:
+    return hashlib.sha256(
+        json.dumps(rows, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+
+def _write_new(directory: Path, stem: str, payload: dict[str, Any]) -> Path:
+    """同名ファイルがあれば連番を付けて新しく書く（既存ファイルは書き換えない）。"""
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{stem}.json"
+    n = 2
+    while path.exists():
+        path = directory / f"{stem}_{n}.json"
+        n += 1
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    return path
+
+
+def record_attempt(race: dict[str, Any], phase: str, observed_at: datetime.datetime,
+                   result: str, directory: Path | None = None,
+                   recorded_at: datetime.datetime | None = None,
+                   observation: dict[str, Any] | None = None,
+                   observation_file: str | None = None,
+                   error: str | None = None) -> Path | None:
+    """実際のオッズ取得1回ぶんを、値が前回と同じでも必ず残す（監査用。予想には使わない）。
+
+    研究用の観測（odds の時系列）は同じ価格を重複保存しないが、それだと
+    「15:35 に取り直しても provider はまだ 14:40 の価格を返していた」という事実が消える。
+    そこで取得のたびに {race_id}/attempts/ へ1ファイル追加する。
+    発走時刻以降の取得は記録しない（発走前の証跡に混ぜない）。
+    """
+    race_id = race.get("id")
+    post_at = snapshots.post_datetime(race)
+    if not race_id or post_at is None or observed_at >= post_at:
+        return None
+    if recorded_at is not None and recorded_at >= post_at:
+        return None
+    market_meta = (race.get("odds_market_meta") or {}).get("markets") or None
+    rows = (observation or {}).get("odds") or []
+    attempt = {
+        "kind": "odds_fetch_attempt",
+        "race_id": race_id,
+        "source_ref": (race.get("source_refs") or {}).get("netkeiba"),
+        "post_time": race.get("post_time"),
+        "phase": phase,
+        "observed_at": observed_at.isoformat(timespec="seconds"),
+        "recorded_at": (recorded_at or observed_at).isoformat(timespec="seconds"),
+        # この取得で provider が返した単勝の official_datetime（同じ値が続けば「まだ更新されていない」証拠）
+        "source_time": race.get("odds_updated_at") or None,
+        "market_scope": market_scope_of(market_meta),
+        "result": result,
+        "odds_rows": len(rows),
+        "odds_sha256": _odds_digest(rows) if rows else None,
+        "observation_file": observation_file,
+    }
+    if market_meta:
+        attempt["market_meta"] = market_meta
+    if error:
+        attempt["error"] = error
+    stamp = observed_at.astimezone(JST).strftime("%Y%m%dT%H%M%S")
+    return _write_new((directory or HISTORY_DIR) / race_id / ATTEMPTS_SUBDIR, f"{stamp}_{phase}", attempt)
+
+
+def load_attempts(race_id: str, directory: Path | None = None) -> list[tuple[Path, dict[str, Any]]]:
+    attempt_dir = (directory or HISTORY_DIR) / race_id / ATTEMPTS_SUBDIR
+    if not attempt_dir.is_dir():
+        return []
+    rows = []
+    for path in sorted(attempt_dir.glob("*.json")):
+        try:
+            with path.open(encoding="utf-8") as f:
+                loaded = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(loaded, dict):
+            rows.append((path, loaded))
+    return sorted(rows, key=lambda row: row[1].get("observed_at") or "")
 
 
 def append_observation(race: dict[str, Any], phase: str,
                        observed_at: datetime.datetime | None = None,
                        directory: Path | None = None) -> str:
-    """1観測を保存し、結果（ADDED / DUPLICATE / NO_ODDS / AFTER_POST …）を返す。"""
+    """1観測を保存し、結果（ADDED / DUPLICATE / NO_ODDS / AFTER_POST …）を返す。
+
+    observed_at 引数は呼び出し側の記録時刻（recorded_at）。観測の observed_at は単勝の HTTP 完了時刻。
+    価格が前回と同じ（DUPLICATE）でも、取得した事実は attempts/ に残す。
+    """
     race_id = race.get("id")
-    now = observed_at or datetime.datetime.now(JST)
-    observation = build_observation(race, phase, now)
+    recorded_at = observed_at or datetime.datetime.now(JST)
+    directory = directory or HISTORY_DIR
+    observation = build_observation(race, phase, recorded_at)
     if not race_id or observation is None:
+        http_at = _win_http_observed_at((race.get("odds_market_meta") or {}).get("markets"))
+        if race_id:
+            record_attempt(race, phase, http_at or recorded_at, NO_ODDS, directory,
+                           recorded_at=recorded_at)
         return NO_ODDS
 
-    status = pre_race_status(race, now, observation["source_time"],
-                             observation.get("market_meta"))
-    if status is not None:
-        return status
+    observed = parse_source_time(observation["observed_at"]) or recorded_at
+    # HTTP 完了時刻と記録時刻のどちらかが発走後なら、発走前の観測とは言わない（fail-closed）
+    for at in (observed, recorded_at):
+        status = pre_race_status(race, at, observation["source_time"],
+                                 observation.get("market_meta"))
+        if status is not None:
+            return status
 
-    directory = directory or HISTORY_DIR
     sig = _signature(observation)
-    if any(_signature(row) == sig for row in load_observations(race_id, directory)):
+    match = next((path for path, row in _observation_files(race_id, directory)
+                  if _signature(row) == sig), None)
+    if match is not None:
+        record_attempt(race, phase, observed, DUPLICATE, directory, recorded_at=recorded_at,
+                       observation=observation, observation_file=match.name)
         return DUPLICATE
 
-    race_dir = directory / race_id
-    race_dir.mkdir(parents=True, exist_ok=True)
-    stamp = now.astimezone(JST).strftime("%Y%m%dT%H%M%S")
-    path = race_dir / f"{stamp}_{phase}.json"
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(observation, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    stamp = observed.astimezone(JST).strftime("%Y%m%dT%H%M%S")
+    path = _write_new(directory / race_id, f"{stamp}_{phase}", observation)
+    record_attempt(race, phase, observed, ADDED, directory, recorded_at=recorded_at,
+                   observation=observation, observation_file=path.name)
     return ADDED
 
 

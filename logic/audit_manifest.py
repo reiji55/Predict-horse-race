@@ -13,6 +13,8 @@
                 （provider returned official_datetime）。**価格の鮮度はこちらで判定する。**
                 これが本当に「その券種の価格の更新時刻」を意味するかは、まだ完全には確かめていない。
   post_at     … 発走予定時刻（race_id の日付＋post_time、JST）。
+  recorded_at … ファイルを書いた時刻（観測なら raw 全体の構築完了、manifest なら manifest の作成）。
+                価格の時刻でも HTTP 取得時刻でもない。
 
 source_time が無いときは freshness_basis=unavailable / status=unknown にする。
 observed_at を価格時刻として代用しない（15:29 に取っても、中身が 14:40 の価格ならそれは 14:40 の価格）。
@@ -24,9 +26,15 @@ observed_at を価格時刻として代用しない（15:29 に取っても、�
   その券種を取れていない … missing（理由は fetch_status: fetch_failed / empty / unparsed）
   その観測では取りに行っていない券種 … not_in_scope（直前の単勝だけの観測など）
 
+--- 取得の記録（fetch_attempts）---
+同じ価格が返った再取得も、odds_history の attempts/ に1件ずつ残っている。manifest はそれを並べ、
+最後の取得の時刻と、そのとき provider が返した source_time を持つ。値が同じでも取得が増えれば
+新しい manifest を作る。
+
 --- 予想に使った価格（prediction_price_basis）---
 通常pipelineは「rawを作る（オッズ取得）→ odds観測を保存 → 予想を作る」の順で動く。
-そこで、予想 snapshot の frozen_at 以前で最後の pipeline 観測を「その予想が使った価格」とみなし、
+そこで、予想 snapshot の frozen_at 以前に保存（recorded_at）された最後の pipeline 観測を
+「その予想が使った価格」とみなし、
 単勝オッズが snapshot の印のオッズと一致するかも確かめて残す（prediction_odds_match）。
 直前の単勝だけの観測（late）は、予想を作り直さないので basis にはしない。
 
@@ -77,6 +85,7 @@ TIME_DEFINITIONS = {
     "source_time": "provider returned official_datetime（netkeibaが返した official_datetime をそのまま保存）。価格の鮮度はこれで判定する",
     "post_at": "発走予定時刻（JST）",
     "frozen_at": "予想 snapshot のビルド時刻",
+    "recorded_at": "ファイルを書いた時刻（通常pipelineの観測なら raw 全体の構築完了、manifest なら manifest の作成）。価格の時刻でも HTTP 取得時刻でもない",
 }
 SOURCE_TIME_CAVEAT = (
     "netkeiba の official_datetime が本当に『その券種の価格の更新時刻』を意味するかは、"
@@ -262,6 +271,9 @@ def _is_pre_race_odds(payload: dict[str, Any], post_at: datetime.datetime,
     observed = _parse_dt(payload.get("observed_at"))
     if observed is None or observed >= post_at or observed > as_of:
         return None
+    recorded = _parse_dt(payload.get("recorded_at"))
+    if recorded is not None and (recorded >= post_at or recorded > as_of):
+        return None
     times = [payload.get("source_time")]
     for record in (payload.get("market_meta") or {}).values():
         times += [(record or {}).get("source_time"), (record or {}).get("observed_at")]
@@ -298,7 +310,10 @@ def _odds_artifact(path: Path, payload: dict[str, Any], post_at: datetime.dateti
         "path": _display_path(path),
         "sha256": _sha256(path),
         "phase": payload.get("phase"),
+        # 単勝の HTTP 取得完了時刻（observed_at_basis が recorded_at のときだけ記録時刻）
         "observed_at": payload.get("observed_at"),
+        "observed_at_basis": payload.get("observed_at_basis") or "legacy_unspecified",
+        "recorded_at": payload.get("recorded_at"),
         "observed_minutes_to_post": _minutes_to_post(post_at, observed),
         # 後方互換の source_time は単勝のもの
         "source_time": payload.get("source_time"),
@@ -306,6 +321,46 @@ def _odds_artifact(path: Path, payload: dict[str, Any], post_at: datetime.dateti
         "market_scope": payload.get("market_scope") or odds_history.SCOPE_LEGACY,
         "rows": len(payload.get("odds") or []),
         "markets": {key: market_evidence(markets[key], post_at, config) for key in b2_odds.MARKET_KEYS},
+    }
+
+
+def fetch_attempts(race_id: str, post_at: datetime.datetime, as_of: datetime.datetime,
+                   directory: Path | None = None,
+                   config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """実際のオッズ取得の記録（odds_history の attempts/）。価格が前回と同じ取得も1件ずつ残っている。
+
+    例：15:29 と 15:35 に取りに行き、どちらも provider が 14:40 の単勝を返したなら、
+    2件とも source_time=14:40 として並ぶ（＝15:35 時点でもまだ 14:40 の価格だった証拠）。
+    """
+    rows = []
+    for path, payload in odds_history.load_attempts(race_id, directory or ODDS_HISTORY_DIR):
+        observed = _parse_dt(payload.get("observed_at"))
+        recorded = _parse_dt(payload.get("recorded_at"))
+        if observed is None or observed >= post_at or observed > as_of:
+            continue
+        if recorded is not None and (recorded >= post_at or recorded > as_of):
+            continue
+        source_at = _parse_dt(payload.get("source_time"))
+        if source_at is not None and source_at >= post_at:
+            continue
+        rows.append({
+            "path": _display_path(path),
+            "sha256": _sha256(path),
+            "phase": payload.get("phase"),
+            "observed_at": payload.get("observed_at"),
+            "observed_minutes_to_post": _minutes_to_post(post_at, observed),
+            "returned_source_time": payload.get("source_time"),
+            "market_scope": payload.get("market_scope"),
+            "result": payload.get("result"),
+            "odds_sha256": payload.get("odds_sha256"),
+            "observation_file": payload.get("observation_file"),
+            "win_freshness": classify_freshness(payload.get("source_time"), post_at, config)["status"],
+        })
+    return {
+        "count": len(rows),
+        "latest": rows[-1] if rows else None,
+        "attempts": rows,
+        "note": "価格が前回と同じでも、実際に取りに行った回はすべて残す。returned_source_time は provider が返した単勝の official_datetime",
     }
 
 
@@ -347,14 +402,24 @@ def _prediction_odds_match(prediction: dict[str, Any], odds_payload: dict[str, A
 def _price_basis(prediction: tuple[Path, dict[str, Any]] | None,
                  odds_rows: list[tuple[datetime.datetime, Path, dict[str, Any]]],
                  post_at: datetime.datetime, config: dict[str, Any] | None) -> dict[str, Any]:
-    rule = "latest_pipeline_odds_observation_at_or_before_prediction_frozen_at"
+    # 観測ファイルが書かれた時刻（recorded_at。旧形式は observed_at）が frozen_at 以前の、最後の pipeline 観測。
+    # observed_at（単勝の HTTP 完了）は recorded_at（raw 全体の構築完了）より前なので、
+    # 「予想を作る前に保存されていた観測」かどうかは recorded_at で判定する。
+    rule = "latest_pipeline_odds_observation_recorded_at_or_before_prediction_frozen_at"
     if prediction is None:
         return {"status": "no_prediction", "link_rule": rule, "odds": None}
     _, payload = prediction
     frozen_at = _parse_dt(payload.get("frozen_at"))
-    candidates = [row for row in odds_rows
-                  if row[2].get("phase") == BASIS_PHASE and frozen_at is not None
-                  and row[0] <= frozen_at]
+
+    def _linked_at(row: tuple[datetime.datetime, Path, dict[str, Any]]) -> datetime.datetime:
+        return _parse_dt(row[2].get("recorded_at")) or row[0]
+
+    candidates = sorted(
+        (row for row in odds_rows
+         if row[2].get("phase") == BASIS_PHASE and frozen_at is not None
+         and _linked_at(row) <= frozen_at),
+        key=_linked_at,
+    )
     if not candidates:
         return {"status": "no_pipeline_odds_observation", "link_rule": rule, "odds": None}
     _, path, odds_payload = candidates[-1]
@@ -486,6 +551,7 @@ def collect_evidence(race_id: str, post_at: datetime.datetime, as_of: datetime.d
         "card_price_evidence": card_price_evidence(
             prediction[1] if prediction else None, basis, post_at, config
         ),
+        "fetch_attempts": fetch_attempts(race_id, post_at, as_of, odds_directory, config),
         "context_completeness": completeness,
         "speed": _speed(prediction[1] if prediction else None),
     }
@@ -517,7 +583,8 @@ def build_manifest(race: dict[str, Any], now: datetime.datetime, phase: str,
         return None
     manifest = _header(race, post_at, config)
     manifest.update({
-        "observed_at": now.isoformat(timespec="seconds"),
+        # manifest を書いた時刻。HTTP 取得時刻（observed_at）とは別物
+        "recorded_at": now.isoformat(timespec="seconds"),
         "phase": phase,
         "pre_race": True,
     })
@@ -550,8 +617,9 @@ def evidence_from_files(race: dict[str, Any],
 def _artifact_hashes(manifest: dict[str, Any]) -> tuple[Any, ...]:
     artifacts = manifest.get("artifacts") or {}
     basis = (manifest.get("prediction_price_basis") or {}).get("odds") or {}
+    attempt = ((manifest.get("fetch_attempts") or {}).get("latest")) or {}
     return tuple((artifacts.get(k) or {}).get("sha256") for k in ("prediction", "context", "odds")) + (
-        basis.get("sha256"),
+        basis.get("sha256"), attempt.get("sha256"),
     )
 
 
@@ -560,7 +628,7 @@ def load_manifests(race_id: str, directory: Path | None = None) -> list[dict[str
     if not race_dir.is_dir():
         return []
     rows = [payload for path in sorted(race_dir.glob("*.json")) if (payload := _read_json(path))]
-    return sorted(rows, key=lambda row: row.get("observed_at") or "")
+    return sorted(rows, key=lambda row: row.get("recorded_at") or "")
 
 
 def latest_manifest(race_id: str, directory: Path | None = None) -> dict[str, Any] | None:
@@ -568,9 +636,9 @@ def latest_manifest(race_id: str, directory: Path | None = None) -> dict[str, An
     rows = []
     for payload in load_manifests(race_id, directory):
         post_at = snapshots.post_datetime({"id": race_id, "post_time": payload.get("post_time")})
-        observed = _parse_dt(payload.get("observed_at"))
+        recorded = _parse_dt(payload.get("recorded_at"))
         if (payload.get("pre_race") is True and post_at is not None
-                and observed is not None and observed < post_at):
+                and recorded is not None and recorded < post_at):
             rows.append(payload)
     return rows[-1] if rows else None
 

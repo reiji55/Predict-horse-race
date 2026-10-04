@@ -500,3 +500,159 @@ def test_fetch_odds_market_values_are_unchanged_by_provenance(monkeypatch):
 def test_audit_config_is_not_part_of_the_prediction_config_hash():
     from logic import model_registry
     assert "audit_manifest.json" not in model_registry.HASH_CONFIGS
+
+
+# ---- レビュー対応：同じ価格の再取得も「取りに行った事実」を残す ----------------------------
+
+def test_refetch_with_same_price_is_kept_as_separate_attempts(monkeypatch, tmp_path: Path):
+    """15:29 と 15:35 に取りに行き、provider がどちらも 14:40 の同じ単勝を返した。
+
+    研究用の時系列は同じ価格を1件にまとめるが、取得の事実は2件とも残り、
+    15:35 時点でもまだ 14:40 の価格だったことが後から証明できる。
+    """
+    monkeypatch.setattr(capture_late_odds.b2_odds, "_fetch_type_body", _fake_fetcher(
+        times={"1": "2026-10-04 14:40:00"}
+    ))
+    monkeypatch.setattr(capture_late_odds.b_shutuba, "fetch_shutuba", lambda ref: {"entries": []})
+    odds_dir = tmp_path / "odds"
+    for minute in (29, 35):
+        capture_late_odds.capture(
+            {"races": [_raw_race()]}, "2026-10-04", now=_at(15, minute),
+            directory=odds_dir, condition_directory=tmp_path / "cond",
+        )
+
+    # 研究用の時系列は1件（同じ価格の重複は保存しない）
+    assert len(odds_history.load_observations(TOKYO, odds_dir)) == 1
+    # 取得の記録は2件。どちらも provider は 14:40 を返していた
+    attempts = [payload for _, payload in odds_history.load_attempts(TOKYO, odds_dir)]
+    assert [a["observed_at"] for a in attempts] == [
+        "2026-10-04T15:29:00+09:00", "2026-10-04T15:35:00+09:00"]
+    assert [a["source_time"] for a in attempts] == ["2026-10-04 14:40:00"] * 2
+    assert [a["result"] for a in attempts] == ["added", "duplicate"]
+    assert attempts[0]["odds_sha256"] == attempts[1]["odds_sha256"]
+    assert attempts[1]["observation_file"] == attempts[0]["observation_file"]
+    assert all(a["market_scope"] == "win" for a in attempts)
+
+    # manifest でも 15:35 の取得が見え、そのとき返っていた価格は 14:40（stale）だと分かる
+    post = _post()
+    block = audit_manifest.fetch_attempts(TOKYO, post, _at(15, 40), odds_dir, CONFIG)
+    assert block["count"] == 2
+    assert block["latest"]["observed_at"] == "2026-10-04T15:35:00+09:00"
+    assert block["latest"]["observed_minutes_to_post"] == 10.0
+    assert block["latest"]["returned_source_time"] == "2026-10-04 14:40:00"
+    assert block["latest"]["win_freshness"] == "stale"
+
+
+def test_new_attempt_with_same_price_produces_a_new_manifest(tmp_path: Path):
+    fx = _tokyo_fixture(tmp_path)
+    out_dir = tmp_path / "manifests"
+    kwargs = dict(output_directory=out_dir, prediction_directory=fx["pred"],
+                  context_directory=fx["ctx"], odds_directory=fx["odds"], config=CONFIG)
+    race = {"id": TOKYO, "post_time": "15:45", "source_refs": {"netkeiba": "202605040211"},
+            "odds_updated_at": "2026-10-04 14:40:27",
+            "entries": [{"num": 1, "win_odds": 11.2}, {"num": 2, "win_odds": 2.9}],
+            "odds_market_meta": b2_odds.market_meta_block({
+                "win": _record("2026-10-04 14:40:27", "2026-10-04T15:33:00+09:00")})}
+    assert odds_history.append_observation(race, "late", _at(15, 33), fx["odds"]) == odds_history.ADDED
+    audit_manifest.capture({"races": [_raw_race()]}, now=_at(15, 34), phase="late", **kwargs)
+
+    race["odds_market_meta"] = b2_odds.market_meta_block({
+        "win": _record("2026-10-04 14:40:27", "2026-10-04T15:37:00+09:00")})
+    assert odds_history.append_observation(race, "late", _at(15, 37), fx["odds"]) \
+        == odds_history.DUPLICATE
+    again = audit_manifest.capture({"races": [_raw_race()]}, now=_at(15, 38), phase="late", **kwargs)
+    assert again["added"] == [TOKYO]     # 値は同じでも、新しい取得があれば manifest を残す
+    latest = audit_manifest.latest_manifest(TOKYO, out_dir)
+    assert latest["fetch_attempts"]["latest"]["observed_at"] == "2026-10-04T15:37:00+09:00"
+    assert latest["fetch_attempts"]["latest"]["result"] == "duplicate"
+
+
+def test_late_fetch_failure_is_recorded_as_attempt(monkeypatch, tmp_path: Path):
+    def broken(race_ref, type_code):
+        raise ValueError("malformed")
+    monkeypatch.setattr(capture_late_odds.b2_odds, "_fetch_type_body", broken)
+    odds_dir = tmp_path / "odds"
+    report = capture_late_odds.capture(
+        {"races": [_raw_race()]}, "2026-10-04", now=_at(15, 30),
+        directory=odds_dir, condition_directory=tmp_path / "cond",
+    )
+    assert report["failed"] == [{"race_id": TOKYO}]
+    [(_, attempt)] = odds_history.load_attempts(TOKYO, odds_dir)
+    assert attempt["result"] == "fetch_failed"
+    assert attempt["source_time"] is None
+    assert attempt["market_meta"]["win"]["status"] == "fetch_failed"
+    assert attempt["error"] == "ValueError"
+    assert odds_history.load_observations(TOKYO, odds_dir) == []
+
+
+def test_attempts_after_post_are_not_recorded(tmp_path: Path):
+    race = {"id": TOKYO, "post_time": "15:45", "odds_updated_at": "2026-10-04 15:40:00",
+            "entries": [{"num": 1, "win_odds": 2.0}]}
+    assert odds_history.record_attempt(race, "late", _at(15, 46), "added", tmp_path) is None
+    assert odds_history.load_attempts(TOKYO, tmp_path) == []
+
+
+# ---- レビュー対応：observed_at は HTTP 完了時刻、raw 構築完了は recorded_at -------------------
+
+def _pipeline_raw(win_http="2026-10-04T15:29:41+09:00", fetched_at="2026-10-04T15:29:50+09:00"):
+    return {
+        "fetched_at": fetched_at,
+        "collection_report": {"built": [{"race_id": TOKYO}]},
+        "races": [{
+            "id": TOKYO, "post_time": "15:45", "source_refs": {"netkeiba": "202605040211"},
+            "odds_updated_at": "2026-10-04 14:40:27",
+            "entries": [{"num": 1, "win_odds": 11.2}, {"num": 2, "win_odds": 2.9}],
+            "odds_market_meta": b2_odds.market_meta_block({
+                "win": _record("2026-10-04 14:40:27", win_http),
+                "umaren": _record("2026-10-04 14:52:00", "2026-10-04T15:29:44+09:00", type_code="4"),
+            }),
+        }],
+    }
+
+
+def test_pipeline_observation_observed_at_is_win_http_time(tmp_path: Path):
+    odds_dir = tmp_path / "odds"
+    report = odds_history.append_current_run(_pipeline_raw(), phase="pipeline",
+                                             directory=odds_dir, now=_at(15, 30))
+    assert report["added"] == 1
+    [obs] = odds_history.load_observations(TOKYO, odds_dir)
+    assert obs["observed_at"] == "2026-10-04T15:29:41+09:00"        # 単勝の HTTP 完了
+    assert obs["observed_at_basis"] == "win_http_completed"
+    assert obs["recorded_at"] == "2026-10-04T15:29:50+09:00"        # raw 全体の構築完了
+    assert obs["observed_at"] == obs["market_meta"]["win"]["observed_at"]
+    [(_, attempt)] = odds_history.load_attempts(TOKYO, odds_dir)
+    assert attempt["observed_at"] == obs["observed_at"]
+    assert attempt["recorded_at"] == obs["recorded_at"]
+
+
+def test_observed_at_falls_back_to_recorded_at_only_with_explicit_basis(tmp_path: Path):
+    """単勝APIが失敗し、出馬表の別ページの値で埋まったとき。HTTP 時刻ではないと明示する。"""
+    race = _pipeline_raw()["races"][0]
+    race["odds_market_meta"] = b2_odds.win_fetch_failed_meta("x", clock=lambda: _at(15, 29))
+    obs = odds_history.build_observation(race, "pipeline", _at(15, 29, 50))
+    assert obs["observed_at"] == "2026-10-04T15:29:50+09:00"
+    assert obs["observed_at_basis"] == "recorded_at"
+    assert obs["recorded_at"] == obs["observed_at"]
+
+
+def test_price_basis_link_uses_recorded_at_with_new_observed_at_definition(tmp_path: Path):
+    fx = _tokyo_fixture(tmp_path)
+    odds_dir = tmp_path / "odds_new"
+    odds_history.append_current_run(_pipeline_raw(), phase="pipeline",
+                                    directory=odds_dir, now=_at(15, 30))
+    # 予想は 15:30:01 に凍結：recorded_at（15:29:50）<= frozen_at なのでリンクする
+    linked = audit_manifest.evidence_from_files(_raw_race(), fx["pred"], fx["ctx"], odds_dir, CONFIG)
+    basis = linked["prediction_price_basis"]
+    assert basis["status"] == "linked"
+    assert basis["odds"]["observed_at"] == "2026-10-04T15:29:41+09:00"
+    assert basis["odds"]["observed_at_basis"] == "win_http_completed"
+    assert basis["odds"]["recorded_at"] == "2026-10-04T15:29:50+09:00"
+    assert basis["prediction_odds_match"] is True
+
+    # HTTP は frozen_at より前でも、観測の保存（recorded_at）が frozen_at より後なら、その予想の入力ではない
+    late_dir = tmp_path / "odds_late"
+    odds_history.append_current_run(
+        _pipeline_raw(win_http="2026-10-04T15:29:58+09:00", fetched_at="2026-10-04T15:30:30+09:00"),
+        phase="pipeline", directory=late_dir, now=_at(15, 31))
+    unlinked = audit_manifest.evidence_from_files(_raw_race(), fx["pred"], fx["ctx"], late_dir, CONFIG)
+    assert unlinked["prediction_price_basis"]["status"] == "no_pipeline_odds_observation"

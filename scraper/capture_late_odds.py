@@ -88,9 +88,29 @@ def capture(raw: dict[str, Any], date_str: str,
 
         try:
             fetched = b2_odds.fetch_win_odds(source_ref)
-        except (RuntimeError, ValueError, json.JSONDecodeError):
+        except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
             logger.exception("直前単勝オッズを取得できませんでした: %s", race_id)
             report["failed"].append({"race_id": race_id})
+            # 取りに行って失敗した事実も監査用に残す（発走後なら記録しない）
+            failed_at = clock()
+            odds_history.record_attempt(
+                {
+                    "id": race_id,
+                    "source_refs": race.get("source_refs"),
+                    "post_time": race.get("post_time"),
+                    "odds_market_meta": b2_odds.market_meta_block({
+                        b2_odds.MARKET_WIN: {
+                            "source_time": None,
+                            "observed_at": failed_at.isoformat(timespec="seconds"),
+                            "source_ref": {"race_id": source_ref, "type": b2_odds.ODDS_TYPE_TAN},
+                            "status": b2_odds.STATUS_FETCH_FAILED,
+                            "rows": 0,
+                        },
+                    }),
+                },
+                "late", failed_at, odds_history.FETCH_FAILED, directory,
+                error=type(exc).__name__,
+            )
             continue
 
         by_num = fetched.get("by_num") or {}
