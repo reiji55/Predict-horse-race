@@ -362,3 +362,24 @@ if __name__ == "__main__":
     for test in ALL_TESTS:
         test()
     print(f"\nすべてのテストが通りました（{len(ALL_TESTS)}件）。")
+
+
+def test_win_odds_fetch_failure_keeps_a_fetch_failed_record_for_any_parse_error():
+    """壊れた応答（ValueError / JSONDecodeError）でも、RuntimeError と同じく null で続行し、
+    監査用の fetch_failed を残す（直前オッズ・式別の取得と同じ例外範囲）。"""
+    import json as _json
+
+    errors = [RuntimeError("http"), ValueError("no data"),
+              _json.JSONDecodeError("bad", "{", 0)]
+    for error in errors:
+        class _Broken(_FakeFetchers):
+            def _fake_odds(self, race_source_ref, _error=error):
+                raise _error
+
+        with _Broken():
+            race = build_raw.build_race(_entry("小倉", 11), {}, n_runs=5)
+        assert race["entries"][0]["win_odds"] is None
+        markets = race["odds_market_meta"]["markets"]
+        assert markets["win"]["status"] == "fetch_failed", type(error).__name__
+        assert markets["win"]["source_time"] is None
+        assert markets["wide"]["status"] == "not_fetched"

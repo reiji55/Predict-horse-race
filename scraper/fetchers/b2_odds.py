@@ -53,15 +53,28 @@ IndexError で全件スキップ＝**オッズが全馬null**になっていた�
 2026-09-20 の優先改修で type=4/5/7（馬連/ワイド/3連複）も実取得するようにした。
 鳳の降臨判定を「鳳が実際に買うカード × 実市場オッズ」のEVへ接続するためで、
 type=all は初回本番で空を返した実績があるため券種ごとに個別取得する。
+
+--- 券種別の価格時刻（provenance、2026-10 PR-A）---
+券種ごとに別々のHTTP取得をしているので、価格の時刻も券種ごとに別々に残す（`market_meta`）。
+以前は単勝レスポンスの official_datetime しか残しておらず、「単勝は14:40、3連複は14:52」の
+ような違いが後から区別できなかった。時刻は次の2つを混同しない：
+  - source_time … netkeiba が返した official_datetime そのもの（provider returned official_datetime）。
+                  価格の鮮度はこちらで判定する。欠けていれば None のまま残す（observed_at で代用しない）。
+                  ※ これが本当に「その券種の価格の更新時刻」を意味するかは、まだ完全には確かめていない。
+  - observed_at … こちらがHTTP取得を終えた時刻（JST）。「いつ取りに行ったか」の証拠であって、
+                  「いつの価格か」の証拠ではない。
+取得に失敗した券種も消さずに status（ok / fetch_failed / empty / unparsed）で理由を残す。
+予想・買い目・EV の計算は従来どおり by_num / combo_odds だけを使い、market_meta は読まない。
 """
 from __future__ import annotations
 
 import base64
+import datetime
 import json
 import logging
 import re
 import zlib
-from typing import Any
+from typing import Any, Callable
 
 from scraper.common.http import get as http_get
 
@@ -87,6 +100,88 @@ COMBO_TYPE_SIZE = {
     ODDS_TYPE_WIDE: 2,
     ODDS_TYPE_SANRENPUKU: 3,
 }
+
+# 券種別 provenance（market_meta）のキー。combo_odds の券種名（"馬連" など）との対応も持つ。
+MARKET_META_SCHEMA = "odds-market-meta-v1"
+MARKET_WIN = "win"
+MARKET_UMAREN = "umaren"
+MARKET_WIDE = "wide"
+MARKET_SANRENPUKU = "sanrenpuku"
+MARKET_KEYS = (MARKET_WIN, MARKET_UMAREN, MARKET_WIDE, MARKET_SANRENPUKU)
+MARKET_BY_TYPE_CODE = {
+    ODDS_TYPE_TAN: MARKET_WIN,
+    ODDS_TYPE_UMAREN: MARKET_UMAREN,
+    ODDS_TYPE_WIDE: MARKET_WIDE,
+    ODDS_TYPE_SANRENPUKU: MARKET_SANRENPUKU,
+}
+# カードの券種名（logic/cards.py の bet["type"]）→ market_meta のキー
+MARKET_BY_BET_TYPE = {
+    "馬連": MARKET_UMAREN,
+    "ワイド": MARKET_WIDE,
+    "3連複": MARKET_SANRENPUKU,
+}
+
+STATUS_OK = "ok"
+STATUS_FETCH_FAILED = "fetch_failed"   # HTTP失敗・応答を解けなかった
+STATUS_EMPTY = "empty"                 # 応答はあったが、その券種の表が無い／空
+STATUS_UNPARSED = "unparsed"           # 表はあったが1件も読めなかった
+STATUS_NOT_FETCHED = "not_fetched"     # この観測ではその券種を取りに行っていない（直前の単勝だけの観測など）
+
+JST = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def _system_clock() -> datetime.datetime:
+    return datetime.datetime.now(JST)
+
+
+def _market_record(type_code: str, race_source_ref: str, observed_at: datetime.datetime | None,
+                   source_time: Any, status: str, rows: int) -> dict[str, Any]:
+    """券種1つぶんの provenance。source_time は provider の official_datetime をそのまま残す。"""
+    return {
+        "source_time": source_time or None,
+        "observed_at": observed_at.isoformat(timespec="seconds") if observed_at else None,
+        "source_ref": {"race_id": race_source_ref, "type": type_code},
+        "status": status,
+        "rows": rows,
+    }
+
+
+def not_fetched_record() -> dict[str, Any]:
+    """その観測で取りに行っていない券種。鮮度は証明しない。"""
+    return {
+        "source_time": None, "observed_at": None, "source_ref": None,
+        "status": STATUS_NOT_FETCHED, "rows": 0,
+    }
+
+
+def win_fetch_failed_meta(race_source_ref: str,
+                          clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
+    """単勝の取得自体に失敗したレース用。消さずに fetch_failed を残す（式別は取りに行っていない）。"""
+    clock = clock or _system_clock
+    return market_meta_block({
+        MARKET_WIN: _market_record(
+            ODDS_TYPE_TAN, race_source_ref, clock(), None, STATUS_FETCH_FAILED, 0
+        ),
+    })
+
+
+def market_meta_block(markets: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """race["odds_market_meta"] に入れる形。odds_updated_at が何を指すかも明示する。"""
+    return {
+        "schema": MARKET_META_SCHEMA,
+        "source_time_definition": "provider_returned_official_datetime",
+        # 後方互換の odds_updated_at は **単勝の** source_time。式別の時刻ではない。
+        "odds_updated_at_is": "win.source_time",
+        "markets": {key: markets.get(key) or not_fetched_record() for key in MARKET_KEYS},
+    }
+
+
+def _table_status(body: dict[str, Any], type_code: str, parsed_rows: int) -> str:
+    if parsed_rows > 0:
+        return STATUS_OK
+    odds = body.get("odds")
+    table = odds.get(type_code) if isinstance(odds, dict) else None
+    return STATUS_UNPARSED if table else STATUS_EMPTY
 
 
 def _unwrap_jsonp(text: str) -> str:
@@ -279,30 +374,57 @@ def _fetch_type_body(race_source_ref: str, odds_type: str) -> dict[str, Any]:
 
 
 
-def fetch_win_odds(race_source_ref: str) -> dict[str, Any]:
+def _win_rows(by_num: dict[int, dict[str, Any]]) -> int:
+    return sum(1 for v in by_num.values() if v.get("win_odds") is not None)
+
+
+def fetch_win_odds(race_source_ref: str,
+                   clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
     """単勝だけを軽量取得する。
 
     直前オッズ観測用。馬連/ワイド/3連複まで取り直す通常の fetch_odds と違い、
     API 1回だけにして、発走前の市場分布を時系列で保存する用途に限定する。
+    この取得が証明するのは**単勝の鮮度だけ**（market_scope="win"）。式別は取りに行かない。
     """
+    clock = clock or _system_clock
     body = _fetch_type_body(race_source_ref, ODDS_TYPE_TAN)
+    observed_at = clock()
     by_num = extract_win_place_odds(body)
-    if not any(v.get("win_odds") is not None for v in by_num.values()):
+    rows = _win_rows(by_num)
+    if not rows:
         logger.warning("直前単勝オッズが1件も取れませんでした race_id=%s", race_source_ref)
     return {
         "official_datetime": body.get("official_datetime"),
         "by_num": by_num,
+        "market_scope": MARKET_WIN,
+        "market_meta": {
+            MARKET_WIN: _market_record(
+                ODDS_TYPE_TAN, race_source_ref, observed_at, body.get("official_datetime"),
+                _table_status(body, ODDS_TYPE_TAN, rows), rows,
+            ),
+        },
     }
 
-def fetch_odds(race_source_ref: str) -> dict[str, Any]:
+def fetch_odds(race_source_ref: str,
+               clock: Callable[[], datetime.datetime] | None = None) -> dict[str, Any]:
     """
     単勝に加え、実際に購入する馬連・ワイド・3連複の市場オッズも取得する。
 
     type=all は2026-09-19の本番で空を返したため、券種ごとに分けて取得する。
     組み合わせオッズの取得失敗は単勝予想まで巻き込まず、combo_oddsを欠損として続行する。
+    券種ごとの取得時刻・元データ時刻・状態は market_meta に別々に残す（予想には使わない）。
     """
+    clock = clock or _system_clock
     body = _fetch_type_body(race_source_ref, ODDS_TYPE_TAN)
+    win_observed_at = clock()
     by_num = extract_win_place_odds(body)
+    win_rows = _win_rows(by_num)
+    market_meta: dict[str, dict[str, Any]] = {
+        MARKET_WIN: _market_record(
+            ODDS_TYPE_TAN, race_source_ref, win_observed_at, body.get("official_datetime"),
+            _table_status(body, ODDS_TYPE_TAN, win_rows), win_rows,
+        ),
+    }
 
     if not any(v.get("win_odds") is not None for v in by_num.values()):
         odds = body.get("odds")
@@ -318,26 +440,40 @@ def fetch_odds(race_source_ref: str) -> dict[str, Any]:
 
     combo_odds: dict[str, dict[str, Any]] = {}
     for type_code in (ODDS_TYPE_UMAREN, ODDS_TYPE_WIDE, ODDS_TYPE_SANRENPUKU):
+        market = MARKET_BY_TYPE_CODE[type_code]
         try:
             combo_body = _fetch_type_body(race_source_ref, type_code)
-            parsed = extract_combo_odds(combo_body)
-            for type_name, table in parsed.items():
-                combo_odds.setdefault(type_name, {}).update(table)
-            if not parsed:
-                _warn_unparsed_combo(race_source_ref, type_code, combo_body)
         except (RuntimeError, ValueError, json.JSONDecodeError):
             logger.warning(
                 "式別オッズを取得できませんでした race_id=%s type=%s。"
                 "この券種は鳳の市場EV判定から欠損扱いにします",
                 race_source_ref, type_code, exc_info=True,
             )
+            market_meta[market] = _market_record(
+                type_code, race_source_ref, clock(), None, STATUS_FETCH_FAILED, 0
+            )
+            continue
+        observed_at = clock()
+        parsed = extract_combo_odds(combo_body)
+        for type_name, table in parsed.items():
+            combo_odds.setdefault(type_name, {}).update(table)
+        rows = len(parsed.get(COMBO_TYPE_NAMES[type_code]) or {})
+        if not parsed:
+            _warn_unparsed_combo(race_source_ref, type_code, combo_body)
+        market_meta[market] = _market_record(
+            type_code, race_source_ref, observed_at, combo_body.get("official_datetime"),
+            _table_status(combo_body, type_code, rows), rows,
+        )
 
     return {
         # 単勝の観測時刻をそのまま使う。p・q（＝予想の土台）はこの時点の単勝オッズで作るので、
         # 式別の取得時刻を混ぜて max を取ると odds_updated_at が実態より後ろにずれる。
+        # 式別の時刻は market_meta に券種ごとに残す。
         "official_datetime": body.get("official_datetime"),
         "by_num": by_num,
         "combo_odds": combo_odds,
+        "market_scope": "all",
+        "market_meta": market_meta,
     }
 
 
@@ -387,6 +523,12 @@ def merge_odds_into_race(race: dict[str, Any], odds_result: dict[str, Any]) -> N
     # 実際に買う券種の市場価格。鳳のカードEV計算ではこの値を使う。
     race["combo_odds"] = odds_result.get("combo_odds") or {}
 
-    # オッズ観測時刻を記録（取得項目仕様§2.3 odds_updated_at）
+    # オッズ観測時刻を記録（取得項目仕様§2.3 odds_updated_at）。
+    # 後方互換のため残している。中身は**単勝の** source_time（provider の official_datetime）で、
+    # 式別の価格時刻ではない。券種ごとの時刻は odds_market_meta を見る。
     if odds_result.get("official_datetime"):
         race["odds_updated_at"] = odds_result["official_datetime"]
+
+    # 券種別の provenance。監査専用で、予想・買い目・EV の計算には使わない。
+    if odds_result.get("market_meta"):
+        race["odds_market_meta"] = market_meta_block(odds_result["market_meta"])

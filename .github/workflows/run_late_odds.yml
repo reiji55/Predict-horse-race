@@ -50,7 +50,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: 直前オッズ周辺の回帰テスト
-        run: python -m pytest -q tests/test_odds_history.py
+        run: python -m pytest -q tests/test_odds_history.py tests/test_audit_manifest.py
 
       - name: 対象の週と日付を決める
         id: target
@@ -77,14 +77,23 @@ jobs:
             --week "${{ steps.target.outputs.week }}" \
             --phase late
 
+      - name: 発走前の監査manifestを保存（audit-only）
+        # 直前の単勝観測（market_scope=win）と context を束ねて1観測1ファイルで残す。
+        # 単勝が新しくても式別まで新しいとは扱わない。発走後のレースには作らない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          python -m logic.audit_manifest \
+            --week "${{ steps.target.outputs.week }}" \
+            --phase late
+
       - name: 観測履歴をコミット
         # 通常pipeline・成績集計と同じブランチへpushするので、先に進んでいたら rebase して再push。
         # 観測は1観測1ファイル（data/odds_history/{race_id}/…）なので rebase は衝突しない。
         run: |
-          mkdir -p data/odds_history data/condition_history data/context_snapshots
+          mkdir -p data/odds_history data/condition_history data/context_snapshots data/audit_manifests
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/odds_history/ data/condition_history/ data/context_snapshots/
+          git add data/odds_history/ data/condition_history/ data/context_snapshots/ data/audit_manifests/
           if git diff --cached --quiet; then
             echo "新しい観測はありません"
             exit 0
