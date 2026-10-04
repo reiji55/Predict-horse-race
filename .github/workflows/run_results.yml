@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py -q
 
       - name: 対象の週を決める
         id: target

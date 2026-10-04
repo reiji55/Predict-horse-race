@@ -5,6 +5,10 @@
 
 発走時刻を過ぎたレースは必ずスキップする。
 このログは将来の「直前オッズ変動」研究用で、現時点の予想ロジックには使わない。
+
+この観測が証明するのは**単勝の鮮度だけ**（market_scope="win"）。馬連・ワイド・3連複は取りに行かず、
+観測ファイルの market_meta にも not_fetched として残す。単勝の source_time が新しくても、
+式別の価格まで新しかったとは扱わない。
 """
 from __future__ import annotations
 
@@ -31,6 +35,22 @@ def _date_key(date_str: str) -> str:
 
 def _system_clock() -> datetime.datetime:
     return datetime.datetime.now(JST)
+
+
+def _win_record(fetched: dict[str, Any], by_num: dict[Any, dict[str, Any]],
+                source_ref: str, observed_at: datetime.datetime) -> dict[str, Any]:
+    """単勝の provenance。observed_at は観測ファイルと同じ時刻（取得完了後にこの関数の外で読んだ時計）。"""
+    record = dict(((fetched.get("market_meta") or {}).get(b2_odds.MARKET_WIN)) or {})
+    rows = sum(1 for row in by_num.values() if row.get("win_odds") is not None)
+    record.update({
+        "source_time": fetched.get("official_datetime") or None,
+        "observed_at": observed_at.isoformat(timespec="seconds"),
+        "source_ref": record.get("source_ref") or {"race_id": source_ref,
+                                                   "type": b2_odds.ODDS_TYPE_TAN},
+        "status": record.get("status") or (b2_odds.STATUS_OK if rows else b2_odds.STATUS_EMPTY),
+        "rows": rows,
+    })
+    return record
 
 
 def capture(raw: dict[str, Any], date_str: str,
@@ -74,11 +94,18 @@ def capture(raw: dict[str, Any], date_str: str,
             continue
 
         by_num = fetched.get("by_num") or {}
+        # observed_at は取得完了後の時刻。取得中に発走時刻を跨いだら保存しない（fail-closed）。
+        observed_at = clock()
         observed_race = {
             "id": race_id,
             "source_refs": race.get("source_refs"),
             "post_time": race.get("post_time"),
             "odds_updated_at": fetched.get("official_datetime"),
+            # この観測は単勝だけ。単勝の source_time が新しくても、馬連・ワイド・3連複の
+            # 鮮度は証明しない（式別は not_fetched として残る）。
+            "odds_market_meta": b2_odds.market_meta_block(
+                {b2_odds.MARKET_WIN: _win_record(fetched, by_num, source_ref, observed_at)}
+            ),
             "entries": [
                 {
                     "num": num,
@@ -88,8 +115,6 @@ def capture(raw: dict[str, Any], date_str: str,
                 for num, row in sorted(by_num.items())
             ],
         }
-        # observed_at は取得完了後の時刻。取得中に発走時刻を跨いだら保存しない（fail-closed）。
-        observed_at = clock()
         status = odds_history.append_observation(
             observed_race, phase="late", observed_at=observed_at, directory=directory
         )
@@ -102,6 +127,7 @@ def capture(raw: dict[str, Any], date_str: str,
             continue
         report["captured"].append({
             "race_id": race_id,
+            "market_scope": b2_odds.MARKET_WIN,
             "source_time": fetched.get("official_datetime"),
             "added": status == odds_history.ADDED,
             "status": status,

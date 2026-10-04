@@ -249,6 +249,8 @@ def build_race(list_entry: a_race_list.RaceListEntry, cache: dict[str, list[dict
         b2_odds.merge_odds_into_race(race, b2_odds.fetch_odds(list_entry.source_ref))
     except RuntimeError:
         logger.warning("オッズを取得できませんでした（%s）。win_odds は null のまま続行します", race.get("id"))
+        # 監査用に「取りに行って失敗した」ことを残す（予想には使わない）
+        race["odds_market_meta"] = b2_odds.win_fetch_failed_meta(list_entry.source_ref)
 
     # C2：出馬表の「過去5走」ページから全出走馬の past_runs をまとめて取る（OPEN_QUESTIONS C-9）
     # 1レース1ページで済み、db.netkeiba.com を叩かずに race.netkeiba.com だけで完結する。

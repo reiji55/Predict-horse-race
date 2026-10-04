@@ -1,0 +1,12 @@
+{
+  "version": "odds-provenance-audit-v2",
+  "mode": "audit_only",
+  "note": "監査専用。予想・選定・買い目・妙味・鳳ゲート・予算には一切つなげない（stale でも予想を止めない・鳳を禁止しない・減額しない）。model_registry.HASH_CONFIGS に入れないので、変えても Champion の config_hash は変わらない。",
+  "freshness": {
+    "basis": "source_time",
+    "basis_note": "価格の鮮度は provider が返した official_datetime（source_time）と発走時刻の差で判定する。source_time が無いときは unknown にし、observed_at（こちらの取得時刻）では代用しない。",
+    "target_min_minutes": 5,
+    "target_max_minutes": 15,
+    "stale_after_minutes": 30
+  }
+}

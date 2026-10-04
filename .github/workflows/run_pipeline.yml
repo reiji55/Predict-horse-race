@@ -116,6 +116,15 @@ jobs:
           WEEK="${{ steps.target.outputs.week }}"
           python -m logic.refresh_context --week "${WEEK}" --phase pipeline
 
+      - name: 発走前の監査manifestを保存（audit-only）
+        # 予想snapshot・context・オッズ観測を SHA-256 付きで束ね、券種別の価格時刻（source_time）と
+        # 鮮度を残す。1観測1ファイルで、過去の manifest は書き換えない。発走後のレースには作らない。
+        # 予想・買い目には使わない。失敗しても予想本体は止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m logic.audit_manifest --week "${WEEK}" --phase pipeline
+
       - name: データ品質ゲート
         run: |
           WEEK="${{ steps.target.outputs.week }}"

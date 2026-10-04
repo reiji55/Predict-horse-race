@@ -1,9 +1,14 @@
-"""「想定外に好走した馬」を自動で研究キューへ送る。
+"""「想定外に好走した馬」を自動で研究キューへ送り、レースごとの発走前証跡を監査する。
 
 これは自動学習・自動チューニングではない。
 発走前にモデル/市場が低評価だったのに上位へ来た馬を抽出し、
 発走前に凍結済みのcontext（馬体重・休養・馬場・オッズ推移・パドック）を
 同じ場所に束ねて「何を見落とした可能性があるか」を人間/AIが後から検証しやすくする。
+
+加えて race_audits に、レースごとの発走前証跡（予想 snapshot・context・オッズ観測の有無と hash、
+券種別の価格時刻と鮮度、馬体重・speed の coverage）を残す。発走前の manifest
+（logic/audit_manifest.py）があればそれを、無ければ発走前のファイルだけから組み直したものを使う。
+結果を使って予想を書き換えることはしない。
 
 相関を原因と断定しない。すべて hypothesis_only。
 """
@@ -15,7 +20,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from logic import context_layers, refresh_context
+from logic import audit_manifest, context_layers, refresh_context
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_RESULTS = ROOT / "data" / "results.json"
@@ -65,15 +70,121 @@ def _horse_context(context: dict[str, Any] | None, num: int) -> dict[str, Any] |
     }
 
 
+def _race_audit(race: dict[str, Any], meta: dict[str, Any],
+                audit_config: dict[str, Any],
+                audit_manifest_directory: Path | None,
+                prediction_snapshot_directory: Path | None,
+                context_snapshot_directory: Path | None,
+                odds_history_directory: Path | None) -> dict[str, Any]:
+    """1レースの発走前証跡。manifest を優先し、無ければ発走前ファイルから組み直す。"""
+    race_id = race.get("race_id") or ""
+    manifest = audit_manifest.latest_manifest(race_id, audit_manifest_directory)
+    if manifest:
+        evidence = dict(manifest)
+        evidence["evidence_source"] = "pre_race_manifest"
+    else:
+        evidence = audit_manifest.evidence_from_files(
+            {"id": race_id, "post_time": meta.get("post_time")},
+            prediction_directory=prediction_snapshot_directory,
+            context_directory=context_snapshot_directory,
+            odds_directory=odds_history_directory,
+            config=audit_config,
+        )
+        evidence["evidence_source"] = "derived_without_manifest"
+
+    artifacts = evidence.get("artifacts") or {}
+    basis = evidence.get("prediction_price_basis") or {}
+    cards = evidence.get("card_price_evidence") or {}
+    completeness = evidence.get("context_completeness") or {}
+    return {
+        "race_id": race_id,
+        "venue": meta.get("venue"),
+        "race_no": meta.get("race_no"),
+        "race_name": meta.get("name"),
+        "post_time": meta.get("post_time"),
+        "evidence_source": evidence["evidence_source"],
+        "manifest_observed_at": (manifest or {}).get("observed_at"),
+        "present": {
+            "prediction_snapshot": completeness.get("prediction_snapshot_present", False),
+            "context_snapshot": completeness.get("context_snapshot_present", False),
+            "odds_observation": completeness.get("odds_snapshot_present", False),
+        },
+        "hashes": {
+            "prediction": (artifacts.get("prediction") or {}).get("sha256"),
+            "context": (artifacts.get("context") or {}).get("sha256"),
+            "odds_latest": (artifacts.get("odds") or {}).get("sha256"),
+            "odds_prediction_basis": (basis.get("odds") or {}).get("sha256"),
+        },
+        "times": {
+            "prediction_frozen_at": (artifacts.get("prediction") or {}).get("frozen_at"),
+            "context_observed_at": (artifacts.get("context") or {}).get("observed_at"),
+            "odds_latest_observed_at": (artifacts.get("odds") or {}).get("observed_at"),
+            "odds_latest_source_time_win": (artifacts.get("odds") or {}).get("source_time"),
+        },
+        "odds_freshness_latest_win": evidence.get("odds_freshness"),
+        "prediction_price_basis": {
+            "status": basis.get("status"),
+            "prediction_odds_match": basis.get("prediction_odds_match"),
+            "observed_at": (basis.get("odds") or {}).get("observed_at"),
+            "market_scope": (basis.get("odds") or {}).get("market_scope"),
+        },
+        "price_times_by_market": cards.get("markets"),
+        "card_price_evidence": cards.get("cards"),
+        "otori_price_evidence": cards.get("otori"),
+        "body_weight_current_coverage": completeness.get("body_weight_current_coverage"),
+        "speed": evidence.get("speed"),
+        "interpretation": "audit_only",
+    }
+
+
+def _audit_summary(race_audits: list[dict[str, Any]]) -> dict[str, Any]:
+    summary = {
+        "races": len(race_audits),
+        "with_manifest": 0,
+        "derived_without_manifest": 0,
+        "missing_prediction_snapshot": 0,
+        "missing_context_snapshot": 0,
+        "missing_odds_observation": 0,
+        "latest_win_freshness": {},
+        "basis_by_market_freshness": {},
+        "body_weight_full_coverage": 0,
+    }
+    for row in race_audits:
+        if row["evidence_source"] == "pre_race_manifest":
+            summary["with_manifest"] += 1
+        else:
+            summary["derived_without_manifest"] += 1
+        present = row["present"]
+        summary["missing_prediction_snapshot"] += 0 if present["prediction_snapshot"] else 1
+        summary["missing_context_snapshot"] += 0 if present["context_snapshot"] else 1
+        summary["missing_odds_observation"] += 0 if present["odds_observation"] else 1
+        status = (row.get("odds_freshness_latest_win") or {}).get("status") or "unknown"
+        summary["latest_win_freshness"][status] = summary["latest_win_freshness"].get(status, 0) + 1
+        for market, info in (row.get("price_times_by_market") or {}).items():
+            bucket = summary["basis_by_market_freshness"].setdefault(market, {})
+            key = (info or {}).get("freshness") or "unknown"
+            bucket[key] = bucket.get(key, 0) + 1
+        if row.get("body_weight_current_coverage") == 1.0:
+            summary["body_weight_full_coverage"] += 1
+    return summary
+
+
 def build_report(results: dict[str, Any], config: dict[str, Any] | None = None,
-                 context_snapshot_directory: Path | None = None) -> dict[str, Any]:
+                 context_snapshot_directory: Path | None = None,
+                 audit_manifest_directory: Path | None = None,
+                 prediction_snapshot_directory: Path | None = None,
+                 odds_history_directory: Path | None = None,
+                 audit_config: dict[str, Any] | None = None) -> dict[str, Any]:
     config = config or context_layers.load_config()
     cfg = config.get("anomaly_review") or {}
     finish_max = int(cfg.get("finish_max", 3))
     model_rank_min = int(cfg.get("model_rank_min", 6))
     market_rank_min = int(cfg.get("market_rank_min", 6))
 
+    audit_config = audit_config or audit_manifest.load_config()
+
     anomalies = []
+    race_audits = []
     races_scanned = 0
     for race in results.get("results") or []:
         if race.get("evaluation_scope") == "manual_chat":
@@ -81,6 +192,10 @@ def build_report(results: dict[str, Any], config: dict[str, Any] | None = None,
         races_scanned += 1
         race_id = race.get("race_id")
         meta = race.get("meta") or {}
+        race_audits.append(_race_audit(
+            race, meta, audit_config, audit_manifest_directory,
+            prediction_snapshot_directory, context_snapshot_directory, odds_history_directory,
+        ))
         marks = meta.get("marks") or []
         model_ranks = _model_ranks(marks)
         market_ranks = _market_ranks(marks)
@@ -147,7 +262,9 @@ def build_report(results: dict[str, Any], config: dict[str, Any] | None = None,
             "races_scanned": races_scanned,
             "anomalies": len(anomalies),
             "by_reason": by_reason,
+            "audit": _audit_summary(race_audits),
         },
+        "race_audits": race_audits,
         "anomalies": anomalies,
     }
 
@@ -169,7 +286,8 @@ def main() -> None:
         f.write("\n")
     print(
         f"anomaly review: races={report['summary']['races_scanned']} "
-        f"anomalies={report['summary']['anomalies']}"
+        f"anomalies={report['summary']['anomalies']} "
+        f"race_audits={report['summary']['audit']['races']}"
     )
 
 

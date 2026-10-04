@@ -54,12 +54,38 @@ def _rows_from_race(race: dict[str, Any]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: row["num"])
 
 
-def _signature(observation: dict[str, Any]) -> tuple[Any, str]:
-    """API側時刻＋馬番/オッズ本体が同じ観測は重複保存しない。"""
+def _market_signature(observation: dict[str, Any]) -> str:
+    """券種別の source_time と状態。式別の価格時刻が変わった観測は、単勝が同じでも別に残す。"""
+    markets = observation.get("market_meta") or {}
+    return json.dumps(
+        {k: [(v or {}).get("source_time"), (v or {}).get("status")]
+         for k, v in sorted(markets.items())},
+        ensure_ascii=False, sort_keys=True,
+    )
+
+
+def _signature(observation: dict[str, Any]) -> tuple[Any, str, str]:
+    """API側時刻＋馬番/オッズ本体（＋券種別の価格時刻）が同じ観測は重複保存しない。"""
     return (
         observation.get("source_time"),
         json.dumps(observation.get("odds") or [], ensure_ascii=False, sort_keys=True),
+        _market_signature(observation),
     )
+
+
+# 観測が「どの券種の鮮度まで証明できるか」。odds の行そのものは常に単勝だけ。
+SCOPE_WIN = "win"            # 単勝だけを取った観測（直前の軽量取得など）
+SCOPE_ALL = "all"            # 単勝・馬連・ワイド・3連複を取りに行った観測（通常pipeline）
+SCOPE_LEGACY = "legacy_unknown"  # 券種別の記録が無い旧形式。source_time は単勝のものとしてだけ読める
+
+
+def market_scope_of(market_meta: dict[str, Any] | None) -> str:
+    if not market_meta:
+        return SCOPE_LEGACY
+    fetched = {k for k, v in market_meta.items() if (v or {}).get("status") != "not_fetched"}
+    if fetched <= {"win"}:
+        return SCOPE_WIN
+    return SCOPE_ALL
 
 
 def parse_source_time(value: Any) -> datetime.datetime | None:
@@ -74,17 +100,24 @@ def parse_source_time(value: Any) -> datetime.datetime | None:
 
 
 def pre_race_status(race: dict[str, Any], observed_at: datetime.datetime,
-                    source_time: Any = None) -> str | None:
+                    source_time: Any = None,
+                    market_meta: dict[str, Any] | None = None) -> str | None:
     """発走前の観測と言えないなら理由を返す（fail-closed）。発走前なら None。"""
     post_at = snapshots.post_datetime(race)
     if post_at is None:
         return UNKNOWN_POST_TIME
     if observed_at >= post_at:
         return AFTER_POST
-    # 取得開始は発走前でも、APIが返した時刻が発走後なら確定オッズ扱い。
-    source_at = parse_source_time(source_time)
-    if source_at is not None and source_at >= post_at:
-        return AFTER_POST
+    # 取得開始は発走前でも、APIが返した時刻が発走後なら確定オッズ扱い。式別も同じ。
+    times = [source_time] + [(v or {}).get("source_time") for v in (market_meta or {}).values()]
+    for value in times:
+        source_at = parse_source_time(value)
+        if source_at is not None and source_at >= post_at:
+            return AFTER_POST
+    for value in [(v or {}).get("observed_at") for v in (market_meta or {}).values()]:
+        fetched_at = parse_source_time(value)
+        if fetched_at is not None and fetched_at >= post_at:
+            return AFTER_POST
     return None
 
 
@@ -94,15 +127,23 @@ def build_observation(race: dict[str, Any], phase: str,
     if not rows:
         return None
     now = observed_at or datetime.datetime.now(JST)
-    return {
+    market_meta = (race.get("odds_market_meta") or {}).get("markets") or None
+    observation = {
         "race_id": race.get("id"),
         "source_ref": (race.get("source_refs") or {}).get("netkeiba"),
         "post_time": race.get("post_time"),
         "observed_at": now.isoformat(timespec="seconds"),
+        # 単勝の source_time（provider が返した official_datetime）。odds の行と同じく単勝だけの時刻。
         "source_time": race.get("odds_updated_at"),
         "phase": phase,
+        "odds_rows_market": "win",
+        # この観測が鮮度を証明できる券種の範囲。単勝が新しくても式別まで新しいとは扱わない。
+        "market_scope": market_scope_of(market_meta),
         "odds": rows,
     }
+    if market_meta:
+        observation["market_meta"] = market_meta
+    return observation
 
 
 def load_observations(race_id: str, directory: Path | None = None) -> list[dict[str, Any]]:
@@ -132,7 +173,8 @@ def append_observation(race: dict[str, Any], phase: str,
     if not race_id or observation is None:
         return NO_ODDS
 
-    status = pre_race_status(race, now, observation["source_time"])
+    status = pre_race_status(race, now, observation["source_time"],
+                             observation.get("market_meta"))
     if status is not None:
         return status
 
