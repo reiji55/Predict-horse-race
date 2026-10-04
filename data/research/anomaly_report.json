@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-03T23:44:53+09:00",
+  "generated_at": "2026-10-05T00:23:58+09:00",
   "version": "context-layers-v1",
   "status": "hypothesis_only",
   "rules": {
@@ -13,8 +13,1829 @@
     "by_reason": {
       "model_miss": 14,
       "market_miss": 14
+    },
+    "audit": {
+      "races": 10,
+      "with_manifest": 0,
+      "derived_without_manifest": 10,
+      "missing_prediction_snapshot": 0,
+      "missing_context_snapshot": 4,
+      "missing_odds_observation": 4,
+      "latest_win_freshness": {
+        "unknown": 4,
+        "very_late": 2,
+        "stale": 4
+      },
+      "basis_by_market_freshness": {
+        "win": {
+          "unknown": 4,
+          "stale": 6
+        },
+        "umaren": {
+          "unknown": 10
+        },
+        "wide": {
+          "unknown": 10
+        },
+        "sanrenpuku": {
+          "unknown": 10
+        }
+      },
+      "body_weight_full_coverage": 5
     }
   },
+  "race_audits": [
+    {
+      "race_id": "20260919-hanshin-11",
+      "venue": "阪神",
+      "race_no": 11,
+      "race_name": "大阪スポーツ杯",
+      "post_time": "15:30",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": false,
+        "odds_observation": false
+      },
+      "hashes": {
+        "prediction": "b336bba95ccde39fe465e4b769d41345a0d7271f89b12497e6082023e2f5232e",
+        "context": null,
+        "odds_latest": null,
+        "odds_prediction_basis": null
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-19T14:14:27+09:00",
+        "context_observed_at": null,
+        "odds_latest_observed_at": null,
+        "odds_latest_source_time_win": null
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "unknown",
+        "freshness_basis": "unavailable",
+        "source_time": null,
+        "minutes_to_post": null,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "no_pipeline_odds_observation",
+        "prediction_odds_match": null,
+        "observed_at": null,
+        "market_scope": null
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": null,
+      "speed": null,
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260919-nakayama-11",
+      "venue": "中山",
+      "race_no": 11,
+      "race_name": "ながつきS",
+      "post_time": "15:45",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": false,
+        "odds_observation": false
+      },
+      "hashes": {
+        "prediction": "1ce9a0bbc9bccc97733c4e750b592fb7489a39b102aea57963d054cb975279fc",
+        "context": null,
+        "odds_latest": null,
+        "odds_prediction_basis": null
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-19T14:14:27+09:00",
+        "context_observed_at": null,
+        "odds_latest_observed_at": null,
+        "odds_latest_source_time_win": null
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "unknown",
+        "freshness_basis": "unavailable",
+        "source_time": null,
+        "minutes_to_post": null,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "no_pipeline_odds_observation",
+        "prediction_odds_match": null,
+        "observed_at": null,
+        "market_scope": null
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": false,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": null,
+      "speed": null,
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260920-hanshin-11",
+      "venue": "阪神",
+      "race_no": 11,
+      "race_name": "道頓堀S",
+      "post_time": "15:30",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": false,
+        "odds_observation": false
+      },
+      "hashes": {
+        "prediction": "1b70f8e44581086bc1a039f9515b8a1776059583e72f53b999c439fe7c07bdf3",
+        "context": null,
+        "odds_latest": null,
+        "odds_prediction_basis": null
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-20T14:31:23+09:00",
+        "context_observed_at": null,
+        "odds_latest_observed_at": null,
+        "odds_latest_source_time_win": null
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "unknown",
+        "freshness_basis": "unavailable",
+        "source_time": null,
+        "minutes_to_post": null,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "no_pipeline_odds_observation",
+        "prediction_odds_match": null,
+        "observed_at": null,
+        "market_scope": null
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": true,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": null,
+      "speed": null,
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260920-nakayama-11",
+      "venue": "中山",
+      "race_no": 11,
+      "race_name": "オールカマー",
+      "post_time": "15:45",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": false,
+        "odds_observation": false
+      },
+      "hashes": {
+        "prediction": "9d47a42a24fad3a88fad172be26b9dc17eb927ee19635e55cf143d5f734e66a5",
+        "context": null,
+        "odds_latest": null,
+        "odds_prediction_basis": null
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-20T14:31:23+09:00",
+        "context_observed_at": null,
+        "odds_latest_observed_at": null,
+        "odds_latest_source_time_win": null
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "unknown",
+        "freshness_basis": "unavailable",
+        "source_time": null,
+        "minutes_to_post": null,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "no_pipeline_odds_observation",
+        "prediction_odds_match": null,
+        "observed_at": null,
+        "market_scope": null
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "basis_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": null,
+            "freshness": "unknown"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": true,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": null,
+      "speed": null,
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260926-hanshin-11",
+      "venue": "阪神",
+      "race_no": 11,
+      "race_name": "シリウスS",
+      "post_time": "15:45",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "80da85115442d7fc443d3682f7dbce0a17bb51b1a0352068e2b2846506e59523",
+        "context": "d20eb5ae2b8413410b615bfb95929ae51186ae62c51951c730d91b1aa18cab2f",
+        "odds_latest": "325ca26289b94753f51958075690174dc84dbbb59763c99b2939e42cd6791370",
+        "odds_prediction_basis": "b1b93810beec7022d57dcb8c43c28517269f249b8a726baddf673dfeae81fe8a"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-26T14:40:32+09:00",
+        "context_observed_at": "2026-09-26T15:44:12+09:00",
+        "odds_latest_observed_at": "2026-09-26T15:44:07+09:00",
+        "odds_latest_source_time_win": "2026-09-26 15:40:05"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "very_late",
+        "freshness_basis": "source_time",
+        "source_time": "2026-09-26 15:40:05",
+        "minutes_to_post": 4.917,
+        "fresh": true,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-09-26T14:40:22+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-09-26 13:40:50",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 13:40:50",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 13:40:50",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 13:40:50",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 13:40:50",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": true,
+        "coverage": 0.6875,
+        "qualified_horses": 11,
+        "total_horses": 16,
+        "reason": "ok"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260926-nakayama-11",
+      "venue": "中山",
+      "race_no": 11,
+      "race_name": "秋風S",
+      "post_time": "15:30",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "5b7069347ef2888bb62d8ce8b082f789b6a63dba178a31aa6ca3349acb4e5e23",
+        "context": "da45ea75abc77c0e56f10212b01ff4c02699f515e3fd9b13cb025e3a825c2fd3",
+        "odds_latest": "8ce8f318058ea9121446e5a4f74d70501532eca72a2d43ef9fcd5d681953c087",
+        "odds_prediction_basis": "8ce8f318058ea9121446e5a4f74d70501532eca72a2d43ef9fcd5d681953c087"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-26T14:40:32+09:00",
+        "context_observed_at": "2026-09-26T15:10:09+09:00",
+        "odds_latest_observed_at": "2026-09-26T14:40:22+09:00",
+        "odds_latest_source_time_win": "2026-09-26 14:25:05"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "stale",
+        "freshness_basis": "source_time",
+        "source_time": "2026-09-26 14:25:05",
+        "minutes_to_post": 64.917,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-09-26T14:40:22+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-09-26 14:25:05",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 14:25:05",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 14:25:05",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 14:25:05",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-26 14:25:05",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": false,
+        "coverage": 0.4286,
+        "qualified_horses": 6,
+        "total_horses": 14,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260927-hanshin-11",
+      "venue": "阪神",
+      "race_no": 11,
+      "race_name": "ポートアイランドS",
+      "post_time": "15:20",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "f96a7bc41df4a265dfabbd22b967c96366f0bad0d36ca4776177c871aaaf35cf",
+        "context": "02c3e4a191555709f4a46715cff4abff640379b21f26b3b35de81577d25ec8c3",
+        "odds_latest": "47e082327981344b8f6f1357ed82e98e00e685f85cc93bf7859ca6496e0ee998",
+        "odds_prediction_basis": "47e082327981344b8f6f1357ed82e98e00e685f85cc93bf7859ca6496e0ee998"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-27T14:57:00+09:00",
+        "context_observed_at": "2026-09-27T14:57:01+09:00",
+        "odds_latest_observed_at": "2026-09-27T14:56:48+09:00",
+        "odds_latest_source_time_win": "2026-09-27 14:15:27"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "stale",
+        "freshness_basis": "source_time",
+        "source_time": "2026-09-27 14:15:27",
+        "minutes_to_post": 64.55,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-09-27T14:56:48+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-09-27 14:15:27",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:15:27",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:15:27",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:15:27",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:15:27",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": false,
+        "coverage": 0.0,
+        "qualified_horses": 0,
+        "total_horses": 16,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20260927-nakayama-11",
+      "venue": "中山",
+      "race_no": 11,
+      "race_name": "スプリンターズS",
+      "post_time": "15:40",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "e4568a2527d0397bad2c1a420fea95348480194a616039145b1e5737d5645da4",
+        "context": "82acfb4b9130f78ae1e72974132bb28cafb50022078e91d7a08b2de1a360fb50",
+        "odds_latest": "af764095749764ee4220ccb931b767ad4fe7964e1aeb0b91e2188eb331a4a82f",
+        "odds_prediction_basis": "b87c595b22f555b0abafb6178f788bb0278f600fcd29cf674b3412d7da97d877"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-09-27T14:57:00+09:00",
+        "context_observed_at": "2026-09-27T15:36:59+09:00",
+        "odds_latest_observed_at": "2026-09-27T15:36:55+09:00",
+        "odds_latest_source_time_win": "2026-09-27 15:35:12"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "very_late",
+        "freshness_basis": "source_time",
+        "source_time": "2026-09-27 15:35:12",
+        "minutes_to_post": 4.8,
+        "fresh": true,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-09-27T14:56:48+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-09-27 14:35:52",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:35:52",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:35:52",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:35:52",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-09-27 14:35:52",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 0.9375,
+      "speed": {
+        "used": false,
+        "coverage": 0.0625,
+        "qualified_horses": 1,
+        "total_horses": 16,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20261003-kyoto-11",
+      "venue": "京都",
+      "race_no": 11,
+      "race_name": "オパールS",
+      "post_time": "15:30",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "c7a7f6d0f43f6fd3a588f26dc8c7ff86fee099638bc6383a8e7672bd8d091369",
+        "context": "349ca00a4633fe5bf03f5606995b6dee119c2102a96f6c6b345fb75d4cc8569e",
+        "odds_latest": "9f5238f72cb7059ce75f8c0482c486cf856813eaf5e043c1d3c70abac783249f",
+        "odds_prediction_basis": "9f5238f72cb7059ce75f8c0482c486cf856813eaf5e043c1d3c70abac783249f"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-10-03T14:53:26+09:00",
+        "context_observed_at": "2026-10-03T14:53:26+09:00",
+        "odds_latest_observed_at": "2026-10-03T14:53:14+09:00",
+        "odds_latest_source_time_win": "2026-10-03 14:25:02"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "stale",
+        "freshness_basis": "source_time",
+        "source_time": "2026-10-03 14:25:02",
+        "minutes_to_post": 64.967,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-10-03T14:53:14+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-10-03 14:25:02",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:25:02",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:25:02",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:25:02",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:25:02",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": false,
+        "coverage": 0.1111,
+        "qualified_horses": 2,
+        "total_horses": 18,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20261003-tokyo-11",
+      "venue": "東京",
+      "race_no": 11,
+      "race_name": "グリーンチャンネルC",
+      "post_time": "15:45",
+      "evidence_source": "derived_without_manifest",
+      "manifest_recorded_at": null,
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "97686bad54325ea2f2ec7961f7f91e3305f58d722d6bd1f4a5b52e034e58c444",
+        "context": "bb7116270903f81060e4377ef79b1a408d80dd9e20c53f9348c4d788083a8a3f",
+        "odds_latest": "a69996773b6cb2bb6159cd587f1ea9f80ca05d5b0c7bb1ef812395159ab6d0b7",
+        "odds_prediction_basis": "a69996773b6cb2bb6159cd587f1ea9f80ca05d5b0c7bb1ef812395159ab6d0b7"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-10-03T14:53:26+09:00",
+        "context_observed_at": "2026-10-03T15:32:55+09:00",
+        "odds_latest_observed_at": "2026-10-03T14:53:14+09:00",
+        "odds_latest_source_time_win": "2026-10-03 14:40:07"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "stale",
+        "freshness_basis": "source_time",
+        "source_time": "2026-10-03 14:40:07",
+        "minutes_to_post": 64.883,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 0,
+        "latest": null
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-10-03T14:53:14+09:00",
+        "market_scope": "legacy_unknown"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-10-03 14:40:07",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "wide": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "fetch_status": "provenance_unavailable",
+          "freshness": "unknown"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "otori",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:40:07",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:40:07",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:40:07",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-03 14:40:07",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": null,
+              "freshness": "unknown"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": null,
+              "freshness": "unknown"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": true,
+        "card_present": true,
+        "otori_card_ev_recorded": true,
+        "prices_not_fresh": [
+          "sanrenpuku",
+          "umaren",
+          "wide"
+        ],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": true,
+        "coverage": 0.8,
+        "qualified_horses": 12,
+        "total_horses": 15,
+        "reason": "ok"
+      },
+      "interpretation": "audit_only"
+    }
+  ],
   "anomalies": [
     {
       "race_id": "20260919-hanshin-11",
