@@ -46,7 +46,15 @@ jobs:
         id: target
         run: |
           WEEK="${{ github.event.inputs.week_id }}"
-          [ -z "$WEEK" ] && WEEK=$(TZ=Asia/Tokyo date +%G-W%V)
+          if [ -z "$WEEK" ]; then
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              # Scheduled runs can be delayed by GitHub Actions and cross JST midnight.
+              # Use a 12-hour lookback so the Sunday results job still targets that weekend's ISO week.
+              WEEK=$(TZ=Asia/Tokyo date -d '12 hours ago' +%G-W%V)
+            else
+              WEEK=$(TZ=Asia/Tokyo date +%G-W%V)
+            fi
+          fi
           echo "week=$WEEK" >> "$GITHUB_OUTPUT"
           echo "対象: week=$WEEK"
 
