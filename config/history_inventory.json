@@ -1,0 +1,56 @@
+{
+  "version": "history-feature-inventory-v1",
+  "mode": "observe_only",
+  "registered_at": "2026-10-06T19:58:00+09:00",
+  "registered_at_note": "この config（class 順・タグの閾値・feature_usage の宣言）を研究用の仮説定義として固定した日時。値を1つでも変えたら registered_at を進める。artifact には config 全体の SHA-256（history_inventory_config_sha256）も残すので、どの定義で観測したデータかを後から機械的に区別できる",
+  "note": "研究専用。Champion / Challenger / ケイ・哲・源 / Chappy / 鳳 / 妙味 / cards の入力・重み・選定には一切使わない。model_registry.HASH_CONFIGS に入れないので Champion の config_hash は変わらない。ここに書いた閾値は『将来の仮説候補のタグ』を付けるためだけのもので、点数化・本番ルール化はしない。",
+  "current_window": 5,
+  "long_window": 15,
+  "cutoff_rule": "run.date < race.date",
+  "long_history": {
+    "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）",
+    "fetch_by_default": false,
+    "note": "本番の raw / past_runs は変えない。取得できなければ fetch_failed / blocked / unavailable を残し、推測で埋めない"
+  },
+  "class_order": ["mi", "1win", "2win", "3win", "op", "g3", "g2", "g1"],
+  "high_class_min": "g3",
+  "close_finish_margins_sec": [0.0, 0.1, 0.2, 0.3],
+  "notable_runs": {
+    "high_class_close_finish": {
+      "min_class": "g3",
+      "max_margin_sec": 0.3,
+      "note": "仮説候補のタグ。特定の馬・レースに合わせた値ではない"
+    }
+  },
+  "expert_evidence": {
+    "uses_odds": false,
+    "course_distance_proven_min_top3": 1,
+    "distance_proven_min_top3": 1,
+    "going_proven_min_top3": 1,
+    "going_proven_only_when_today_going_in": ["稍重", "重", "不良"],
+    "unavailable_types": [
+      "trouble_last_run",
+      "slow_start",
+      "wide_trip",
+      "blocked_in_running",
+      "workout_quality",
+      "paddock_condition",
+      "stable_intent",
+      "pace_disadvantage"
+    ]
+  },
+  "feature_usage": {
+    "finish": {"used_by": ["chappy.recent_profile", "chappy.condition_profile", "aptitude", "top3_score"], "used_by_form_evaluation": true},
+    "heads": {"used_by": ["chappy.recent_profile", "aptitude", "top3_score"], "used_by_form_evaluation": true},
+    "surface": {"used_by": ["chappy.recent_profile", "chappy.condition_profile", "aptitude", "top3_score", "speed_index"], "used_by_form_evaluation": true},
+    "dist": {"used_by": ["chappy.condition_profile", "aptitude", "top3_score", "speed_index"], "used_by_form_evaluation": true},
+    "venue": {"used_by": ["chappy.condition_profile", "aptitude", "top3_score", "speed_index"], "used_by_form_evaluation": true},
+    "going": {"used_by": ["chappy.condition_profile", "aptitude", "top3_score", "speed_index"], "used_by_form_evaluation": true},
+    "class": {"used_by": ["speed_index（class_offset による走破タイム補正だけ。speed が使われたレースのみ）"], "used_by_form_evaluation": false},
+    "margin_sec": {"used_by": [], "used_by_form_evaluation": false},
+    "time_sec": {"used_by": ["speed_index"], "used_by_form_evaluation": false, "note": "speed 専用。着順系の評価（recent / condition / aptitude / top3）では使っていない"},
+    "last3f": {"used_by": [], "used_by_form_evaluation": false},
+    "impost": {"used_by": ["speed_index"], "used_by_form_evaluation": false},
+    "date": {"used_by": [], "used_by_form_evaluation": false, "note": "並び順（新しい順）としてだけ使われ、日付の値そのものは読まれていない"}
+  }
+}

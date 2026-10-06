@@ -243,3 +243,45 @@ def fetch_horse_history_cached(
     runs = fetch_horse_history(horse_ref, n_runs=n_runs)
     cache[horse_ref] = runs
     return runs
+
+
+# --- 研究用（PR-B history inventory）。本番の past_runs の形・取得経路は変えない -------------
+
+def parse_horse_history_html_with_race_names(html: str, n_runs: int | None = None) -> dict[str, Any]:
+    """研究用：戦績表の有無と、レース名つきの過去走を返す。
+
+    本番の parse_horse_history_html の戻り値（past_runs[]）は変えずに、
+    研究 artifact だけで使う race_name を同じ行から足す。
+    戻り値: {"table_present": bool, "source_total_rows": int, "runs": [{...past_run, "race_name": str|None}]}
+    source_total_rows は戦績表の有効な全行数。n_runs=None（既定）なら全行を返す。
+    研究側は「全行 → 日付の cutoff → long_window 走に切る」の順で使う（先に切ると、レース後の取得で
+    先頭に入る当日の行のぶん、過去走が1走少なくなる）。
+    """
+    soup = BeautifulSoup(html, "lxml")
+    table = soup.select_one("table.db_h_race_results")
+    if table is None:
+        return {"table_present": False, "source_total_rows": 0, "runs": []}
+    rows = [row for row in table.select("tbody tr") if len(row.find_all("td")) >= 20]
+    runs = []
+    for row in (rows if n_runs is None else rows[:n_runs]):
+        tds = row.find_all("td")
+        run = _parse_run_row(tds)
+        run["race_name"] = tds[4].get_text(strip=True) or None
+        runs.append(run)
+    return {"table_present": True, "source_total_rows": len(rows), "runs": runs}
+
+
+def fetch_horse_history_for_research(horse_ref: str, n_runs: int | None = None) -> dict[str, Any]:
+    """研究用の長期履歴取得。失敗しても例外にせず status で返す（推測で埋めない）。
+
+    status: ok | fetch_failed（HTTP失敗）| blocked（200でも戦績表が無い＝bot判定ページ等）
+    """
+    url = HORSE_URL_TMPL.format(horse_id=horse_ref)
+    resp = http_get(url)
+    if resp is None:
+        return {"status": "fetch_failed", "runs": [], "url": url}
+    parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
+    if not parsed["table_present"]:
+        return {"status": "blocked", "runs": [], "url": url}
+    return {"status": "ok", "runs": parsed["runs"], "url": url,
+            "source_total_rows": parsed["source_total_rows"]}

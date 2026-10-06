@@ -109,6 +109,15 @@ jobs:
           WEEK="${{ steps.target.outputs.week }}"
           python -m research.model_evaluation capture --week "${WEEK}" --phase pipeline
 
+      - name: 過去走の棚卸し（observe-only・発走前のみ）
+        # raw の past_runs（いまの予想の入力）から、条件実績・クラス・着差・取得済みだが未使用の値を
+        # data/research/history_inventory/ に記録する。ネットワークは使わない（長期履歴は手動 workflow だけ）。
+        # 予想・snapshot は読みも書き換えもしない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m research.history_inventory --week "${WEEK}"
+
       - name: 発走前contextを独立snapshotへ凍結
         # observe-only。失敗しても本番の予想生成・コミットは止めない。
         continue-on-error: true
