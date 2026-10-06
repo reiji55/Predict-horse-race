@@ -282,6 +282,47 @@ def fetch_horse_history_for_research(horse_ref: str, n_runs: int | None = None) 
         return {"status": "fetch_failed", "runs": [], "url": url}
     parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
     if not parsed["table_present"]:
-        return {"status": "blocked", "runs": [], "url": url}
+        # 「bot 判定のページ」なのか「ページの作りが変わって戦績表が別の読み込みになった」のかを
+        # 後から見分けられるよう、返ってきたページの手がかりだけを残す（ページ本体は保存しない）
+        return {"status": "blocked", "runs": [], "url": url,
+                "diagnostics": describe_page_without_results_table(resp)}
     return {"status": "ok", "runs": parsed["runs"], "url": url,
             "source_total_rows": parsed["source_total_rows"]}
+
+
+_PAGE_MARKERS = {
+    # bot 判定・アクセス制限らしい文言
+    "captcha": re.compile(r"captcha|recaptcha|hcaptcha", re.IGNORECASE),
+    "access_denied": re.compile(r"access denied|forbidden|アクセスが制限|不正なアクセス", re.IGNORECASE),
+    "cloudflare": re.compile(r"cloudflare|cf-chl|just a moment", re.IGNORECASE),
+    # 戦績表の名残（クラス名が残っているのに表が無い＝別の読み込みになった可能性）
+    "results_table_class_in_source": re.compile(r"db_h_race_results"),
+    "horse_results_word_in_source": re.compile(r"horse_results|race_results|result_box", re.IGNORECASE),
+}
+_AJAX_URL_RE = re.compile(r"[\w/.-]*ajax[\w/.-]*\.html", re.IGNORECASE)
+
+
+def describe_page_without_results_table(resp: Any, excerpt_chars: int = 200) -> dict[str, Any]:
+    """戦績表が見つからなかったページの手がかり（研究用の診断。予想には使わない）。
+
+    残すのは HTTP の状態・最終URL・大きさ・タイトル・表のクラス・本文の先頭だけ。
+    文字コードは <meta charset> をもとに BeautifulSoup に判定させる（netkeiba の db は EUC-JP）。
+    """
+    raw = getattr(resp, "content", b"") or b""
+    soup = BeautifulSoup(raw, "lxml")
+    text = re.sub(r"\s+", " ", soup.get_text(" ", strip=True))
+    try:
+        source = raw.decode(soup.original_encoding or "utf-8", errors="replace")
+    except LookupError:
+        source = raw.decode("utf-8", errors="replace")
+    return {
+        "http_status": getattr(resp, "status_code", None),
+        "final_url": getattr(resp, "url", None),
+        "content_bytes": len(raw),
+        "detected_encoding": soup.original_encoding,
+        "title": soup.title.get_text(strip=True) if soup.title else None,
+        "table_classes": [" ".join(t.get("class") or []) or None for t in soup.find_all("table")][:10],
+        "text_excerpt": text[:excerpt_chars],
+        "markers": {name: bool(rx.search(source)) for name, rx in _PAGE_MARKERS.items()},
+        "ajax_urls": sorted(set(_AJAX_URL_RE.findall(source)))[:10],
+    }

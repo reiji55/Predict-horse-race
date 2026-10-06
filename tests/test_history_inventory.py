@@ -446,3 +446,68 @@ def test_research_parser_counts_all_rows_beyond_the_window():
     # 既定（n_runs=None）は全行。研究側が cutoff のあとで long_window 走に切る
     everything = c_horse_history.parse_horse_history_html_with_race_names(SYNTHETIC_HISTORY_HTML)
     assert len(everything["runs"]) == 3
+
+
+# ---- 取れなかったページの手がかり（ブロック原因の切り分け用） ----------------------------
+
+class _FakeResp:
+    def __init__(self, html, status=200, url="https://db.netkeiba.com/horse/2020100001/",
+                 charset="utf-8"):
+        self.content = html.encode(charset)
+        self.text = html
+        self.status_code = status
+        self.url = url
+
+
+BOT_PAGE = ("<html><head><title>Just a moment...</title></head><body>"
+            "<div>Checking your browser. captcha required</div></body></html>")
+LAYOUT_CHANGED_PAGE = (
+    "<html><head><meta charset='EUC-JP'><title>テスト馬 | 競走馬データ</title></head><body>"
+    "<table class='db_prof_table'><tr><td>生年月日</td></tr></table>"
+    "<div id='horse_results_box'></div>"
+    "<script>$.get('/horse/ajax_horse_results.html?id=2020100001')</script>"
+    "</body></html>")
+
+
+def test_blocked_page_records_diagnostics_not_the_page(monkeypatch):
+    monkeypatch.setattr(c_horse_history, "http_get", lambda url: _FakeResp(BOT_PAGE))
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "blocked" and result["runs"] == []
+    diag = result["diagnostics"]
+    assert diag["http_status"] == 200
+    assert diag["title"] == "Just a moment..."
+    assert diag["markers"]["captcha"] is True and diag["markers"]["cloudflare"] is True
+    assert diag["markers"]["results_table_class_in_source"] is False
+    assert len(diag["text_excerpt"]) <= 200
+    assert "content" not in diag and "html" not in diag      # ページ本体は残さない
+
+
+def test_layout_change_is_distinguishable_from_bot_page(monkeypatch):
+    monkeypatch.setattr(c_horse_history, "http_get",
+                        lambda url: _FakeResp(LAYOUT_CHANGED_PAGE, charset="euc_jp"))
+    diag = c_horse_history.fetch_horse_history_for_research("2020100001")["diagnostics"]
+    assert diag["title"] == "テスト馬 | 競走馬データ"          # EUC-JP でも文字化けしない
+    assert diag["table_classes"] == ["db_prof_table"]
+    assert diag["markers"]["captcha"] is False
+    assert diag["markers"]["horse_results_word_in_source"] is True
+    assert "/horse/ajax_horse_results.html" in diag["ajax_urls"]
+
+
+def test_inventory_keeps_diagnostics_and_summarizes_them(tmp_path: Path):
+    pages = {"A": _FakeResp(BOT_PAGE), "B": _FakeResp(LAYOUT_CHANGED_PAGE)}
+
+    def fetcher(ref, n):
+        return {"status": "blocked", "runs": [],
+                "diagnostics": c_horse_history.describe_page_without_results_table(pages[ref])}
+
+    race = _race([_entry(1, CURRENT5, ref="A"), _entry(2, CURRENT5, ref="B")])
+    inv = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=fetcher)
+    assert all(h["long_history"]["diagnostics"]["http_status"] == 200 for h in inv["horses"])
+    summary = inv["source_status"]["blocked_page_summary"]
+    assert summary["pages"] == 2
+    assert summary["http_status"] == {"200": 2}
+    assert summary["marker_hits"]["captcha"] == 1
+    assert summary["marker_hits"]["horse_results_word_in_source"] == 1
+    assert "/horse/ajax_horse_results.html" in summary["ajax_urls"]
+    ok = hi.build_inventory(race, CONFIG, BEFORE)
+    assert ok["source_status"]["blocked_page_summary"] is None
