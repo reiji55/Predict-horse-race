@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import hashlib
 import json
 import logging
 import re
@@ -56,6 +57,16 @@ LongFetcher = Callable[[str, int], dict[str, Any]]
 def load_config(path: Path | None = None) -> dict[str, Any]:
     with (path or CONFIG_PATH).open(encoding="utf-8") as f:
         return json.load(f)
+
+
+def config_sha256(config: dict[str, Any]) -> str:
+    """研究 config の指紋（canonical JSON の SHA-256）。本番の model_registry.config_hash とは別物。
+
+    閾値や宣言を変えると変わるので、同じ version 名のまま再実行しても、
+    どの仮説定義で観測した artifact かを区別できる。
+    """
+    canonical = json.dumps(config, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 # ---- 小道具 -------------------------------------------------------------------------
@@ -289,7 +300,10 @@ def normalize_race_name(name: Any) -> str | None:
     return text or None
 
 
-def same_named_race(runs: list[dict[str, Any]], today_name: Any, long_status: str) -> dict[str, Any]:
+def same_named_race(runs: list[dict[str, Any]], today_name: Any, long_status: str,
+                    window: dict[str, Any] | None = None) -> dict[str, Any]:
+    """同じレース名の実績。**長期履歴の window（最大 long_window 走）の中での一致**であって、
+    キャリア全体ではない（window.truncated が true なら、それより古い走は見ていない）。"""
     target = normalize_race_name(today_name)
     if long_status != LONG_OK or target is None:
         return {"status": "unavailable",
@@ -300,6 +314,9 @@ def same_named_race(runs: list[dict[str, Any]], today_name: Any, long_status: st
     hits = [r for r in named if normalize_race_name(r.get("race_name")) == target]
     return {
         "status": "ok",
+        "scope": "within_long_window",
+        "long_window": (window or {}).get("long_window"),
+        "long_window_truncated": (window or {}).get("truncated"),
         "race_name": target,
         "same_named_race_runs": len(hits),
         "same_named_race_top3": sum(_top3(r) for r in hits),
@@ -315,7 +332,10 @@ def _recent_profile_view(runs: list[dict[str, Any]], today: dict[str, Any]) -> d
     used_runs = [r for r in runs if r.get("surface") == today["surface"]][:3]
     return {
         "profile": profile,
-        "uses": ["finish", "heads"],
+        # 値として点数に入るもの
+        "value_fields": ["finish", "heads"],
+        # 走を選ぶ・重みを付けるのに使うもの（同じ surface の直近3走、新しい順に 1.0 / 0.8 / 0.6）
+        "selection_fields": ["surface", "recency_order"],
         "runs_seen": [_run_summary(r) for r in used_runs],
         "present_but_unused": {
             "class": sum(1 for r in used_runs if r.get("class") is not None),
@@ -366,11 +386,17 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
     long_status = (long_result or {}).get("status") or LONG_NOT_REQUESTED
     evidence = expert_evidence(current, today, config, "current")
     if long_status == LONG_OK:
-        long_runs, long_excluded = apply_cutoff(long_result.get("runs") or [], cutoff)
+        returned = long_result.get("runs") or []
+        long_runs, long_excluded = apply_cutoff(returned, cutoff)
         delta, added = _coverage_delta(current, long_runs, today)
+        total_rows = long_result.get("source_total_rows")
         out["long_history"] = {"status": LONG_OK, "requested_runs": config["long_window"],
                                **_dates_block(long_runs), "source": config["long_history"]["source"],
-                               "excluded_by_cutoff": long_excluded}
+                               "excluded_by_cutoff": long_excluded,
+                               # 戦績表の全行数と、そのうち返した走数。window はキャリア全体ではない
+                               "source_total_rows": total_rows,
+                               "returned_runs": len(returned),
+                               "truncated": (total_rows > len(returned)) if total_rows is not None else None}
         out["long"] = window_inventory(long_runs, today, config)
         out["coverage_delta"] = delta
         out["performance_evidence"]["notable_runs_long_only"] = notable_runs(added, config)
@@ -379,7 +405,9 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
             evidence.append({"type": "older_form_not_visible_in_current_window", "source": "long_only",
                              "evidence": [e for tag in older for e in tag["evidence"]],
                              "underlying_types": sorted({tag["type"] for tag in older})})
-        out["same_named_race"] = same_named_race(long_runs, race.get("name"), long_status)
+        out["same_named_race"] = same_named_race(
+            long_runs, race.get("name"), long_status,
+            {"long_window": config["long_window"], "truncated": out["long_history"]["truncated"]})
     else:
         out["long_history"] = {"status": long_status, "requested_runs": config["long_window"],
                                "available_runs": 0, "dates": [], "earliest_date": None,
@@ -453,6 +481,9 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
     return {
         "version": config["version"],
         "mode": "observe_only",
+        # 研究 config の指紋と登録日時（本番の config_hash とは別。どの仮説定義で観測したかの証拠）
+        "history_inventory_config_sha256": config_sha256(config),
+        "registered_at": config.get("registered_at"),
         "race_id": race.get("id"),
         "race_name": race.get("name"),
         "race_date": race_date(race).isoformat(),

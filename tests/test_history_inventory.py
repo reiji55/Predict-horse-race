@@ -100,7 +100,8 @@ def test_class_and_margin_are_available_but_unused():
     assert usage["finish"]["used_by_form_evaluation"] is True
     assert usage["finish"]["available_but_unused_by_form_evaluation"] == 0
     view = inv["horses"][0]["current_recent_profile_view"]
-    assert view["uses"] == ["finish", "heads"]
+    assert view["value_fields"] == ["finish", "heads"]
+    assert view["selection_fields"] == ["surface", "recency_order"]
     assert view["present_but_unused"]["class"] == 3
     assert view["present_but_unused"]["margin_sec"] == 3
 
@@ -302,7 +303,7 @@ def test_tokyo_1004_retrospective_three_horses():
     g1_close = [r for r in h1["performance_evidence"]["recent_runs"]
                 if r["class"] == "g1" and r["finish"] == 4 and r["margin_sec"] == 0.0]
     assert len(g1_close) == 1
-    assert h1["current_recent_profile_view"]["uses"] == ["finish", "heads"]
+    assert h1["current_recent_profile_view"]["value_fields"] == ["finish", "heads"]
     assert h1["current_recent_profile_view"]["present_but_unused"]["margin_sec"] >= 1
     assert inv["feature_usage"]["margin_sec"]["available_but_unused_by_form_evaluation"] > 0
     assert any(t["type"] == "high_class_close_finish" for t in h1["expert_evidence"])
@@ -321,3 +322,51 @@ def test_tokyo_1004_retrospective_three_horses():
     assert any(r["class"] == "g2" and r["finish"] == 3
                for r in h3["performance_evidence"]["recent_runs"])
     assert {t["type"] for t in h3["expert_evidence"]} != {t["type"] for t in h1["expert_evidence"]}
+
+
+# ---- レビュー対応：研究 config の再現性・window の打ち切り ------------------------------
+
+def test_artifact_records_research_config_hash_and_registered_at():
+    inv = hi.build_inventory(_race([_entry(1, CURRENT5)]), CONFIG, BEFORE)
+    assert inv["history_inventory_config_sha256"] == hi.config_sha256(CONFIG)
+    assert len(inv["history_inventory_config_sha256"]) == 64
+    assert inv["registered_at"] == CONFIG["registered_at"]
+    datetime.datetime.fromisoformat(inv["registered_at"])
+
+
+def test_research_config_hash_changes_but_production_hash_does_not():
+    production_before = model_registry.config_hash()
+    changed = copy.deepcopy(CONFIG)
+    changed["notable_runs"]["high_class_close_finish"]["max_margin_sec"] = 0.2
+    assert hi.config_sha256(changed) != hi.config_sha256(CONFIG)
+    # キーの並び順が違うだけなら同じ指紋（canonical JSON）
+    reordered = json.loads(json.dumps(CONFIG), object_pairs_hook=lambda pairs: dict(reversed(pairs)))
+    assert hi.config_sha256(reordered) == hi.config_sha256(CONFIG)
+    inv = hi.build_inventory(_race([_entry(1, CURRENT5)]), changed, BEFORE)
+    assert inv["history_inventory_config_sha256"] == hi.config_sha256(changed)
+    assert model_registry.config_hash() == production_before
+
+
+def test_long_window_truncation_is_explicit():
+    long_runs = [dict(r) for r in CURRENT5] + [OLDER_TOKYO]
+    race = _race([_entry(1, CURRENT5)])
+    truncated = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=lambda ref, n: {
+        "status": "ok", "runs": long_runs, "source_total_rows": 42})
+    long_block = truncated["horses"][0]["long_history"]
+    assert long_block["source_total_rows"] == 42
+    assert long_block["returned_runs"] == 6
+    assert long_block["truncated"] is True
+    named = truncated["horses"][0]["same_named_race"]
+    assert named["scope"] == "within_long_window"
+    assert named["long_window"] == CONFIG["long_window"]
+    assert named["long_window_truncated"] is True
+
+    whole = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=lambda ref, n: {
+        "status": "ok", "runs": long_runs, "source_total_rows": 6})
+    assert whole["horses"][0]["long_history"]["truncated"] is False
+
+
+def test_research_parser_counts_all_rows_beyond_the_window():
+    parsed = c_horse_history.parse_horse_history_html_with_race_names(SYNTHETIC_HISTORY_HTML, 2)
+    assert parsed["source_total_rows"] == 3
+    assert len(parsed["runs"]) == 2

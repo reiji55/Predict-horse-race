@@ -252,21 +252,21 @@ def parse_horse_history_html_with_race_names(html: str, n_runs: int) -> dict[str
 
     本番の parse_horse_history_html の戻り値（past_runs[]）は変えずに、
     研究 artifact だけで使う race_name を同じ行から足す。
-    戻り値: {"table_present": bool, "runs": [{...past_run, "race_name": str|None}]}
+    戻り値: {"table_present": bool, "source_total_rows": int, "runs": [{...past_run, "race_name": str|None}]}
+    source_total_rows は戦績表の全行数。n_runs より多ければ、返した走はキャリアの一部だけ（truncated）。
     """
     soup = BeautifulSoup(html, "lxml")
     table = soup.select_one("table.db_h_race_results")
     if table is None:
-        return {"table_present": False, "runs": []}
+        return {"table_present": False, "source_total_rows": 0, "runs": []}
+    rows = [row for row in table.select("tbody tr") if len(row.find_all("td")) >= 20]
     runs = []
-    for row in table.select("tbody tr")[:n_runs]:
+    for row in rows[:n_runs]:
         tds = row.find_all("td")
-        if len(tds) < 20:
-            continue
         run = _parse_run_row(tds)
         run["race_name"] = tds[4].get_text(strip=True) or None
         runs.append(run)
-    return {"table_present": True, "runs": runs}
+    return {"table_present": True, "source_total_rows": len(rows), "runs": runs}
 
 
 def fetch_horse_history_for_research(horse_ref: str, n_runs: int) -> dict[str, Any]:
@@ -281,4 +281,5 @@ def fetch_horse_history_for_research(horse_ref: str, n_runs: int) -> dict[str, A
     parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
     if not parsed["table_present"]:
         return {"status": "blocked", "runs": [], "url": url}
-    return {"status": "ok", "runs": parsed["runs"], "url": url}
+    return {"status": "ok", "runs": parsed["runs"], "url": url,
+            "source_total_rows": parsed["source_total_rows"]}
