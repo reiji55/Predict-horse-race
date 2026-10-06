@@ -176,12 +176,33 @@ def test_research_fetcher_reports_blocked_page_without_guessing(monkeypatch):
     assert c_horse_history.fetch_horse_history_for_research("X", 15)["status"] == "fetch_failed"
 
 
+def _history_row(date, kaisai, race_name, heads, finish, dist, going, time, margin, last3f):
+    cells = [""] * 28
+    cells[0], cells[1], cells[4], cells[6] = date, kaisai, race_name, str(heads)
+    cells[11], cells[12], cells[13], cells[14] = str(finish), "騎手", "57.0", dist
+    cells[16], cells[18], cells[19], cells[27] = going, time, margin, last3f
+    cells[23] = "480(+2)"
+    return "<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>"
+
+
+SYNTHETIC_HISTORY_HTML = (
+    "<html><body><table class='db_h_race_results'><thead><tr><th>日付</th></tr></thead><tbody>"
+    + _history_row("2026/06/07", "3東京2", "テストマイル(GI)", 17, 4, "芝1600", "良", "1:32.1", "0.0", "33.7")
+    + _history_row("2026/04/05", "2阪神4", "テスト記念(GII)", 15, 5, "芝2000", "良", "1:58.4", "0.4", "35.3")
+    + _history_row("2025/10/12", "4東京2", "テストS(GII)", 11, 2, "芝1800", "稍", "1:45.9", "0.1", "33.9")
+    + "</tbody></table></body></html>"
+)
+
+
 def test_research_parser_keeps_production_past_runs_unchanged():
-    html = (ROOT / "tests" / "samples" / "horse_valkyrie.html").read_text(encoding="utf-8")
+    html = SYNTHETIC_HISTORY_HTML
     research = c_horse_history.parse_horse_history_html_with_race_names(html, 15)
     production = c_horse_history.parse_horse_history_html(html, 15)
     assert [{k: v for k, v in r.items() if k != "race_name"} for r in research["runs"]] == production
-    assert all(r.get("race_name") for r in research["runs"])
+    assert len(production) == 3
+    assert [r["race_name"] for r in research["runs"]] == [
+        "テストマイル(GI)", "テスト記念(GII)", "テストS(GII)"]
+    assert production[0]["class"] == "g1" and production[0]["margin_sec"] == 0.0
     assert "race_name" not in production[0]
 
 
