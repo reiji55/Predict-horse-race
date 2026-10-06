@@ -347,26 +347,87 @@ def test_research_config_hash_changes_but_production_hash_does_not():
     assert model_registry.config_hash() == production_before
 
 
-def test_long_window_truncation_is_explicit():
-    long_runs = [dict(r) for r in CURRENT5] + [OLDER_TOKYO]
+def _past_runs(n, start=datetime.date(2026, 9, 20)):
+    """新しい順に n 走。最古の走だけ東京芝1800で2着（同コース同距離の実績）。"""
+    runs = []
+    for i in range(n):
+        d = (start - datetime.timedelta(days=28 * i)).isoformat()
+        if i == n - 1:
+            runs.append(_run(d, finish=2, margin=0.1, race_name="テストS(GII)"))
+        else:
+            runs.append(_run(d, venue="中山", dist=2000, finish=9, margin=1.0, race_name=f"条件戦{i}"))
+    return runs
+
+
+def test_retrospective_long_window_keeps_fifteen_past_runs_after_dropping_race_day():
+    """取得元 16 行＝先頭が当日のレース＋過去15走。cutoff のあとで 15 走に切るので、過去15走が全部残る。"""
+    race_day = _run("2026-10-18", klass="g2", finish=1, margin=0.0, race_name="テストS(GII)")
+    source = [race_day] + _past_runs(15)
     race = _race([_entry(1, CURRENT5)])
-    truncated = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=lambda ref, n: {
-        "status": "ok", "runs": long_runs, "source_total_rows": 42})
-    long_block = truncated["horses"][0]["long_history"]
-    assert long_block["source_total_rows"] == 42
-    assert long_block["returned_runs"] == 6
+    inv = hi.build_inventory(race, CONFIG, AFTER, allow_retrospective=True,
+                             long_fetcher=lambda ref, n: {"status": "ok", "runs": source,
+                                                          "source_total_rows": len(source)})
+    horse = inv["horses"][0]
+    long_block = horse["long_history"]
+    assert inv["retrieval_timing"] == "retrospective"
+    assert long_block["source_total_rows"] == 16
+    assert long_block["excluded_by_cutoff"]["same_day"] == 1
+    assert long_block["eligible_runs"] == 15
+    assert long_block["returned_runs"] == 15 == long_block["available_runs"]
+    assert long_block["truncated"] is False
+    assert "2026-10-18" not in long_block["dates"]
+    oldest = source[-1]["date"]
+    assert long_block["earliest_date"] == oldest
+    # 15走目（最古）の同コース同距離の実績が、差分と根拠候補に使われる
+    assert horse["coverage_delta"]["added_same_course_distance_runs"] == 1
+    assert horse["long"]["conditions"]["same_course_distance_top3"] == 1
+    tags = {t["type"]: t for t in horse["expert_evidence"]}
+    older = tags["older_form_not_visible_in_current_window"]
+    assert [e["date"] for e in older["evidence"]] == [oldest]
+    # 当日の行はどの根拠にも入らない
+    assert all(e.get("date") != "2026-10-18" for t in horse["expert_evidence"] for e in t["evidence"])
+    assert horse["same_named_race"]["same_named_race_runs"] == 1
+    assert horse["same_named_race"]["long_window_truncated"] is False
+
+
+def test_long_window_truncation_is_explicit():
+    """取得元 17 行＝当日＋過去16走なら、cutoff 後の 15 走を返して truncated=true。"""
+    race_day = _run("2026-10-18", race_name="テストS(GII)")
+    source = [race_day] + _past_runs(16)
+    race = _race([_entry(1, CURRENT5)])
+    inv = hi.build_inventory(race, CONFIG, AFTER, allow_retrospective=True,
+                             long_fetcher=lambda ref, n: {"status": "ok", "runs": source,
+                                                          "source_total_rows": len(source)})
+    horse = inv["horses"][0]
+    long_block = horse["long_history"]
+    assert long_block["source_total_rows"] == 17
+    assert long_block["eligible_runs"] == 16
+    assert long_block["returned_runs"] == 15
     assert long_block["truncated"] is True
-    named = truncated["horses"][0]["same_named_race"]
+    assert source[-1]["date"] not in long_block["dates"]          # 16走目（最古）は window の外
+    named = horse["same_named_race"]
     assert named["scope"] == "within_long_window"
     assert named["long_window"] == CONFIG["long_window"]
     assert named["long_window_truncated"] is True
+    assert named["same_named_race_runs"] == 0                     # window の外にあるので数えない
 
-    whole = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=lambda ref, n: {
-        "status": "ok", "runs": long_runs, "source_total_rows": 6})
-    assert whole["horses"][0]["long_history"]["truncated"] is False
+
+def test_race_name_normalization_strips_grade_tokens_only():
+    norm = hi.normalize_race_name
+    assert norm("テストS(GII)") == norm("テストS")
+    assert norm("天皇賞(春)(GI)") == norm("天皇賞(春)")
+    assert norm("天皇賞(秋)(GI)") == norm("天皇賞(秋)")
+    assert norm("天皇賞(春)") != norm("天皇賞(秋)")
+    assert norm("天皇賞(春)(GI)") != norm("天皇賞(秋)(GI)")
+    assert norm("東京大賞典(G1)") == norm("東京大賞典")
+    assert norm("兵庫CS(JpnII)") == norm("兵庫CS")
+    assert norm("オパールS(L)") == norm("オパールS")
 
 
 def test_research_parser_counts_all_rows_beyond_the_window():
     parsed = c_horse_history.parse_horse_history_html_with_race_names(SYNTHETIC_HISTORY_HTML, 2)
     assert parsed["source_total_rows"] == 3
     assert len(parsed["runs"]) == 2
+    # 既定（n_runs=None）は全行。研究側が cutoff のあとで long_window 走に切る
+    everything = c_horse_history.parse_horse_history_html_with_race_names(SYNTHETIC_HISTORY_HTML)
+    assert len(everything["runs"]) == 3

@@ -51,7 +51,7 @@ LONG_BLOCKED = "blocked"
 LONG_UNAVAILABLE = "unavailable"
 LONG_NOT_REQUESTED = "not_requested"
 
-LongFetcher = Callable[[str, int], dict[str, Any]]
+LongFetcher = Callable[[str, "int | None"], dict[str, Any]]
 
 
 def load_config(path: Path | None = None) -> dict[str, Any]:
@@ -289,13 +289,18 @@ def unavailable_evidence(config: dict[str, Any]) -> list[dict[str, Any]]:
 
 # ---- 同じレース名の実績（長期履歴でレース名が取れたときだけ） ------------------------------
 
-_GRADE_PAREN_RE = re.compile(r"[（(][^）)]*[）)]")
+# 括弧の中身が**グレード・クラスの表記だけ**のときに消す。"天皇賞(春)" の "(春)" のような
+# レース名の一部は残す（全部の括弧を消すと 天皇賞(春) と 天皇賞(秋) が同じレースになってしまう）。
+_GRADE_TOKEN_PAREN_RE = re.compile(
+    r"[（(]\s*(?:G|GI|GII|GIII|G1|G2|G3|JpnI|JpnII|JpnIII|Jpn1|Jpn2|Jpn3|L|OP|Listed|リステッド)\s*[）)]",
+    re.IGNORECASE,
+)
 
 
 def normalize_race_name(name: Any) -> str | None:
     if not name:
         return None
-    text = _GRADE_PAREN_RE.sub("", str(name))
+    text = _GRADE_TOKEN_PAREN_RE.sub("", str(name))
     text = re.sub(r"[\s　]+", "", text)
     return text or None
 
@@ -386,24 +391,40 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
     long_status = (long_result or {}).get("status") or LONG_NOT_REQUESTED
     evidence = expert_evidence(current, today, config, "current")
     if long_status == LONG_OK:
-        returned = long_result.get("runs") or []
-        long_runs, long_excluded = apply_cutoff(returned, cutoff)
+        # 順番が大事：取得元の全行 → 日付の cutoff → long_window 走に切る。
+        # 先に切ると、レース後の取得で先頭に入る当日の行のぶん過去走が1走少なくなる。
+        source_runs = long_result.get("runs") or []
+        eligible, long_excluded = apply_cutoff(source_runs, cutoff)
+        window = config["long_window"]
+        long_runs = eligible[:window]
         delta, added = _coverage_delta(current, long_runs, today)
         total_rows = long_result.get("source_total_rows")
-        out["long_history"] = {"status": LONG_OK, "requested_runs": config["long_window"],
+        out["long_history"] = {"status": LONG_OK, "requested_runs": window,
                                **_dates_block(long_runs), "source": config["long_history"]["source"],
                                "excluded_by_cutoff": long_excluded,
-                               # 戦績表の全行数と、そのうち返した走数。window はキャリア全体ではない
-                               "source_total_rows": total_rows,
-                               "returned_runs": len(returned),
-                               "truncated": (total_rows > len(returned)) if total_rows is not None else None}
+                               # source_total_rows：取得元の戦績表の有効な全行数（cutoff 前）
+                               # eligible_runs：そのうち cutoff（run.date < race.date）を通った走数
+                               # returned_runs：eligible から long_window 走に切ったあと（= available_runs）
+                               # truncated：cutoff を通った過去走が long_window より多く、古い走を見ていない
+                               "source_total_rows": total_rows if total_rows is not None else len(source_runs),
+                               "eligible_runs": len(eligible),
+                               "returned_runs": len(long_runs),
+                               "truncated": len(eligible) > window}
         out["long"] = window_inventory(long_runs, today, config)
         out["coverage_delta"] = delta
         out["performance_evidence"]["notable_runs_long_only"] = notable_runs(added, config)
         older = expert_evidence(added, today, config, "long_only")
         if older:
+            # 1つの走が複数の根拠（同コース同距離・同距離など）に当たっても、証拠の走は1回だけ載せる
+            seen, runs = set(), []
+            for tag in older:
+                for ev in tag["evidence"]:
+                    key = _run_key(ev)
+                    if key not in seen:
+                        seen.add(key)
+                        runs.append(ev)
             evidence.append({"type": "older_form_not_visible_in_current_window", "source": "long_only",
-                             "evidence": [e for tag in older for e in tag["evidence"]],
+                             "evidence": runs,
                              "underlying_types": sorted({tag["type"] for tag in older})})
         out["same_named_race"] = same_named_race(
             long_runs, race.get("name"), long_status,
@@ -464,7 +485,8 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
                 long_result = {"status": LONG_UNAVAILABLE, "runs": []}
             else:
                 try:
-                    long_result = long_fetcher(ref, config["long_window"])
+                    # 全行を取ってくる（cutoff のあとで long_window 走に切る）
+                    long_result = long_fetcher(ref, None)
                 except Exception:  # noqa: BLE001 — 研究用。どんな失敗でも推測せず status に残して続ける
                     logger.warning("長期履歴を取得できませんでした: %s", ref, exc_info=True)
                     long_result = {"status": LONG_FETCH_FAILED, "runs": []}
@@ -562,7 +584,7 @@ def main() -> None:
         from scraper.fetchers import c_horse_history
         cache: dict[str, dict[str, Any]] = {}
 
-        def fetcher(ref: str, n_runs: int) -> dict[str, Any]:
+        def fetcher(ref: str, n_runs: int | None) -> dict[str, Any]:
             if ref not in cache:
                 cache[ref] = c_horse_history.fetch_horse_history_for_research(ref, n_runs)
             return cache[ref]
