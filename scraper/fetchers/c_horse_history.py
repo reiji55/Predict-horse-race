@@ -243,3 +243,42 @@ def fetch_horse_history_cached(
     runs = fetch_horse_history(horse_ref, n_runs=n_runs)
     cache[horse_ref] = runs
     return runs
+
+
+# --- 研究用（PR-B history inventory）。本番の past_runs の形・取得経路は変えない -------------
+
+def parse_horse_history_html_with_race_names(html: str, n_runs: int) -> dict[str, Any]:
+    """研究用：戦績表の有無と、レース名つきの過去走を返す。
+
+    本番の parse_horse_history_html の戻り値（past_runs[]）は変えずに、
+    研究 artifact だけで使う race_name を同じ行から足す。
+    戻り値: {"table_present": bool, "runs": [{...past_run, "race_name": str|None}]}
+    """
+    soup = BeautifulSoup(html, "lxml")
+    table = soup.select_one("table.db_h_race_results")
+    if table is None:
+        return {"table_present": False, "runs": []}
+    runs = []
+    for row in table.select("tbody tr")[:n_runs]:
+        tds = row.find_all("td")
+        if len(tds) < 20:
+            continue
+        run = _parse_run_row(tds)
+        run["race_name"] = tds[4].get_text(strip=True) or None
+        runs.append(run)
+    return {"table_present": True, "runs": runs}
+
+
+def fetch_horse_history_for_research(horse_ref: str, n_runs: int) -> dict[str, Any]:
+    """研究用の長期履歴取得。失敗しても例外にせず status で返す（推測で埋めない）。
+
+    status: ok | fetch_failed（HTTP失敗）| blocked（200でも戦績表が無い＝bot判定ページ等）
+    """
+    url = HORSE_URL_TMPL.format(horse_id=horse_ref)
+    resp = http_get(url)
+    if resp is None:
+        return {"status": "fetch_failed", "runs": [], "url": url}
+    parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
+    if not parsed["table_present"]:
+        return {"status": "blocked", "runs": [], "url": url}
+    return {"status": "ok", "runs": parsed["runs"], "url": url}

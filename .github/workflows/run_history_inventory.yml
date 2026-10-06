@@ -1,0 +1,75 @@
+name: 過去走の棚卸し（研究用・手動）
+
+# PR-B history-feature-inventory-v1（observe-only）。
+# 長期履歴（db.netkeiba.com の馬ごとの戦績ページ）は bot 判定で取れないことがあるので、
+# 本番の予想 workflow には入れず、この手動 workflow だけで取りに行く。
+# 取れなければ fetch_failed / blocked を記録して終わる（推測で埋めない・予想は止めない）。
+# 発走後のレースは retrospective として作り、forward 成績には混ぜない。
+on:
+  workflow_dispatch:
+    inputs:
+      week_id:
+        description: 'ISO週識別子 例: 2026-W40'
+        required: true
+      race_ids:
+        description: '対象レース（スペース区切り。空なら raw の全レース）例: 20261004-tokyo-11'
+        required: false
+      long_history:
+        description: '長期履歴も取りに行く'
+        type: boolean
+        default: true
+      retrospective:
+        description: '発走後のレースも retrospective として作る'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: history-inventory-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 棚卸しのテスト
+        run: python -m pytest -q tests/test_history_inventory.py
+
+      - name: 過去走の棚卸し
+        continue-on-error: true
+        run: |
+          ARGS="--week ${{ github.event.inputs.week_id }}"
+          for RID in ${{ github.event.inputs.race_ids }}; do ARGS="$ARGS --race-id $RID"; done
+          [ "${{ github.event.inputs.long_history }}" = "true" ] && ARGS="$ARGS --long"
+          [ "${{ github.event.inputs.retrospective }}" = "true" ] && ARGS="$ARGS --retrospective"
+          python -m research.history_inventory $ARGS
+
+      - name: 研究 artifact をコミット
+        run: |
+          mkdir -p data/research/history_inventory
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/research/history_inventory/
+          if git diff --cached --quiet; then
+            echo "新しい棚卸しはありません"
+            exit 0
+          fi
+          git commit -m "research: ${{ github.event.inputs.week_id }} 過去走の棚卸し"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1
