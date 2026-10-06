@@ -27,8 +27,10 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import re
 import statistics
+import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
@@ -57,6 +59,19 @@ LongFetcher = Callable[[str, "int | None"], dict[str, Any]]
 def load_config(path: Path | None = None) -> dict[str, Any]:
     with (path or CONFIG_PATH).open(encoding="utf-8") as f:
         return json.load(f)
+
+
+def implementation_revision() -> str:
+    """artifact を作ったコードの git commit。Actions では GITHUB_SHA、手元では git rev-parse。分からなければ unknown。"""
+    sha = os.environ.get("GITHUB_SHA")
+    if sha:
+        return sha
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True,
+                             text=True, timeout=5, check=True)
+        return out.stdout.strip() or "unknown"
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
 
 
 def config_sha256(config: dict[str, Any]) -> str:
@@ -484,12 +499,11 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
             if not ref:
                 long_result = {"status": LONG_UNAVAILABLE, "runs": []}
             else:
-                try:
-                    # 全行を取ってくる（cutoff のあとで long_window 走に切る）
-                    long_result = long_fetcher(ref, None)
-                except Exception:  # noqa: BLE001 — 研究用。どんな失敗でも推測せず status に残して続ける
-                    logger.warning("長期履歴を取得できませんでした: %s", ref, exc_info=True)
-                    long_result = {"status": LONG_FETCH_FAILED, "runs": []}
+                # 全行を取ってくる（cutoff のあとで long_window 走に切る）。
+                # long_fetcher は想定内の取得失敗（HTTP 失敗・bot 判定ページ）を例外ではなく
+                # status（fetch_failed / blocked）で返す契約。ここでは例外を握りつぶさない：
+                # パーサや schema の不具合などプログラムの障害は、手動 workflow を失敗させる。
+                long_result = long_fetcher(ref, None)
         horse = horse_inventory(entry, race, config, long_result)
         long_statuses[horse["long_history"]["status"]] = long_statuses.get(horse["long_history"]["status"], 0) + 1
         horses.append(horse)
@@ -506,6 +520,8 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
         # 研究 config の指紋と登録日時（本番の config_hash とは別。どの仮説定義で観測したかの証拠）
         "history_inventory_config_sha256": config_sha256(config),
         "registered_at": config.get("registered_at"),
+        # config が同じでもコードの意味（window の順番・レース名の正規化など）は変わり得るので、実装の版も残す
+        "implementation_revision": implementation_revision(),
         "race_id": race.get("id"),
         "race_name": race.get("name"),
         "race_date": race_date(race).isoformat(),

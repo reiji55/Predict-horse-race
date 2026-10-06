@@ -147,16 +147,13 @@ def test_cutoff_drops_same_day_and_future_rows_from_long_history():
 # ---- 5. 長期履歴の取得失敗 -------------------------------------------------------------
 
 def test_long_fetch_failure_still_writes_artifact(tmp_path: Path):
-    def broken(ref, n):
-        raise RuntimeError("blocked by bot detection")
-
-    statuses = iter(["blocked", "fetch_failed"])
+    """想定内の取得失敗は fetcher が status で返す。artifact は作れて、処理は続く。"""
+    statuses = {"A": "fetch_failed", "B": "blocked"}
     race = _race([_entry(1, CURRENT5, ref="A"), _entry(2, CURRENT5, ref="B"),
                   _entry(3, CURRENT5, ref=None)])
     race["entries"][2]["horse_ref"] = {}
-    fetchers = {"A": broken, "B": lambda ref, n: {"status": next(statuses), "runs": []}}
     report = hi.capture({"races": [race]}, CONFIG, BEFORE, directory=tmp_path,
-                        long_fetcher=lambda ref, n: fetchers[ref](ref, n))
+                        long_fetcher=lambda ref, n: {"status": statuses[ref], "runs": []})
     [path] = report["written"]
     inv = json.loads(Path(path).read_text(encoding="utf-8"))
     statuses_by_num = {h["num"]: h["long_history"]["status"] for h in inv["horses"]}
@@ -166,6 +163,24 @@ def test_long_fetch_failure_still_writes_artifact(tmp_path: Path):
         assert horse["coverage_delta"] is None
         assert horse["current_history"]["available_runs"] == 5
     assert inv["source_status"]["long_history_success_rate"] == 0.0
+
+
+def test_program_errors_in_long_fetcher_are_not_swallowed(tmp_path: Path):
+    """パーサや schema の不具合などは fetch_failed に変えず、そのまま投げる（手動 workflow を失敗させる）。"""
+    import pytest
+    race = _race([_entry(1, CURRENT5, ref="A")])
+    for error in (KeyError("odds"), AssertionError("schema"), IndexError("row")):
+        def broken(ref, n, _error=error):
+            raise _error
+        with pytest.raises(type(error)):
+            hi.capture({"races": [race]}, CONFIG, BEFORE, directory=tmp_path, long_fetcher=broken)
+    assert not (tmp_path / race["id"]).exists()
+
+
+def test_artifact_records_implementation_revision(monkeypatch):
+    monkeypatch.setenv("GITHUB_SHA", "abc123")
+    inv = hi.build_inventory(_race([_entry(1, CURRENT5)]), CONFIG, BEFORE)
+    assert inv["implementation_revision"] == "abc123"
 
 
 def test_research_fetcher_reports_blocked_page_without_guessing(monkeypatch):
