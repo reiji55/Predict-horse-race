@@ -31,6 +31,7 @@ from typing import Any
 from logic import base_score, cards, chappy, context_layers, model_registry, myomi, prob_model, race_regime as regime_mod, snapshots
 from logic import aptitude as aptitude_mod
 from logic import human_score as human_mod
+from logic import race_performance as race_performance_mod
 from logic import speed_index as speed_mod
 from logic import top3_score as top3_mod
 
@@ -156,9 +157,37 @@ def prepare_horses(race: dict, configs: dict, base_times: dict,
     return horses, speed_quality
 
 
+def compute_model_base_scores(race: dict, horses: list[dict[str, Any]], cards_config: dict[str, Any],
+                              race_performance_config: dict[str, Any] | None = None,
+                              race_performance_ref: dict[str, Any] | None = None) -> dict[str, Any] | None:
+    """
+    モデルごとの base_score を付ける。戻り値は race_performance_quality（RPS を使わないモデルは None）。
+
+    - Champion・既存の Challenger（race_performance_config=None）：①②③のまま。いままでと同じ呼び出し。
+    - Challenger race-performance-v1：事前登録した Race Performance を4番目の因子として足す
+      （docs/research/RACE_PERFORMANCE_PREREG_V1.md §5）。RPS が使える馬が2頭未満・sd=0 のレースでは
+      因子ごと無効にし、Champion と同じ3因子の重みそのもので合成する（score・p が既存と同じ値になる）。
+    research/ の発走前 capture も同じ関数で再計算する（二重実装しない）。
+    """
+    if race_performance_config is None:
+        base_score.compute_base_scores(horses, cards_config)
+        return None
+    quality = race_performance_mod.apply(race, horses, race_performance_config, race_performance_ref)
+    if quality["factor_active"]:
+        base_score.compute_base_scores(
+            horses, cards_config,
+            score_weights=race_performance_config["integration"]["score_weights"],
+            factor_keys=base_score.RACE_PERFORMANCE_FACTOR_KEYS,
+        )
+    else:
+        base_score.compute_base_scores(horses, cards_config)
+    return quality
+
+
 def build_race(race: dict, configs: dict, base_times: dict,
                overall_jockey_rate: float, overall_trainer_rate: float,
-               model_spec: dict[str, Any] | None = None) -> dict:
+               model_spec: dict[str, Any] | None = None,
+               race_performance_config: dict[str, Any] | None = None) -> dict:
     """raw の races[] 1件から、指定モデルの predictions races[] 1件を組み立てる。"""
     cards_config = configs["cards"]
     myomi_config = configs["myomi"]
@@ -168,6 +197,8 @@ def build_race(race: dict, configs: dict, base_times: dict,
     runtime = model_registry.runtime_metadata(model_spec)
     use_top3_partner = bool(model_spec.get("use_top3_partner", False))
     use_race_regime = bool(model_spec.get("use_race_regime", False))
+    if race_performance_config is None and model_spec.get("race_performance"):
+        race_performance_config = model_registry.load_model_race_performance(model_spec)[0]
 
     course = race.get("course") or {}
     horses, speed_quality = prepare_horses(
@@ -177,7 +208,8 @@ def build_race(race: dict, configs: dict, base_times: dict,
     # --- Win Score と Top3 Score を分離 -------------------------------
     # ①②③のbase_scoreは「勝ち切る力」のまま。Top3はワイド/3連複の相手候補専用で、
     # win probability p や妙味EVには混ぜない。
-    base_score.compute_base_scores(horses, cards_config)
+    race_performance_quality = compute_model_base_scores(
+        race, horses, cards_config, race_performance_config, runtime.get("race_performance_ref"))
     # 順位付けは Champion/Challenger 両方で行う（marks に top3_rank を残して後から比較するため）。
     # 実際に買い目の相手へ使うかどうかだけを use_top3_partner で分ける。
     cards.assign_place_partner_ranks(horses)
@@ -330,6 +362,11 @@ def build_race(race: dict, configs: dict, base_times: dict,
     if runtime.get("base_times_ref"):
         # 専用の表を使った Challenger だけ。どの凍結表（id・hash・cutoff・推定式）で作ったかを残す
         result["base_times_ref"] = runtime["base_times_ref"]
+    if race_performance_quality is not None:
+        # 事前登録した因子を使った Challenger だけ。定義（version・設定の SHA-256）と、
+        # 発走前に計算した監査記録（使えた頭数・除外理由・因子が有効だったか・各走の重み）を残す
+        result["race_performance_ref"] = runtime.get("race_performance_ref")
+        result["race_performance_quality"] = race_performance_quality
     return result
 
 
@@ -347,6 +384,9 @@ def build_predictions(raw: dict, configs: dict | None = None,
         base_times = own_table[0]
     base_times = base_times if base_times is not None else speed_mod.load_base_times()
     speed_mod.warn_if_base_times_empty(base_times)
+    # 事前登録した Race Performance を使う Challenger だけ、設定を登録値と照合して読む。
+    # 違えば ValueError で止める（黙って3因子に戻さない。Champion・他の Challenger には影響しない）
+    own_race_performance = model_registry.load_model_race_performance(model_spec)
     runtime = model_registry.runtime_metadata(model_spec)
 
     overall_jockey_rate, overall_trainer_rate = _overall_rates(raw)
@@ -360,6 +400,7 @@ def build_predictions(raw: dict, configs: dict | None = None,
                 race, configs, base_times,
                 overall_jockey_rate, overall_trainer_rate,
                 model_spec=model_spec,
+                race_performance_config=own_race_performance[0] if own_race_performance else None,
             ))
         except Exception:
             # 1レースの失敗で週全体を落とさない（取得項目仕様§1.1 マナー設計と同じ思想）
@@ -372,6 +413,40 @@ def build_predictions(raw: dict, configs: dict | None = None,
         "myomi_threshold": configs["myomi"]["myomi_threshold"],
         "races": races,
     }
+
+
+def record_challenger_failure(model_id: str, now: datetime.datetime, stage: str,
+                              error: BaseException | None = None,
+                              race_ids: list[Any] | None = None) -> Path | None:
+    """
+    Challenger が作れなかったことを data/challengers/_failures/{model_id}/ に1件1ファイルで残す（fail-closed の記録）。
+
+    stage は "build"（モデルごと作れなかった）か "race"（一部のレースだけ作れなかった）。
+    ログだけだと、後から「どの回に・なぜ欠けたか」を確かめられないため。Champion の出力には触れない。
+    記録そのものを書けなくても例外は出さない（このステップが落ちると Champion のコミットまで止まるため）。
+    """
+    directory = CHALLENGER_ROOT / "_failures" / model_id
+    stamp = now.astimezone(JST).strftime("%Y%m%dT%H%M%S")
+    path = directory / f"{stamp}_{stage}.json"
+    record = {
+        "schema": "challenger-failure-v1",
+        "model_id": model_id,
+        "recorded_at": now.isoformat(timespec="seconds"),
+        "git_commit": model_registry.git_commit(),
+        "stage": stage,
+        "error_type": type(error).__name__ if error is not None else None,
+        "error": str(error)[:500] if error is not None else None,
+        "race_ids": race_ids or [],
+    }
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(record, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+    except OSError:
+        logger.exception("Challenger %s の失敗記録を書けませんでした（Champion には影響なし）", model_id)
+        return None
+    return path
 
 
 def main() -> None:
@@ -417,11 +492,17 @@ def main() -> None:
                 raw, configs=configs, base_times=base_times,
                 model_spec=challenger_spec, generated_at=generated_at,
             )
-        except (OSError, ValueError):
-            # 凍結表の不一致などで作れない Challenger は、その回だけ記録を残さない。
+        except (OSError, ValueError) as exc:
+            # 凍結表・事前登録の設定の不一致などで作れない Challenger は、その回だけ予想を残さない。
             # Champion は書き出し済みで、他の Challenger も止めない（欠けたレースは比較の coverage に出る）
             logger.exception("Challenger %s を作れませんでした（Champion には影響なし）", model_id)
+            record_challenger_failure(model_id, run_now, "build", error=exc)
             continue
+        built = {r.get("id") for r in challenger.get("races", [])}
+        missing = [r.get("id") for r in champion.get("races", []) if r.get("id") not in built]
+        if missing:
+            # 1レースだけ作れなかった（build_predictions がレース単位で落として続行した）ことも記録する
+            record_challenger_failure(model_id, run_now, "race", race_ids=missing)
         root = CHALLENGER_ROOT / model_id
         snapshot_dir = root / "snapshots"
         output_path = root / "predictions.json"

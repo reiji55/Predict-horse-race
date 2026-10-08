@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from logic import base_score, build_predictions as bp, cards, prob_model, snapshots
+from logic import build_predictions as bp, cards, model_registry, prob_model, snapshots
 from logic import speed_index as speed_mod
 from research import chappy_shadow, common, diversity, rank_gap
 
@@ -28,10 +28,17 @@ SCHEMA = "shadow-prerace-v1"
 
 
 def _recompute_horses(race: dict[str, Any], configs: dict[str, Any], base_times: dict[str, Any],
-                      rates: tuple[float, float]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """build_race と同じ順序で、キャラ別選定に必要な列まで作る（Champion出力は作らない）。"""
+                      rates: tuple[float, float], model_spec: dict[str, Any] | None = None
+                      ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """build_race と同じ順序で、キャラ別選定に必要な列まで作る（Champion出力は作らない）。
+
+    model_spec を渡すと、そのモデルの base_score の作り方で再計算する（事前登録した Race Performance を
+    使う Challenger だけが違う。基準タイム表の違いは呼び出し側が base_times で渡す）。
+    """
     horses, _quality = bp.prepare_horses(race, configs, base_times, *rates)
-    base_score.compute_base_scores(horses, configs["cards"])
+    loaded = model_registry.load_model_race_performance(model_spec) if model_spec else None
+    bp.compute_model_base_scores(race, horses, configs["cards"],
+                                 loaded[0] if loaded else None, loaded[1] if loaded else None)
     cards.assign_place_partner_ranks(horses)
     marks = cards.assign_marks(horses, configs["cards"])
     temperature = configs["myomi"]["prob_model"]["temperature"]

@@ -18,6 +18,8 @@ BASE_TIMES_FILE = "base_times.json"
 REFERENCE_BASE_TIMES_DIR = ROOT / "data" / "reference" / "base_times"
 BASE_TIMES_OVERRIDE_KEYS = ("artifact_id", "lookup_file", "meta_file", "lookup_sha256",
                             "meta_content_sha256", "method_version", "cutoff_date")
+# 事前登録した Race Performance（docs/research/RACE_PERFORMANCE_PREREG_V1.md）を使う Challenger の登録項目
+RACE_PERFORMANCE_KEYS = ("config_file", "config_sha256", "version")
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
@@ -31,6 +33,9 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     if "base_times" in champion:
         # Champion は常に config/base_times.json を使う。専用の表は shadow の Challenger だけ
         raise ValueError("champion に base_times の差し替えは指定できません")
+    if "race_performance" in champion:
+        # 事前登録した因子は Challenger だけで検証する。Champion の予想には入れない
+        raise ValueError("champion に race_performance は指定できません")
 
     ids = [champion["id"]]
     for model in registry.get("challengers", []):
@@ -38,6 +43,8 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
             raise ValueError("challengers[] の各要素に id が必要です")
         if "base_times" in model:
             _validate_base_times_override(model)
+        if "race_performance" in model:
+            _validate_race_performance(model)
         ids.append(model["id"])
     if len(ids) != len(set(ids)):
         raise ValueError(f"model id が重複しています: {ids}")
@@ -61,6 +68,53 @@ def _validate_base_times_override(model: dict[str, Any]) -> None:
     cutoff = datetime.date.fromisoformat(override["cutoff_date"])
     if registered.date() <= cutoff:
         raise ValueError(f"{model['id']}: registered_at は cutoff_date より後にしてください")
+
+
+def _validate_race_performance(model: dict[str, Any]) -> None:
+    """事前登録した Race Performance を使う Challenger の登録内容を確かめる（ファイルはまだ読まない）。"""
+    spec = model["race_performance"]
+    missing = [k for k in RACE_PERFORMANCE_KEYS if not (isinstance(spec, dict) and spec.get(k))]
+    if missing:
+        raise ValueError(f"{model['id']}: race_performance に {missing} が必要です")
+
+
+def _config_file_path(relative: str) -> Path:
+    """事前登録の設定は config/ の直下だけ読む（cards.json と同じ CONFIG_DIR から読む）。"""
+    rel = Path(relative)
+    if rel.parent != Path("config") or rel.name in ("", ".", ".."):
+        raise ValueError(f"事前登録の設定は config/ の直下だけ読めます: {relative}")
+    return CONFIG_DIR / rel.name
+
+
+def load_model_race_performance(model: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """
+    事前登録した Race Performance の設定を読み、(config, ref) を返す。登録していないモデルは None。
+
+    次のどれかが登録と違えば ValueError（fail-closed。その Challenger だけ作らない）。
+    - 設定の canonical SHA-256（予告なく設定が変わった）
+    - version・challenger_id
+    - 既存3因子の重み（config/cards.json の score_weights）が登録時と違う。
+      RPS の重みは「既存3因子の相対比を保ったまま 0.85 倍」で作ったので、前提が崩れたまま比べない
+    """
+    spec = model.get("race_performance")
+    if spec is None:
+        return None
+    path = _config_file_path(spec["config_file"])
+    config = json.loads(path.read_text(encoding="utf-8"))
+    actual = _canonical_sha256(config)
+    if actual != spec["config_sha256"]:
+        raise ValueError(f"{model['id']}: race_performance の設定が登録と違います（{actual}）")
+    if config.get("version") != spec["version"]:
+        raise ValueError(f"{model['id']}: race_performance の version が登録と違います（{config.get('version')}）")
+    if (config.get("model") or {}).get("challenger_id") != model["id"]:
+        raise ValueError(f"{model['id']}: race_performance の設定が別のモデル向けです")
+    with (CONFIG_DIR / "cards.json").open(encoding="utf-8") as f:
+        current = json.load(f)["score_weights"]
+    registered = config["integration"]["derived_from"]["score_weights_at_registration"]
+    if current != registered:
+        raise ValueError(f"{model['id']}: 既存3因子の重みが事前登録時と違います（{current} != {registered}）")
+    ref = {"version": config["version"], "config_file": spec["config_file"], "config_sha256": actual}
+    return config, ref
 
 
 def _reference_path(relative: str) -> Path:
@@ -185,4 +239,8 @@ def runtime_metadata(model: dict[str, Any]) -> dict[str, Any]:
         _lookup, ref = loaded
         meta["base_times_hash"] = ref["file_hash"]
         meta["base_times_ref"] = ref
+    race_performance = load_model_race_performance(model)
+    if race_performance is not None:
+        # 事前登録した因子を使うモデルだけ、どの定義（version・設定の SHA-256）で作ったかを残す
+        meta["race_performance_ref"] = race_performance[1]
     return meta

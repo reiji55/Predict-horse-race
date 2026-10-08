@@ -47,6 +47,12 @@ FACTOR_KEYS = {
     "aptitude_raw": "aptitude",
     "human_raw": "human",
 }
+# Challenger race-performance-v1 だけが使う4因子（事前登録 docs/research/RACE_PERFORMANCE_PREREG_V1.md §5）。
+# Champion・既存の Challenger は FACTOR_KEYS のまま（既定の経路は変えない）
+RACE_PERFORMANCE_FACTOR_KEYS = {
+    **FACTOR_KEYS,
+    "race_performance_raw": "race_performance",
+}
 
 # 生値のキー → 「その値は観測ではなく中立補完だ」と示すフラグのキー。
 # 補完値を平均・標準偏差の計算に入れないために使う（z_standardize の説明を参照）。
@@ -93,7 +99,8 @@ def z_standardize(values: list[float | None],
 
 
 def composite_scores(horses: list[dict[str, Any]],
-                     weights: dict[str, float]) -> list[float | None]:
+                     weights: dict[str, float],
+                     factor_keys: dict[str, str] | None = None) -> list[float | None]:
     """
     指定した重みで①②③を合成した z 値を、horses と同じ並びで返す（**副作用なし**）。
 
@@ -105,9 +112,13 @@ def composite_scores(horses: list[dict[str, Any]],
 
     中立補完された値（`speed_imputed` など）は**平均・標準偏差の計算から外す**。
     理由は `z_standardize` の説明を参照。
+
+    `factor_keys` を省略すると①②③（FACTOR_KEYS）。4因子を使うのは Challenger race-performance-v1 だけで、
+    RACE_PERFORMANCE_FACTOR_KEYS を明示して渡す（キャラ別の重みの計算は省略したまま＝3因子）。
     """
+    factor_keys = FACTOR_KEYS if factor_keys is None else factor_keys
     z_by_factor: dict[str, list[float | None]] = {}
-    for raw_key in FACTOR_KEYS:
+    for raw_key in factor_keys:
         flag = IMPUTED_FLAGS.get(raw_key)
         mask = None if flag is None else [not h.get(flag) for h in horses]
         z_by_factor[raw_key] = z_standardize([h.get(raw_key) for h in horses], mask)
@@ -115,7 +126,7 @@ def composite_scores(horses: list[dict[str, Any]],
     scores: list[float | None] = []
     for i in range(len(horses)):
         parts: list[tuple[float, float]] = []  # (重み, z値)
-        for raw_key, weight_key in FACTOR_KEYS.items():
+        for raw_key, weight_key in factor_keys.items():
             z = z_by_factor[raw_key][i]
             if z is not None:
                 parts.append((weights[weight_key], z))
@@ -132,7 +143,9 @@ def count_usable_factors(horse: dict[str, Any]) -> int:
     return sum(1 for raw_key in FACTOR_KEYS if horse.get(raw_key) is not None)
 
 
-def compute_base_scores(horses: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
+def compute_base_scores(horses: list[dict[str, Any]], config: dict[str, Any],
+                        score_weights: dict[str, float] | None = None,
+                        factor_keys: dict[str, str] | None = None) -> list[dict[str, Any]]:
     """
     レース1件分の出走馬リストから base_score を計算して付与する（買い目生成仕様§1）。
 
@@ -146,8 +159,13 @@ def compute_base_scores(horses: list[dict[str, Any]], config: dict[str, Any]) ->
     ここで使う重みは `config["score_weights"]` ＝**全キャラ共通**。印（新聞の見立て）は
     キャラによって変わらないという仕様§2の建て付けを守るため。キャラ固有の重みは
     買い目の選定順にだけ効く（logic/cards.py の `assign_character_ranks`）。
+
+    `score_weights` / `factor_keys` を渡すのは Challenger race-performance-v1 だけ（4因子）。
+    省略時は config の score_weights と①②③で、Champion・既存の Challenger の計算は変わらない。
+    uncertain は渡した因子に関係なく①②③の欠損で決める（RPS の欠損では立てない。事前登録 §5.1）。
     """
-    scores = composite_scores(horses, config["score_weights"])
+    scores = composite_scores(
+        horses, config["score_weights"] if score_weights is None else score_weights, factor_keys)
 
     for horse, base in zip(horses, scores):
         horse["base_score"] = base
