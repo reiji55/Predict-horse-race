@@ -43,6 +43,7 @@ Cページ：馬の戦績ページ（db.netkeiba.com/horse/）
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any
@@ -248,12 +249,51 @@ def fetch_horse_history_cached(
 
 # --- 研究用（PR-B history inventory）。本番の past_runs の形・取得経路は変えない -------------
 
-def parse_horse_history_html_with_race_names(html: str, n_runs: int | None = None) -> dict[str, Any]:
-    """研究用：戦績表の有無と、レース名つきの過去走を返す。
+# 馬のページの戦績表は、ページを開いたあとにスクリプトが ajax で読み込む作りになっている
+# （サーバーが返すページの HTML には戦績表が無い。手元に保存した実ページ2頭分のスクリプトで確認）：
+#   $.get('https://db.netkeiba.com/horse/ajax_horse_results.html',
+#         {input: 'UTF-8', output: 'json', id: horse_id},
+#         function(data){ if('OK' == data.status){ $('#horse_results_box').html(data.data); } });
+# 研究用の取得だけ、この読み込み先も同じ引数で取りに行く。本番の fetch_horse_history（C の退避路）は変えない。
+HORSE_RESULTS_AJAX_URL = "https://db.netkeiba.com/horse/ajax_horse_results.html"
+RETRIEVAL_PAGE = "page"   # 馬のページの段階で決まった（戦績表がページに直接あった／ページで取得が終わった）
+RETRIEVAL_AJAX = "ajax"   # ajax_horse_results.html を取りに行った
+
+# _parse_run_row が固定 index で読む列と、その列の見出し（実ページの戦績表の thead で確認）。
+# 1つでも想定の位置に無ければ列がずれているので、その表は読まない（静かにズレた値を研究に入れない）
+RESULT_COLUMNS = {0: "日付", 1: "開催", 4: "レース名", 6: "頭数", 11: "着順", 12: "騎手",
+                  13: "斤量", 14: "距離", 16: "馬場", 18: "タイム", 19: "着差", 27: "上り"}
+
+_NO_RESULTS_TABLE = {"table_present": False, "header_matches": False, "header_positions": None,
+                     "source_total_rows": 0, "runs": []}
+
+
+def _result_rows(table: Any) -> list[Any]:
+    """戦績表のデータ行（td が20個以上の行）。tbody の無い HTML の断片でも同じ行を返す。"""
+    rows = table.select("tbody tr") if table.find("tbody") is not None else table.find_all("tr")
+    return [row for row in rows if len(row.find_all("td")) >= 20]
+
+
+def results_header_positions(table: Any) -> dict[str, int | None]:
+    """読む列の見出しが、見出し行の何番目にあるか（無ければ None）。キーは自前の見出し名、値は位置だけ。"""
+    head = table.find("thead") or table
+    first = head.find("tr")
+    labels = [re.sub(r"\s+", "", th.get_text(strip=True)) for th in (first.find_all("th") if first else [])]
+    return {label: (labels.index(label) if label in labels else None) for label in RESULT_COLUMNS.values()}
+
+
+def results_header_matches(positions: dict[str, int | None] | None) -> bool:
+    return bool(positions) and all(positions.get(label) == index for index, label in RESULT_COLUMNS.items())
+
+
+def parse_horse_history_html_with_race_names(html: str | bytes, n_runs: int | None = None) -> dict[str, Any]:
+    """研究用：戦績表の有無・列の見出しの確認と、レース名つきの過去走を返す。
 
     本番の parse_horse_history_html の戻り値（past_runs[]）は変えずに、
     研究 artifact だけで使う race_name を同じ行から足す。
-    戻り値: {"table_present": bool, "source_total_rows": int, "runs": [{...past_run, "race_name": str|None}]}
+    戻り値: {"table_present": bool, "header_matches": bool, "header_positions": {見出し: 位置}|None,
+             "source_total_rows": int, "runs": [{...past_run, "race_name": str|None}]}
+    読む列の見出しが想定の位置に無い表（列ずれ）は runs=[] にする（推測で読まない）。
     source_total_rows は戦績表の有効な全行数。n_runs=None（既定）なら全行を返す。
     研究側は「全行 → 日付の cutoff → long_window 走に切る」の順で使う（先に切ると、レース後の取得で
     先頭に入る当日の行のぶん、過去走が1走少なくなる）。
@@ -261,34 +301,120 @@ def parse_horse_history_html_with_race_names(html: str, n_runs: int | None = Non
     soup = BeautifulSoup(html, "lxml")
     table = soup.select_one("table.db_h_race_results")
     if table is None:
-        return {"table_present": False, "source_total_rows": 0, "runs": []}
-    rows = [row for row in table.select("tbody tr") if len(row.find_all("td")) >= 20]
+        return dict(_NO_RESULTS_TABLE)
+    positions = results_header_positions(table)
+    matches = results_header_matches(positions)
+    rows = _result_rows(table)
     runs = []
-    for row in (rows if n_runs is None else rows[:n_runs]):
-        tds = row.find_all("td")
-        run = _parse_run_row(tds)
-        run["race_name"] = tds[4].get_text(strip=True) or None
-        runs.append(run)
-    return {"table_present": True, "source_total_rows": len(rows), "runs": runs}
+    if matches:
+        for row in (rows if n_runs is None else rows[:n_runs]):
+            tds = row.find_all("td")
+            run = _parse_run_row(tds)
+            run["race_name"] = tds[4].get_text(strip=True) or None
+            runs.append(run)
+    return {"table_present": True, "header_matches": matches, "header_positions": positions,
+            "source_total_rows": len(rows), "runs": runs}
+
+
+def results_html_from_ajax(resp: Any) -> tuple[str | bytes | None, dict[str, Any]]:
+    """ajax の応答から戦績表の HTML を取り出す。
+
+    ページのスクリプトと同じく、JSON の status が "OK" のときだけ data を使う。
+    JSON はまずバイト列のまま（UTF-8）読み、だめなら応答の文字コード（Content-Type の charset など）で
+    デコードした本文で読む（ブラウザと同じ）。どちらでも JSON でなければ（output=json が効かなかった等）
+    本文をそのまま HTML として読む。
+    2つ目の戻り値は診断用で、JSON として読めたか・status が "OK" だったかの真偽値だけを持つ。
+    """
+    raw = getattr(resp, "content", b"") or b""
+    for candidate in (raw, getattr(resp, "text", None)):
+        if not candidate:
+            continue
+        try:
+            payload = json.loads(candidate)
+            break
+        except ValueError:
+            continue
+    else:
+        return raw, {"json_parsed": False, "status_ok": None}
+    status_ok = isinstance(payload, dict) and payload.get("status") == "OK"
+    data = payload.get("data") if status_ok else None
+    return (data if isinstance(data, str) else None), {"json_parsed": True, "status_ok": status_ok}
+
+
+def describe_results_ajax_response(resp: Any, info: dict[str, Any], parsed: dict[str, Any]) -> dict[str, Any]:
+    """ajax で戦績表を読めなかったときの手がかり（研究用の診断。予想には使わない）。
+
+    ページの診断と同じ方針で、応答の本文・本文の抜粋・本文のハッシュ・URL の query は残さない。
+    残すのは HTTP の状態・最終URL（scheme + host + path）・リダイレクトの有無・メディアタイプ・大きさ・
+    JSON として読めたか・status が "OK" だったか・戦績表の有無・列の見出しが合ったか・目印（真偽値だけ）。
+    """
+    raw = getattr(resp, "content", b"") or b""
+    final_url = url_without_query(getattr(resp, "url", None))
+    content_type = (getattr(resp, "headers", None) or {}).get("Content-Type") or ""
+    source = raw.decode("utf-8", errors="replace")
+    return {
+        "fetched": True,
+        "http_status": getattr(resp, "status_code", None),
+        "final_url": final_url,
+        "redirected": (final_url != HORSE_RESULTS_AJAX_URL) if final_url else None,
+        "media_type": content_type.split(";", 1)[0].strip().lower()[:40] or None,
+        "content_bytes": len(raw),
+        "json_parsed": info["json_parsed"],
+        "status_ok": info["status_ok"],
+        "results_table_present": parsed["table_present"],
+        "header_matches": parsed["header_matches"] if parsed["table_present"] else None,
+        "markers": {name: bool(rx.search(source)) for name, rx in _PAGE_MARKERS.items()},
+    }
+
+
+def _research_result(parsed: dict[str, Any], url: str, retrieval: str) -> dict[str, Any]:
+    if not parsed["table_present"]:
+        return {"status": "blocked", "runs": [], "url": url, "retrieval": retrieval}
+    if not parsed["header_matches"]:
+        # どの列がずれたかを後から見るため、読む列の見出しの位置だけ残す（表の中身は残さない）
+        return {"status": "layout_mismatch", "runs": [], "url": url, "retrieval": retrieval,
+                "header_positions": parsed["header_positions"]}
+    return {"status": "ok", "runs": parsed["runs"], "url": url, "retrieval": retrieval,
+            "source_total_rows": parsed["source_total_rows"]}
 
 
 def fetch_horse_history_for_research(horse_ref: str, n_runs: int | None = None) -> dict[str, Any]:
     """研究用の長期履歴取得。失敗しても例外にせず status で返す（推測で埋めない）。
 
-    status: ok | fetch_failed（HTTP失敗）| blocked（200でも戦績表が無い＝bot判定ページ等）
+    1. 馬のページを取る。戦績表がページに直接あればそれを読む（retrieval=page）
+    2. 無ければ、そのページが ajax_horse_results.html を読み込む作りのときだけ、読み込み先を
+       ページのスクリプトと同じ引数（input=UTF-8・output=json・id=馬ID）で1回だけ取る（retrieval=ajax）。
+       Referer は直前に取った馬のページ。間隔・UA・リトライは他の取得と同じ（scraper.common.http）
+    status: ok | fetch_failed（HTTP失敗）| blocked（200でも戦績表が無い）
+            | layout_mismatch（戦績表はあるが、読む列の見出しが想定の位置に無い＝列ずれ。読まない）
     """
     url = HORSE_URL_TMPL.format(horse_id=horse_ref)
     resp = http_get(url)
     if resp is None:
-        return {"status": "fetch_failed", "runs": [], "url": url}
+        return {"status": "fetch_failed", "runs": [], "url": url, "retrieval": RETRIEVAL_PAGE}
     parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
-    if not parsed["table_present"]:
-        # 「bot 判定のページ」なのか「ページの作りが変わって戦績表が別の読み込みになった」のかを
-        # 後から見分けられるよう、返ってきたページの手がかりだけを残す（ページ本体は保存しない）
-        return {"status": "blocked", "runs": [], "url": url,
-                "diagnostics": describe_page_without_results_table(resp, requested_url=url)}
-    return {"status": "ok", "runs": parsed["runs"], "url": url,
-            "source_total_rows": parsed["source_total_rows"]}
+    if parsed["table_present"]:
+        return _research_result(parsed, url, RETRIEVAL_PAGE)
+    # 「bot 判定のページ」なのか「ページの作りが変わって戦績表が別の読み込みになった」のかを
+    # 後から見分けられるよう、返ってきたページの手がかりだけを残す（ページ本体は保存しない）
+    diagnostics = describe_page_without_results_table(resp, requested_url=url)
+    if b"ajax_horse_results.html" not in (getattr(resp, "content", b"") or b""):
+        return {"status": "blocked", "runs": [], "url": url, "retrieval": RETRIEVAL_PAGE,
+                "diagnostics": diagnostics}
+    ajax = http_get(HORSE_RESULTS_AJAX_URL,
+                    params={"input": "UTF-8", "output": "json", "id": horse_ref},
+                    headers={"Referer": url, "X-Requested-With": "XMLHttpRequest"})
+    if ajax is None:
+        return {"status": "fetch_failed", "runs": [], "url": url, "retrieval": RETRIEVAL_AJAX,
+                "diagnostics": diagnostics, "ajax_diagnostics": {"fetched": False}}
+    html, info = results_html_from_ajax(ajax)
+    parsed = (parse_horse_history_html_with_race_names(html, n_runs=n_runs) if html is not None
+              else dict(_NO_RESULTS_TABLE))
+    result = _research_result(parsed, url, RETRIEVAL_AJAX)
+    if result["status"] != "ok":
+        result["diagnostics"] = diagnostics
+        result["ajax_diagnostics"] = describe_results_ajax_response(ajax, info, parsed)
+    return result
 
 
 _PAGE_MARKERS = {
