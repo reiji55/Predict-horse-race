@@ -14,6 +14,7 @@ import copy
 import datetime
 import json
 import math
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -474,11 +475,28 @@ def test_forward_boundary_uses_the_latest_of_the_three_registrations():
     early = {**cfg, "registered_at": "2026-10-01T00:00:00+09:00"}
     assert me.forward_start(early, {"registered_at": "2026-10-02T00:00:00+09:00"}).isoformat() \
         == "2026-10-09T00:26:18+09:00"
-    # 採点は Challenger の registered_at（PR-C1 のマージ時刻）を記録するまで動かない。capture は記録するだけ
+    # 登録した Challenger（PR #29 のマージ時刻）がいちばん遅いので、境界はその時刻
     registry = model_registry.load_registry()
+    _champion, challenger = me.model_specs(cfg, registry)
+    assert challenger["registered_at"] == "2026-10-09T01:09:54+09:00"
+    assert me.forward_start(cfg, challenger).isoformat() == "2026-10-09T01:09:54+09:00"
+    # registered_at の無い Challenger は採点しない（capture は記録するだけ）
+    unregistered = copy.deepcopy(registry)
+    next(m for m in unregistered["challengers"] if m["id"] == MODEL_ID).pop("registered_at")
     with pytest.raises(ValueError, match="registered_at"):
-        me.model_specs(cfg, registry)
-    assert me.model_specs(cfg, registry, require_registered=False)[1]["id"] == MODEL_ID
+        me.model_specs(cfg, unregistered)
+    assert me.model_specs(cfg, unregistered, require_registered=False)[1]["id"] == MODEL_ID
+
+
+def test_registration_record_in_the_document_matches_the_registry():
+    # 文書 §1 の登録記録（手で書いた時刻ではなく、マージの事実）と models.json・forward の境界が食い違わない
+    doc = (ROOT / "docs" / "research" / "RACE_PERFORMANCE_PREREG_V1.md").read_text(encoding="utf-8")
+    registered = re.search(r"\| Challenger の登録日時 \| \*\*([0-9T:+-]+)\*\*", doc)
+    boundary = re.search(r"\| forward の境界 \| \*\*([0-9T:+-]+)\*\*", doc)
+    assert registered and boundary, "文書 §1 に Challenger の登録日時・forward の境界が無い"
+    spec = _spec()
+    assert spec["registered_at"] == registered.group(1)
+    assert me.forward_start(_eval_cfg(), spec).isoformat() == boundary.group(1)
 
 
 def test_pairing_rules_for_the_preregistered_evaluation():

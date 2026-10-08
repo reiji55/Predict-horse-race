@@ -42,7 +42,11 @@ version: `race-performance-v1`
 | PR #28 の `merged_at` | 2026-10-08T15:26:18Z（= 2026-10-09T00:26:18+09:00） |
 | 事前登録の有効日時 | **2026-10-09T00:26:18+09:00**（GitHub の PR の `merged_at` と、上の登録 commit の committer 時刻の**遅い方**。この回は両方が同じ時刻） |
 | 評価式の登録 | 設定の `evaluation` 節。有効日時は事前登録と同じ（2026-10-09T00:26:18+09:00） |
-| Challenger の登録日時 | PR-C1 のマージ時刻（`merged_at` と committer 時刻の遅い方）。マージ後に、この表と `config/models.json` の `registered_at` へ記録する。記録するまで採点（evaluate）はしない |
+| Challenger の登録 commit | PR #29（PR-C1）のマージ commit `6e30d69f89131c62af4fc4ece9f58b5eb8ab09d1` |
+| その committer 時刻 | 2026-10-09T01:09:54+09:00 |
+| PR #29 の `merged_at` | 2026-10-08T16:09:54Z（= 2026-10-09T01:09:54+09:00） |
+| Challenger の登録日時 | **2026-10-09T01:09:54+09:00**（`merged_at` と committer 時刻の遅い方。この回も両方が同じ時刻）。`config/models.json` の `registered_at` と同じ値 |
+| forward の境界 | **2026-10-09T01:09:54+09:00**（事前登録・評価式・Challenger の登録日時のうちいちばん遅いもの）。これより後に発走したレースだけを forward として数える |
 
 **登録日時を手で書かない理由**
 - 文書や設定の中に、それ自身を含む commit の SHA や時刻は書けない。
@@ -57,6 +61,7 @@ version: `race-performance-v1`
 | 2026-10-08 | PR-C0 提出（`44d5f01`） | 初版。もとの仕様のとおりに式・パラメータ・統合・評価を書き起こした。仕様に無い点・既存実装との衝突は §11 に挙げ、仕様どおりに読める形を下書きとして入れた |
 | 2026-10-08 | PR-C0 レビュー対応（登録前の設計変更） | ① 識別力の無い RPS（使える馬が2頭未満・sd=0）は、そのレースだけ因子ごと無効にし、既存3因子に完全に戻す（§5.2）。② キャラ別の重みは `unchanged_3_factor` で確定。RPS で変わり得る経路の記述を実コードに合わせて直した（§5.3）。③ Brier を「主要な副指標（key secondary）」に統一し、照合の契約をモデル間とモデルごとに書き分けた（§7.2・§7.4）。④ 有効日時を `merged_at` と committer 時刻の遅い方にした。式・パラメータ・重みの値は変えていない |
 | 2026-10-09 | PR-C1 提出（Challenger の実装） | 登録記録（PR #28 のマージ commit・時刻）を追記した。登録した式・設定は変えずに Challenger `race-performance-v1` を実装した（§13）。設定の SHA-256 は `592cf78f…` のまま |
+| 2026-10-09 | Challenger の登録記録 | PR #29 のマージ commit・時刻を、Challenger の登録日時として追記した（`config/models.json` の `registered_at` も同じ値）。式・設定・評価式は変えていない |
 
 マージ前のレビューで直した点は、登録前の設計変更としてこの表に残す。
 
@@ -429,4 +434,4 @@ ROI は分散が大きいので、初期の採否の根拠には使わない。
 | 設定の照合と fail-closed（§10） | `model_registry.load_model_race_performance`（SHA-256・version・challenger_id・既存3因子の重み）。失敗は `data/challengers/_failures/` に記録 |
 | snapshot の監査記録（§6） | `race_performance_ref`・`race_performance_quality`（その項目を持つモデルだけ写す） |
 | 発走前 capture と照合の契約（§7.4） | `research/model_evaluation.py` に `--config` と `capture_problem` を足した。評価設定は `config/model_evaluation_race_performance_v1.json`。capture（Champion の分も）は `data/shadow/model_evaluation/race-performance-v1/prerace/` に置き、speed-v2 の評価の capture とは分ける |
-| Challenger の登録 | `config/models.json` の `race-performance-v1`（`registered_at` はマージ後に記録） |
+| Challenger の登録 | `config/models.json` の `race-performance-v1`（`registered_at` は PR #29 のマージ時刻。§1） |

@@ -11,7 +11,7 @@
 | `top3-partner-v1` | Challenger | PR #3 review | Win Scoreを変えず、ワイド/3連複の相手だけTop3適性で選ぶ。Kei=insurance, Tetsu=balanced, Gen=edge。 | branch `chatgpt/top3-place-model-20260921` / PR #3 |
 | `chappy-signal-v1` | Integration layer | PR #3 review | Win/Top3/条件/近況/市場を動的統合する1000円枠。手動ChatGPTカードで上書き可能。高確信時は同じ枠が鳳へ昇格。 | branch `chatgpt/top3-place-model-20260921` / PR #3 |
 | pre-speed-guard | Archived reference | before 2026-09-21 | sparse base-times のままspeedを部分利用。データ欠損の非対称問題あり。 | commit before `ce1afd0f` |
-| `race-performance-v1` | Challenger | PR-C1（登録日時はマージ後に `config/models.json` の `registered_at` へ記録） | 事前登録した Race Performance（class＋margin・1因子）を4番目の因子として足す。重み speed 0.3825 / aptitude 0.2550 / human 0.2125 / RPS 0.15。RPS が使える馬が2頭未満・sd=0 のレースは Champion と同じ3因子に戻る。キャラ固有の3因子の重み・T・λ・テンプレは同じ。UIには出さない。 | `docs/research/RACE_PERFORMANCE_PREREG_V1.md` / PR #28（事前登録）・PR-C1 |
+| `race-performance-v1` | Challenger | 2026-10-09T01:09:54+09:00（PR #29 のマージ。`registered_at`） | 事前登録した Race Performance（class＋margin・1因子）を4番目の因子として足す。重み speed 0.3825 / aptitude 0.2550 / human 0.2125 / RPS 0.15。RPS が使える馬が2頭未満・sd=0 のレースは Champion と同じ3因子に戻る。キャラ固有の3因子の重み・T・λ・テンプレは同じ。UIには出さない。 | `docs/research/RACE_PERFORMANCE_PREREG_V1.md` / PR #28（事前登録）・PR #29 merge `6e30d69f` |
 
 ## Change log
 
@@ -99,6 +99,7 @@ Decision:
 
 Status / rollback:
 - Challenger（UI・正式成績には出さない）。`config/models.json` の `race-performance-v1` を外せば止まる。Champion は変わらない。
+- 登録日時（`registered_at`）は PR #29 のマージ時刻 2026-10-09T01:09:54+09:00。forward の境界も同じ時刻（事前登録・評価式の有効日時 2026-10-09T00:26:18+09:00 より遅い）。
 
 Evaluation:
 - forward のみ（境界は事前登録・評価式・Challenger 登録の遅い方）。主指標は paired log loss、主要な副指標は Brier。
