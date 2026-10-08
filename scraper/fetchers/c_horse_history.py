@@ -46,6 +46,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -282,6 +283,74 @@ def fetch_horse_history_for_research(horse_ref: str, n_runs: int | None = None) 
         return {"status": "fetch_failed", "runs": [], "url": url}
     parsed = parse_horse_history_html_with_race_names(resp.text, n_runs=n_runs)
     if not parsed["table_present"]:
-        return {"status": "blocked", "runs": [], "url": url}
+        # 「bot 判定のページ」なのか「ページの作りが変わって戦績表が別の読み込みになった」のかを
+        # 後から見分けられるよう、返ってきたページの手がかりだけを残す（ページ本体は保存しない）
+        return {"status": "blocked", "runs": [], "url": url,
+                "diagnostics": describe_page_without_results_table(resp, requested_url=url)}
     return {"status": "ok", "runs": parsed["runs"], "url": url,
             "source_total_rows": parsed["source_total_rows"]}
+
+
+_PAGE_MARKERS = {
+    # bot 判定・アクセス制限らしい文言
+    "captcha": re.compile(r"captcha|recaptcha|hcaptcha", re.IGNORECASE),
+    "access_denied": re.compile(r"access denied|forbidden|アクセスが制限|不正なアクセス", re.IGNORECASE),
+    "cloudflare": re.compile(r"cloudflare|cf-chl|just a moment", re.IGNORECASE),
+    # 戦績表の名残（クラス名が残っているのに表が無い＝別の読み込みになった可能性）
+    "results_table_class_in_source": re.compile(r"db_h_race_results"),
+    "horse_results_word_in_source": re.compile(r"horse_results|race_results|result_box", re.IGNORECASE),
+}
+_AJAX_URL_RE = re.compile(r"[\w/.-]*ajax[\w/.-]*\.html", re.IGNORECASE)
+
+
+_TITLE_MAX_CHARS = 120
+
+
+def url_without_query(url: Any) -> str | None:
+    """scheme + host(+port) + path だけにする。query・fragment・userinfo（一時トークン等が入り得る）は捨てる。"""
+    if not url:
+        return None
+    parts = urlsplit(str(url))
+    try:
+        host = parts.hostname
+        port = parts.port
+    except ValueError:
+        return None
+    if not parts.scheme or not host:
+        return None
+    return f"{parts.scheme}://{host}{f':{port}' if port else ''}{parts.path}"
+
+
+def describe_page_without_results_table(resp: Any, requested_url: str | None = None) -> dict[str, Any]:
+    """戦績表が見つからなかったページの手がかり（研究用の診断。予想には使わない）。
+
+    このリポジトリは public で、手動 workflow は artifact を Git にコミットする。外部が返した本文には
+    リクエスト固有の情報（runner の IP、challenge の ID、一時トークンなど）が混ざり得るので、
+    **本文そのもの・本文の抜粋・本文のハッシュは残さない**（IPv4 は約43億通りしかないので、
+    定型ページの短い本文のハッシュは総当たりで逆算され得る）。最終URLも query / fragment を落とす。
+    残すのは HTTP の状態・最終URL（scheme + host + path）・リダイレクトの有無・大きさ・文字数・
+    タイトル（先頭120字）・表のクラス・目印（真偽値だけ）・ajax の URL（query は含まない）。
+    文字コードは <meta charset> をもとに BeautifulSoup に判定させる（netkeiba の db は EUC-JP）。
+    """
+    raw = getattr(resp, "content", b"") or b""
+    soup = BeautifulSoup(raw, "lxml")
+    text = re.sub(r"\s+", " ", soup.get_text(" ", strip=True))
+    try:
+        source = raw.decode(soup.original_encoding or "utf-8", errors="replace")
+    except LookupError:
+        source = raw.decode("utf-8", errors="replace")
+    final_url = url_without_query(getattr(resp, "url", None))
+    requested = url_without_query(requested_url)
+    title = soup.title.get_text(strip=True) if soup.title else None
+    return {
+        "http_status": getattr(resp, "status_code", None),
+        "final_url": final_url,
+        "redirected": (final_url != requested) if (final_url and requested) else None,
+        "content_bytes": len(raw),
+        "text_chars": len(text),
+        "detected_encoding": soup.original_encoding,
+        "title": title[:_TITLE_MAX_CHARS] if title else None,
+        "table_classes": [" ".join(t.get("class") or []) or None for t in soup.find_all("table")][:10],
+        "markers": {name: bool(rx.search(source)) for name, rx in _PAGE_MARKERS.items()},
+        "ajax_urls": sorted(set(_AJAX_URL_RE.findall(source)))[:10],
+    }

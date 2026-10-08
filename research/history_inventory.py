@@ -448,6 +448,9 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
         out["long_history"] = {"status": long_status, "requested_runs": config["long_window"],
                                "available_runs": 0, "dates": [], "earliest_date": None,
                                "latest_date": None, "source": config["long_history"]["source"]}
+        if (long_result or {}).get("diagnostics"):
+            # 取れなかった理由を後から見分けるための手がかり（ページの中身そのものは残さない）
+            out["long_history"]["diagnostics"] = long_result["diagnostics"]
         out["long"] = None
         out["coverage_delta"] = None
         out["same_named_race"] = same_named_race([], race.get("name"), long_status)
@@ -478,6 +481,33 @@ def feature_usage(horses: list[dict[str, Any]], races_runs: list[dict[str, Any]]
         if usage.get("note"):
             out[field]["note"] = usage["note"]
     return out
+
+
+def _diagnostics_summary(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """取れなかった馬のページの手がかりを、レース単位でまとめる（どの理由が多いかを一目で見るため）。"""
+    if not diagnostics:
+        return None
+
+    def _count(values: list[Any]) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for v in values:
+            out[str(v)] = out.get(str(v), 0) + 1
+        return out
+
+    markers: dict[str, int] = {}
+    for d in diagnostics:
+        for name, hit in (d.get("markers") or {}).items():
+            markers[name] = markers.get(name, 0) + int(bool(hit))
+    return {
+        "pages": len(diagnostics),
+        "http_status": _count([d.get("http_status") for d in diagnostics]),
+        "titles": _count([d.get("title") for d in diagnostics]),
+        "redirected_pages": sum(1 for d in diagnostics if d.get("redirected") is True),
+        "content_bytes_min": min((d.get("content_bytes") or 0) for d in diagnostics),
+        "content_bytes_max": max((d.get("content_bytes") or 0) for d in diagnostics),
+        "marker_hits": markers,
+        "ajax_urls": sorted({u for d in diagnostics for u in d.get("ajax_urls") or []})[:10],
+    }
 
 
 def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.datetime,
@@ -514,6 +544,7 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
         all_current_runs.extend(kept)
     requested = sum(1 for _ in horses) if long_fetcher is not None else 0
     ok = long_statuses.get(LONG_OK, 0)
+    diagnostics = [h["long_history"]["diagnostics"] for h in horses if h["long_history"].get("diagnostics")]
     return {
         "version": config["version"],
         "mode": "observe_only",
@@ -538,6 +569,7 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
             "long_history_requested": long_fetcher is not None,
             "long_history_status_counts": long_statuses,
             "long_history_success_rate": round(ok / requested, 4) if requested else None,
+            "blocked_page_summary": _diagnostics_summary(diagnostics),
         },
         "feature_usage": feature_usage(horses, all_current_runs, config),
         "horses": horses,
