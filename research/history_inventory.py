@@ -502,8 +502,7 @@ def _diagnostics_summary(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | 
         "pages": len(diagnostics),
         "http_status": _count([d.get("http_status") for d in diagnostics]),
         "titles": _count([d.get("title") for d in diagnostics]),
-        "final_url_differs": sum(1 for d in diagnostics
-                                 if d.get("final_url") and "db.netkeiba.com/horse/" not in d["final_url"]),
+        "redirected_pages": sum(1 for d in diagnostics if d.get("redirected") is True),
         "content_bytes_min": min((d.get("content_bytes") or 0) for d in diagnostics),
         "content_bytes_max": max((d.get("content_bytes") or 0) for d in diagnostics),
         "marker_hits": markers,

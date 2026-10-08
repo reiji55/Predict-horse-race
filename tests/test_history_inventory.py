@@ -478,8 +478,9 @@ def test_blocked_page_records_diagnostics_not_the_page(monkeypatch):
     assert diag["title"] == "Just a moment..."
     assert diag["markers"]["captcha"] is True and diag["markers"]["cloudflare"] is True
     assert diag["markers"]["results_table_class_in_source"] is False
-    assert len(diag["text_excerpt"]) <= 200
-    assert "content" not in diag and "html" not in diag      # ページ本体は残さない
+    assert diag["text_chars"] > 0
+    for key in ("content", "html", "text", "text_excerpt"):    # ページ本体・本文の抜粋は残さない
+        assert key not in diag
 
 
 def test_layout_change_is_distinguishable_from_bot_page(monkeypatch):
@@ -511,3 +512,53 @@ def test_inventory_keeps_diagnostics_and_summarizes_them(tmp_path: Path):
     assert "/horse/ajax_horse_results.html" in summary["ajax_urls"]
     ok = hi.build_inventory(race, CONFIG, BEFORE)
     assert ok["source_status"]["blocked_page_summary"] is None
+
+
+def test_diagnostics_never_persist_request_specific_text_or_url_tokens(tmp_path: Path):
+    """public repo にコミットされる artifact に、外部が返した本文の一部や URL の一時トークンを残さない。"""
+    leaky_page = ("<html><head><title>Just a moment...</title></head><body>"
+                  "<p>Checking your browser. IP=203.0.113.1 token=SECRET Ray ID: 8f1e2d3c4b5a6978</p>"
+                  "<form action='/?__cf_chl_tk=SECRET'><input type='hidden' value='203.0.113.1'></form>"
+                  "</body></html>")
+    pages = {
+        # 同じ URL のまま challenge ページが返った（query と fragment に一時トークン）
+        "A": _FakeResp(leaky_page, url="https://db.netkeiba.com/horse/2020100001/?token=SECRET#x"),
+        # 別の URL へリダイレクトされた（userinfo と query にトークン）
+        "B": _FakeResp(leaky_page,
+                       url="https://user:SECRET@www.netkeiba.com/login/?pid=login&token=SECRET#frag"),
+    }
+
+    def fetcher(ref, n):
+        diag = c_horse_history.describe_page_without_results_table(
+            pages[ref], requested_url="https://db.netkeiba.com/horse/2020100001/")
+        return {"status": "blocked", "runs": [], "diagnostics": diag}
+
+    race = _race([_entry(1, CURRENT5, ref="A"), _entry(2, CURRENT5, ref="B")])
+    report = hi.capture({"races": [race]}, CONFIG, BEFORE, directory=tmp_path, long_fetcher=fetcher)
+    [path] = report["written"]
+    persisted = Path(path).read_text(encoding="utf-8")
+    for secret in ("203.0.113.1", "SECRET", "8f1e2d3c4b5a6978", "#x", "#frag", "token=", "user:"):
+        assert secret not in persisted, secret
+
+    inv = json.loads(persisted)
+    diag_a = inv["horses"][0]["long_history"]["diagnostics"]
+    diag_b = inv["horses"][1]["long_history"]["diagnostics"]
+    assert diag_a["final_url"] == "https://db.netkeiba.com/horse/2020100001/"
+    assert diag_a["redirected"] is False
+    assert diag_b["final_url"] == "https://www.netkeiba.com/login/"
+    assert diag_b["redirected"] is True
+    assert diag_a["markers"]["cloudflare"] is True            # 判定に要る情報は真偽値で残る
+    assert inv["source_status"]["blocked_page_summary"]["redirected_pages"] == 1
+
+
+def test_url_without_query_keeps_only_scheme_host_path():
+    strip = c_horse_history.url_without_query
+    assert strip("https://db.netkeiba.com/horse/1/?a=1#b") == "https://db.netkeiba.com/horse/1/"
+    assert strip("https://u:p@example.com:8443/x?y=z") == "https://example.com:8443/x"
+    assert strip(None) is None and strip("not a url") is None
+
+
+def test_long_titles_are_capped():
+    page = "<html><head><title>" + "長" * 500 + "</title></head><body></body></html>"
+    diag = c_horse_history.describe_page_without_results_table(_FakeResp(page))
+    assert len(diag["title"]) == 120
