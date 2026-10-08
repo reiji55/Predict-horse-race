@@ -27,6 +27,8 @@ Champion と speed-v2 Challenger を、**同じレース・同じ発走前情報
 事前登録から始めた評価（race-performance-v1：config/model_evaluation_race_performance_v1.json）も、
 同じ関数を `--config` で使う。その評価の capture は設定の capture_dir（自分のフォルダ）に置き、
 capture についての照合（capture_problem）と、事前登録の有効日時（prereg_effective_at）を足す。
+集計の追加（必ず併記する coverage・開催日単位の bootstrap・40レースの点検・監査項目）は `--summary-config` の
+設定ファイルで行う（research/race_performance_eval.py）。評価設定とは別のファイルなので、capture の照合キーは変わらない。
 
 このモジュールは予想経路（logic/・scraper/）から読まれない。出力は予想の入力にならない。
 """
@@ -45,6 +47,7 @@ from logic import build_predictions as bp
 from logic import cards, model_registry, race_performance, snapshots
 from logic import speed_index as speed_mod
 from research import calibration, common, diversity, forward_diagnostics, prerace_capture
+from research import race_performance_eval as rps_eval
 from results import build_results
 
 logger = logging.getLogger("research.model_evaluation")
@@ -158,7 +161,7 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
     if not ok:
         logger.warning("%s/%s: 再計算が snapshot と一致しないため全精度 score・選定順は記録しません",
                        spec["id"], race.get("id"))
-    return {
+    record = {
         "schema": CAPTURE_SCHEMA,
         "model_id": spec["id"],
         "race_id": race.get("id"),
@@ -194,6 +197,12 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
         "sel_orders": (diversity.character_orders(horses, configs["cards"], temperature,
                                                   cfg["diversity"]["fixed_three"]) if ok else None),
     }
+    loaded = model_registry.load_model_race_performance(spec)
+    if loaded is not None:
+        # 事前登録した Race Performance を使う Challenger だけ。snapshot に無い監査値（speed と RPS の重なり・
+        # JRA 以外の重賞の有効走）を、発走前のこの時点で残す（事前登録 §12。結果の情報は入らない）
+        record["race_performance_audit"] = rps_eval.capture_audit(race, horses, loaded[0])
+    return record
 
 
 def capture(raw: dict[str, Any], now: datetime.datetime | None = None, phase: str = "pipeline",
@@ -528,7 +537,8 @@ def secondary_block(snapshot: dict[str, Any], result: dict[str, Any], top3: list
 
 def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], paths: dict[str, Path],
                   result: dict[str, Any], challenger: dict[str, Any], capture_dir: Path,
-                  current_temperature: float, current_config_hash: str, cfg: dict[str, Any]) -> dict[str, Any]:
+                  current_temperature: float, current_config_hash: str, cfg: dict[str, Any],
+                  race_performance_config: dict[str, Any] | None = None) -> dict[str, Any]:
     finish = [int(n) for n in result.get("finish") or []]
     top3, winner = finish[:3], finish[0]
     base = {"schema": RACE_SCHEMA, "race_id": race_id, "post_time": snaps["champion"].get("post_time"),
@@ -546,6 +556,11 @@ def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], 
     problem = capture_problem(captures, cfg)
     if problem:
         return {**base, "status": "not_evaluated", "reason": problem}
+    if challenger.get("race_performance"):
+        # 事前登録 §7.4 のモデルごとの照合：Challenger の snapshot も、capture と同じ入力 raw から作られたか
+        problem = rps_eval.snapshot_input_problem(snaps["challenger"], captures["challenger"])
+        if problem:
+            return {**base, "status": "not_evaluated", "reason": problem}
     temperature, temperature_source = resolve_temperature(
         captures, snaps["champion"].get("config_hash"), current_config_hash, current_temperature)
     # キャラ別選定順は両モデルとも揃ったときだけ使う（片方だけの比較にしない）
@@ -566,6 +581,10 @@ def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], 
             "diversity": diversity_block(snap, orders, cfg),
             "secondary": secondary_block(snap, result, top3, cfg),
         }
+    if race_performance_config is not None:
+        # 事前登録した Race Performance の記録（因子の有効・無効、coverage、z の振れ、実効比重、発走前の監査値）
+        models["challenger"]["race_performance"] = rps_eval.race_block(
+            snaps["challenger"], captures["challenger"], race_performance_config)
     return {**base, "status": "evaluated", "phase": "forward",
             "frozen_at": snaps["champion"].get("frozen_at"), "config_hash": snaps["champion"].get("config_hash"),
             "top3": top3, "sel_orders_paired": both_sel,
@@ -770,13 +789,29 @@ def summarize(evaluated: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str,
 def run(race_results: dict[str, Any], champion_dir: Path | None = None, challenger_root: Path | None = None,
         capture_dir: Path | None = None, output_dir: Path | None = None, cfg: dict[str, Any] | None = None,
         registry: dict[str, Any] | None = None, temperature: float | None = None,
-        current_config_hash: str | None = None, now: datetime.datetime | None = None) -> dict[str, Any]:
+        current_config_hash: str | None = None, now: datetime.datetime | None = None,
+        summary_cfg: dict[str, Any] | None = None) -> dict[str, Any]:
+    """
+    結果確定後に、対の評価（races/）と累積（summary.json）を書く。
+
+    summary_cfg は事前登録から始めた評価の集計の設定（例：config/model_evaluation_race_performance_v1_summary.json）。
+    評価設定とは別のファイルなので、capture の照合キー（evaluation_config_hash）は変わらない。
+    事前登録から始めた評価（cfg に prereg_config がある）では必須：必ず併記する coverage などを落とさないため。
+    """
     champion_dir = champion_dir or snapshots.SNAPSHOT_DIR
     challenger_root = challenger_root or CHALLENGER_ROOT
     cfg = cfg or load_config()
     capture_dir = capture_dir or capture_dir_for(cfg)
     champion, challenger = model_specs(cfg, registry)
     start = forward_start(cfg, challenger)
+    # 事前登録した Race Performance を使う Challenger は、設定を登録値と照合して読む（違えば評価ごと止める）
+    loaded = model_registry.load_model_race_performance(challenger)
+    race_performance_config = loaded[0] if loaded is not None else None
+    if cfg.get("prereg_config") and summary_cfg is None:
+        raise ValueError("事前登録から始めた評価には集計の設定（--summary-config）が要ります")
+    if summary_cfg is not None and (summary_cfg.get("evaluation_version") != cfg.get("version")
+                                    or race_performance_config is None):
+        raise ValueError(f"集計の設定 {summary_cfg.get('version')} はこの評価式（{cfg.get('version')}）向けではありません")
     output_dir = output_dir or EVAL_DIR / challenger["id"]
     if temperature is None:
         temperature = float((common.read_json(common.ROOT / "config" / "myomi.json") or {})["prob_model"]["temperature"])
@@ -810,7 +845,7 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
         else:
             try:
                 row = evaluate_race(race_id, post, snaps, paths, result, challenger, capture_dir,
-                                    temperature, current_config_hash, cfg)
+                                    temperature, current_config_hash, cfg, race_performance_config)
             except Exception as exc:  # noqa: BLE001 — 1レースの失敗で全体を止めないが、黙らない
                 logger.error("%s: model evaluation failed: %s: %s", race_id, type(exc).__name__, exc)
                 errors.append({"race_id": race_id, "error": f"{type(exc).__name__}: {exc}"})
@@ -837,8 +872,9 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
         "official_results_untouched": True,
         "used_for_prediction": False,
         "promotion": cfg.get("promotion"),
-        "note": "Champion と speed-v2 Challenger を同じレース・同じ発走前情報で対にした比較。"
-                "昇格の判定はしない。Secondary（成績）は判定に使わない。",
+        "note": (summary_cfg or {}).get("note") or (
+            "Champion と speed-v2 Challenger を同じレース・同じ発走前情報で対にした比較。"
+            "昇格の判定はしない。Secondary（成績）は判定に使わない。"),
         "coverage": {
             "forward_races_with_result": eligible,
             "evaluated_pairs": len(evaluated),
@@ -850,6 +886,14 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
         "forward": summarize(evaluated, cfg),
         "errors": errors,
     }
+    if challenger.get("race_performance"):
+        summary["challenger_race_performance"] = challenger["race_performance"]
+    if summary_cfg is not None:
+        # 事前登録 §7 の「必ず併記」・開催日単位の bootstrap・40レースの点検と、§12 の監査項目
+        summary["summary_config"] = {"version": summary_cfg.get("version"),
+                                     "config_hash": common.config_hash(summary_cfg)}
+        summary["race_performance"] = rps_eval.summary_block(evaluated, summary["coverage"], cfg, summary_cfg,
+                                                             race_performance_config)  # type: ignore[arg-type]
     common.write_json(output_dir / "summary.json", summary)
     return summary
 
@@ -862,6 +906,8 @@ def main() -> None:
     cap.add_argument("--phase", default="pipeline")
     ev = sub.add_parser("evaluate", help="結果確定後に対の評価と累積を書く")
     ev.add_argument("--results", default=str(common.ROOT / "data" / "race_results.json"))
+    # 事前登録から始めた評価の集計の設定（評価設定とは別のファイル）。speed-v2 の評価では使わない
+    ev.add_argument("--summary-config", default=None)
     for command in (cap, ev):
         # 評価式ごとの設定ファイル。省略時は speed-v2 の評価（config/model_evaluation.json）
         command.add_argument("--config", default=str(CONFIG_PATH))
@@ -882,7 +928,8 @@ def main() -> None:
     if not isinstance(race_results, dict):
         logger.warning("%s を読めないため評価をスキップします", args.results)
         return
-    summary = run(race_results, cfg=cfg)
+    summary_cfg = load_config(Path(args.summary_config)) if args.summary_config else None
+    summary = run(race_results, cfg=cfg, summary_cfg=summary_cfg)
     print(json.dumps({"evaluated_pairs": summary["coverage"]["evaluated_pairs"],
                       "not_evaluated": len(summary["coverage"]["not_evaluated"]),
                       "errors": len(summary["errors"])}, ensure_ascii=False))

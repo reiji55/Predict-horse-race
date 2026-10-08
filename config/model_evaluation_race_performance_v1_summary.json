@@ -1,0 +1,20 @@
+{
+  "version": "race-performance-v1-summary-v1",
+  "evaluation_config": "config/model_evaluation_race_performance_v1.json",
+  "evaluation_version": "race-performance-v1-forward-eval-v1",
+  "spec": "docs/research/RACE_PERFORMANCE_PREREG_V1.md",
+  "settings_note": "事前登録 §7.5（開催日単位の bootstrap・40レースの点検）・§7.2（必ず併記する coverage）・§12（監査項目）を集計するときの、実装上の設定。評価の定義（主指標・照合の契約・forward の境界）は評価設定と事前登録のままで、ここでは変えない。capture の照合キー（評価設定の evaluation_config_hash）を変えないよう、評価設定とは別のファイルにした。値は forward の最初のレース（2026-10-10）の結果が出る前に、PR-C2 で決めた。結果を見て変えない。",
+  "note": "Champion と race-performance-v1 Challenger を、同じレース・同じ発走前入力で対にした比較（事前登録 §7）。主指標は paired log loss、主要な副指標は paired Brier。昇格の判定はしない（採否の基準は別の事前登録で決める）。Secondary（成績・ROI）は判定に使わない。通常の shadow 採点（data/challengers/race-performance-v1/results.json・data/model_comparison.json の ROI など）とは別物で、報告でも分けて扱う。",
+  "uncertainty": {
+    "method": "cluster_bootstrap",
+    "cluster": "race_date",
+    "cluster_note": "開催日（race_id の先頭8桁）。同じ日の全会場のレースを1つのまとまりとして再抽出する。会場・開催日の中の相関を無視しない（事前登録 §7.5）",
+    "metrics": ["log_loss", "brier"],
+    "statistic": "レース単位の paired 差（Challenger − Champion）の、レース数で重み付けした平均",
+    "replicates": 10000,
+    "seed": 20261009,
+    "interval": [0.025, 0.975],
+    "interval_note": "線形補間のパーセンタイル区間。区間を記録するだけで、判定には使わない",
+    "min_clusters": 2
+  }
+}
