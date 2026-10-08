@@ -55,6 +55,36 @@ def test_score_weights_sum_to_one_and_follow_the_registered_derivation():
     assert integration["character_score_weights"] == "unchanged_3_factor"
 
 
+def test_factor_is_switched_off_when_it_cannot_discriminate():
+    """RPS が2頭未満・sd=0 のレースでは因子ごと無効にし、既存3因子の重みそのもので合成する（文書 §5.2）。"""
+    activation = _config()["integration"]["factor_activation"]
+    assert activation["min_horses_with_rps"] == 2
+    assert activation["requires_positive_sd"] is True
+    assert activation["inactive_reasons"] == ["fewer_than_min_horses_with_rps", "zero_sd"]
+    assert activation["record"] == ["factor_active", "factor_inactive_reason"]
+    per_race = _config()["audit_record"]["per_race"]
+    assert "factor_active" in per_race and "factor_inactive_reason" in per_race
+
+
+def test_character_paths_that_rps_can_and_cannot_change_are_registered():
+    """キャラ固有の3因子は変えないが、共通の score・base_rank・p を使う経路は変わり得る（文書 §5.3）。"""
+    integration = _config()["integration"]
+    can, cannot = set(integration["rps_can_change"]), set(integration["rps_cannot_change"])
+    assert not can & cannot
+    assert {"gen_axis_via_axis_base_rank_floor", "chappy_card", "otori_card", "tetsu_card"} <= can
+    assert {"kei_sel_score", "kei_sel_p", "gen_sel_score", "gen_sel_p", "T"} <= cannot
+
+
+def test_primary_metric_and_pairing_contract_are_fixed():
+    evaluation = _config()["evaluation"]
+    assert "log loss" in evaluation["primary"]
+    assert "Brier" in evaluation["key_secondary"] and "co_primary" not in evaluation
+    contract = evaluation["pairing_contract"]
+    # モデル間は共通の入力だけを照合し、snapshot の中身やモデルの版が同じことは求めない
+    assert "snapshot" not in contract["between_models"] and "model_version" not in contract["between_models"]
+    assert {"horse_set", "prerace_odds", "frozen_at", "temperature", "input_raw_hash"} <= set(contract["between_models"])
+
+
 def test_class_strength_uses_the_existing_class_keys_in_order():
     strength = _config()["class_strength"]
     assert list(strength) == constants.CLASS_KEYS
