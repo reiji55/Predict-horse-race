@@ -13,8 +13,8 @@
 - 本番の raw / past_runs / config/scraper.json の past_runs=5 は変えない。Champion・Challenger・snapshot の入力も変えない。
 - cutoff は run.date < race.date。レース後に長期履歴を取ると当該レースの結果が先頭に入るので、
   当日・未来・日付不明の走は除外し、件数を excluded_by_cutoff に残す。
-- 長期履歴を取れなければ status（fetch_failed / blocked / unavailable / not_requested）を残し、推測で埋めない。
-  取得失敗で通常の予想 workflow を止めない。
+- 長期履歴を取れなければ status（fetch_failed / blocked / layout_mismatch / unavailable / not_requested）を残し、
+  推測で埋めない。取得失敗で通常の予想 workflow を止めない。
 - 「玄人の根拠」の候補タグ（expert_evidence）はオッズを一切入力にしない。根拠を先に作り、価格は後から別軸で見る。
 - 前走不利・出遅れ・調教・パドック・陣営の気配などは構造化データが無いので作らない（status: unavailable）。
 - class・margin を点数化しない。閾値は config のタグ付け専用で、本番ルールにしない。
@@ -50,6 +50,7 @@ RETROSPECTIVE = "retrospective"
 LONG_OK = "ok"
 LONG_FETCH_FAILED = "fetch_failed"
 LONG_BLOCKED = "blocked"
+LONG_LAYOUT_MISMATCH = "layout_mismatch"   # 戦績表はあるが列の見出しが想定の位置に無い（列ずれ。読まない）
 LONG_UNAVAILABLE = "unavailable"
 LONG_NOT_REQUESTED = "not_requested"
 
@@ -416,6 +417,8 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
         total_rows = long_result.get("source_total_rows")
         out["long_history"] = {"status": LONG_OK, "requested_runs": window,
                                **_dates_block(long_runs), "source": config["long_history"]["source"],
+                               # retrieval：戦績表を馬のページから読んだ（page）か、ajax の読み込み先から読んだ（ajax）か
+                               "retrieval": long_result.get("retrieval"),
                                "excluded_by_cutoff": long_excluded,
                                # source_total_rows：取得元の戦績表の有効な全行数（cutoff 前）
                                # eligible_runs：そのうち cutoff（run.date < race.date）を通った走数
@@ -448,9 +451,11 @@ def horse_inventory(entry: dict[str, Any], race: dict[str, Any], config: dict[st
         out["long_history"] = {"status": long_status, "requested_runs": config["long_window"],
                                "available_runs": 0, "dates": [], "earliest_date": None,
                                "latest_date": None, "source": config["long_history"]["source"]}
-        if (long_result or {}).get("diagnostics"):
-            # 取れなかった理由を後から見分けるための手がかり（ページの中身そのものは残さない）
-            out["long_history"]["diagnostics"] = long_result["diagnostics"]
+        # 取れなかった理由を後から見分けるための手がかり（ページや応答の中身そのものは残さない）
+        #   diagnostics：馬のページ / ajax_diagnostics：ajax の読み込み先 / header_positions：列ずれの位置
+        for key in ("retrieval", "diagnostics", "ajax_diagnostics", "header_positions"):
+            if (long_result or {}).get(key):
+                out["long_history"][key] = long_result[key]
         out["long"] = None
         out["coverage_delta"] = None
         out["same_named_race"] = same_named_race([], race.get("name"), long_status)
@@ -483,30 +488,53 @@ def feature_usage(horses: list[dict[str, Any]], races_runs: list[dict[str, Any]]
     return out
 
 
-def _diagnostics_summary(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """取れなかった馬のページの手がかりを、レース単位でまとめる（どの理由が多いかを一目で見るため）。"""
-    if not diagnostics:
-        return None
+def _count_values(values: list[Any]) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for v in values:
+        out[str(v)] = out.get(str(v), 0) + 1
+    return out
 
-    def _count(values: list[Any]) -> dict[str, int]:
-        out: dict[str, int] = {}
-        for v in values:
-            out[str(v)] = out.get(str(v), 0) + 1
-        return out
 
+def _marker_hits(diagnostics: list[dict[str, Any]]) -> dict[str, int]:
     markers: dict[str, int] = {}
     for d in diagnostics:
         for name, hit in (d.get("markers") or {}).items():
             markers[name] = markers.get(name, 0) + int(bool(hit))
+    return markers
+
+
+def _diagnostics_summary(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """取れなかった馬のページの手がかりを、レース単位でまとめる（どの理由が多いかを一目で見るため）。"""
+    if not diagnostics:
+        return None
     return {
         "pages": len(diagnostics),
-        "http_status": _count([d.get("http_status") for d in diagnostics]),
-        "titles": _count([d.get("title") for d in diagnostics]),
+        "http_status": _count_values([d.get("http_status") for d in diagnostics]),
+        "titles": _count_values([d.get("title") for d in diagnostics]),
         "redirected_pages": sum(1 for d in diagnostics if d.get("redirected") is True),
         "content_bytes_min": min((d.get("content_bytes") or 0) for d in diagnostics),
         "content_bytes_max": max((d.get("content_bytes") or 0) for d in diagnostics),
-        "marker_hits": markers,
+        "marker_hits": _marker_hits(diagnostics),
         "ajax_urls": sorted({u for d in diagnostics for u in d.get("ajax_urls") or []})[:10],
+    }
+
+
+def _ajax_failure_summary(diagnostics: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """ajax の読み込み先から戦績表を読めなかった馬の手がかりを、レース単位でまとめる。"""
+    if not diagnostics:
+        return None
+    fetched = [d for d in diagnostics if d.get("fetched")]
+    return {
+        "attempts": len(diagnostics),
+        "http_failed": len(diagnostics) - len(fetched),
+        "http_status": _count_values([d.get("http_status") for d in fetched]),
+        "media_types": _count_values([d.get("media_type") for d in fetched]),
+        "redirected": sum(1 for d in fetched if d.get("redirected") is True),
+        "json_parsed": sum(1 for d in fetched if d.get("json_parsed") is True),
+        "status_ok": sum(1 for d in fetched if d.get("status_ok") is True),
+        "results_table_present": sum(1 for d in fetched if d.get("results_table_present") is True),
+        "header_matches": sum(1 for d in fetched if d.get("header_matches") is True),
+        "marker_hits": _marker_hits(fetched),
     }
 
 
@@ -545,6 +573,10 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
     requested = sum(1 for _ in horses) if long_fetcher is not None else 0
     ok = long_statuses.get(LONG_OK, 0)
     diagnostics = [h["long_history"]["diagnostics"] for h in horses if h["long_history"].get("diagnostics")]
+    ajax_diagnostics = [h["long_history"]["ajax_diagnostics"] for h in horses
+                        if h["long_history"].get("ajax_diagnostics")]
+    retrievals = [h["long_history"].get("retrieval") for h in horses
+                  if h["long_history"]["status"] == LONG_OK and h["long_history"].get("retrieval")]
     return {
         "version": config["version"],
         "mode": "observe_only",
@@ -569,7 +601,10 @@ def build_inventory(race: dict[str, Any], config: dict[str, Any], now: datetime.
             "long_history_requested": long_fetcher is not None,
             "long_history_status_counts": long_statuses,
             "long_history_success_rate": round(ok / requested, 4) if requested else None,
+            # 取れた馬の戦績表をどこから読んだか（page：馬のページに直接あった / ajax：読み込み先から読んだ）
+            "long_history_retrieval_counts": _count_values(retrievals),
             "blocked_page_summary": _diagnostics_summary(diagnostics),
+            "ajax_failure_summary": _ajax_failure_summary(ajax_diagnostics),
         },
         "feature_usage": feature_usage(horses, all_current_runs, config),
         "horses": horses,

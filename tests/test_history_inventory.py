@@ -201,11 +201,18 @@ def _history_row(date, kaisai, race_name, heads, finish, dist, going, time, marg
     return "<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>"
 
 
-SYNTHETIC_HISTORY_HTML = (
-    "<html><body><table class='db_h_race_results'><thead><tr><th>日付</th></tr></thead><tbody>"
-    + _history_row("2026/06/07", "3東京2", "テストマイル(GI)", 17, 4, "芝1600", "良", "1:32.1", "0.0", "33.7")
+# 実ページの戦績表の見出し（thead の先頭28列。_parse_run_row が読む列はこの中にある）
+REAL_HEADER_LABELS = ["日付", "開催", "天気", "R", "レース名", "映像", "頭数", "枠番", "馬番", "オッズ",
+                      "人気", "着順", "騎手", "斤量", "距離", "水分量", "馬場", "馬場指数", "タイム", "着差",
+                      "ﾀｲﾑ指数", "ﾀｲﾑ指数M", "ｽﾀｰﾄ指数", "追走指数", "上がり指数", "通過", "ペース", "上り"]
+HISTORY_HEAD = "<thead><tr>" + "".join(f"<th>{label}</th>" for label in REAL_HEADER_LABELS) + "</tr></thead>"
+HISTORY_ROWS = (
+    _history_row("2026/06/07", "3東京2", "テストマイル(GI)", 17, 4, "芝1600", "良", "1:32.1", "0.0", "33.7")
     + _history_row("2026/04/05", "2阪神4", "テスト記念(GII)", 15, 5, "芝2000", "良", "1:58.4", "0.4", "35.3")
     + _history_row("2025/10/12", "4東京2", "テストS(GII)", 11, 2, "芝1800", "稍", "1:45.9", "0.1", "33.9")
+)
+SYNTHETIC_HISTORY_HTML = (
+    "<html><body><table class='db_h_race_results'>" + HISTORY_HEAD + "<tbody>" + HISTORY_ROWS
     + "</tbody></table></body></html>"
 )
 
@@ -452,11 +459,12 @@ def test_research_parser_counts_all_rows_beyond_the_window():
 
 class _FakeResp:
     def __init__(self, html, status=200, url="https://db.netkeiba.com/horse/2020100001/",
-                 charset="utf-8"):
+                 charset="utf-8", headers=None):
         self.content = html.encode(charset)
         self.text = html
         self.status_code = status
         self.url = url
+        self.headers = headers or {}
 
 
 BOT_PAGE = ("<html><head><title>Just a moment...</title></head><body>"
@@ -484,8 +492,9 @@ def test_blocked_page_records_diagnostics_not_the_page(monkeypatch):
 
 
 def test_layout_change_is_distinguishable_from_bot_page(monkeypatch):
+    # ajax の読み込み先は取れなかったことにする（ここで見るのは馬のページの手がかり）
     monkeypatch.setattr(c_horse_history, "http_get",
-                        lambda url: _FakeResp(LAYOUT_CHANGED_PAGE, charset="euc_jp"))
+                        _Router(_FakeResp(LAYOUT_CHANGED_PAGE, charset="euc_jp"), ajax=None))
     diag = c_horse_history.fetch_horse_history_for_research("2020100001")["diagnostics"]
     assert diag["title"] == "テスト馬 | 競走馬データ"          # EUC-JP でも文字化けしない
     assert diag["table_classes"] == ["db_prof_table"]
@@ -562,3 +571,220 @@ def test_long_titles_are_capped():
     page = "<html><head><title>" + "長" * 500 + "</title></head><body></body></html>"
     diag = c_horse_history.describe_page_without_results_table(_FakeResp(page))
     assert len(diag["title"]) == 120
+
+
+# ---- 戦績表の ajax の読み込み先（研究用の取得だけ。本番の取得経路は変えない） ------------------
+
+AJAX_URL = c_horse_history.HORSE_RESULTS_AJAX_URL
+# ajax の data に入る HTML の断片（実ページでは #horse_results_box に差し込まれる部分）
+AJAX_RESULTS_FRAGMENT = ("<div class='cate_bar'><h2>競走成績</h2></div>"
+                         "<table class='db_h_race_results nk_tb_common'>" + HISTORY_HEAD
+                         + "<tbody>" + HISTORY_ROWS + "</tbody></table>")
+
+
+class _Router:
+    """馬のページと ajax の読み込み先とで別の偽の応答を返す http_get。呼ばれ方も記録する。"""
+
+    def __init__(self, page, ajax=None):
+        self.page, self.ajax, self.calls = page, ajax, []
+
+    def __call__(self, url, **kwargs):
+        self.calls.append((url, kwargs))
+        return self.ajax if url.startswith(AJAX_URL) else self.page
+
+
+def _ajax_json(data, status="OK", url=AJAX_URL + "?input=UTF-8&output=json&id=2020100001"):
+    return _FakeResp(json.dumps({"status": status, "data": data}, ensure_ascii=False), url=url,
+                     headers={"Content-Type": "application/json; charset=UTF-8"})
+
+
+def _without_race_name(runs):
+    return [{k: v for k, v in r.items() if k != "race_name"} for r in runs]
+
+
+def test_expected_columns_match_the_real_header_labels():
+    """固定 index で読む列の見出しが、実ページの戦績表の見出しと一致している。"""
+    assert {i: REAL_HEADER_LABELS[i] for i in c_horse_history.RESULT_COLUMNS} == c_horse_history.RESULT_COLUMNS
+
+
+def test_research_fetcher_reads_results_from_the_ajax_endpoint(monkeypatch):
+    router = _Router(_FakeResp(LAYOUT_CHANGED_PAGE, charset="euc_jp"), _ajax_json(AJAX_RESULTS_FRAGMENT))
+    monkeypatch.setattr(c_horse_history, "http_get", router)
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "ok" and result["retrieval"] == "ajax"
+    assert result["source_total_rows"] == 3
+    # 同じ表を本番のパーサで読んだ結果と、race_name 以外は完全に一致する
+    assert _without_race_name(result["runs"]) == c_horse_history.parse_horse_history_html(SYNTHETIC_HISTORY_HTML, 15)
+    assert [r["race_name"] for r in result["runs"]] == ["テストマイル(GI)", "テスト記念(GII)", "テストS(GII)"]
+    # ページのスクリプトと同じ呼び方。1頭につき馬のページ1回＋ajax 1回だけ
+    (page_url, _), (ajax_url, ajax_kwargs) = router.calls
+    assert page_url == "https://db.netkeiba.com/horse/2020100001"
+    assert ajax_url == AJAX_URL
+    assert ajax_kwargs["params"] == {"input": "UTF-8", "output": "json", "id": "2020100001"}
+    assert ajax_kwargs["headers"]["Referer"] == page_url
+    assert "diagnostics" not in result and "ajax_diagnostics" not in result
+
+
+def test_ajax_fragment_without_tbody_is_read_the_same(monkeypatch):
+    fragment = AJAX_RESULTS_FRAGMENT.replace("<tbody>", "").replace("</tbody>", "")
+    monkeypatch.setattr(c_horse_history, "http_get",
+                        _Router(_FakeResp(LAYOUT_CHANGED_PAGE), _ajax_json(fragment)))
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "ok" and result["source_total_rows"] == 3
+    assert _without_race_name(result["runs"]) == c_horse_history.parse_horse_history_html(SYNTHETIC_HISTORY_HTML, 15)
+
+
+def test_ajax_json_in_another_charset_is_read_like_a_browser(monkeypatch):
+    """UTF-8 でない JSON（Content-Type の charset どおりの文字コード）でも、ブラウザと同じく読める。"""
+    body = json.dumps({"status": "OK", "data": AJAX_RESULTS_FRAGMENT}, ensure_ascii=False)
+    ajax = _FakeResp(body, url=AJAX_URL, charset="euc_jp",
+                     headers={"Content-Type": "application/json; charset=EUC-JP"})
+    monkeypatch.setattr(c_horse_history, "http_get", _Router(_FakeResp(LAYOUT_CHANGED_PAGE), ajax))
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "ok" and result["source_total_rows"] == 3
+
+
+def test_shifted_columns_are_not_read(monkeypatch):
+    """列が1つ増えて位置がずれた表は、値を読まずに layout_mismatch にする（静かにズレた値を使わない）。"""
+    labels = REAL_HEADER_LABELS[:2] + ["新しい列"] + REAL_HEADER_LABELS[2:]
+    shifted_head = "<thead><tr>" + "".join(f"<th>{label}</th>" for label in labels) + "</tr></thead>"
+    fragment = AJAX_RESULTS_FRAGMENT.replace(HISTORY_HEAD, shifted_head)
+    monkeypatch.setattr(c_horse_history, "http_get",
+                        _Router(_FakeResp(LAYOUT_CHANGED_PAGE), _ajax_json(fragment)))
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "layout_mismatch" and result["runs"] == []
+    assert result["header_positions"]["日付"] == 0 and result["header_positions"]["レース名"] == 5
+    assert result["ajax_diagnostics"]["results_table_present"] is True
+    assert result["ajax_diagnostics"]["header_matches"] is False
+    # 馬のページに直接ある表でも同じ
+    page = SYNTHETIC_HISTORY_HTML.replace(HISTORY_HEAD, shifted_head)
+    monkeypatch.setattr(c_horse_history, "http_get", _Router(_FakeResp(page)))
+    assert c_horse_history.fetch_horse_history_for_research("2020100001")["status"] == "layout_mismatch"
+
+
+def test_ajax_failures_are_recorded_without_guessing(monkeypatch):
+    maintenance = _FakeResp("<html><body>メンテナンス中</body></html>", url=AJAX_URL,
+                            headers={"Content-Type": "text/html; charset=EUC-JP"})
+    cases = {
+        "http_failed": (None, "fetch_failed"),
+        "status_ng": (_ajax_json("", status="NG"), "blocked"),
+        "not_json_without_table": (maintenance, "blocked"),
+    }
+    results = {}
+    for name, (ajax, expected) in cases.items():
+        monkeypatch.setattr(c_horse_history, "http_get", _Router(_FakeResp(LAYOUT_CHANGED_PAGE), ajax))
+        result = c_horse_history.fetch_horse_history_for_research("2020100001")
+        assert result["status"] == expected, name
+        assert result["runs"] == [] and result["retrieval"] == "ajax", name
+        assert result["diagnostics"]["http_status"] == 200, name          # 馬のページの手がかりも残る
+        results[name] = result["ajax_diagnostics"]
+    assert results["http_failed"] == {"fetched": False}
+    assert results["status_ng"]["json_parsed"] is True and results["status_ng"]["status_ok"] is False
+    assert results["status_ng"]["results_table_present"] is False
+    assert results["status_ng"]["header_matches"] is None
+    assert results["not_json_without_table"]["json_parsed"] is False
+    assert results["not_json_without_table"]["status_ok"] is None
+    assert results["not_json_without_table"]["media_type"] == "text/html"
+
+
+def test_page_without_the_ajax_reference_is_not_followed(monkeypatch):
+    """ajax の読み込み先を参照していないページ（bot 判定の画面など）からは、ajax を取りに行かない。"""
+    router = _Router(_FakeResp(BOT_PAGE), _ajax_json(AJAX_RESULTS_FRAGMENT))
+    monkeypatch.setattr(c_horse_history, "http_get", router)
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "blocked" and result["retrieval"] == "page"
+    assert len(router.calls) == 1
+
+
+def test_inline_table_on_the_page_is_used_without_ajax(monkeypatch):
+    router = _Router(_FakeResp(SYNTHETIC_HISTORY_HTML))
+    monkeypatch.setattr(c_horse_history, "http_get", router)
+    result = c_horse_history.fetch_horse_history_for_research("2020100001")
+    assert result["status"] == "ok" and result["retrieval"] == "page"
+    assert len(router.calls) == 1
+
+
+def test_inventory_records_retrieval_and_ajax_failure_summary(monkeypatch):
+    shifted_head = "<thead><tr>" + "".join(
+        f"<th>{label}</th>" for label in REAL_HEADER_LABELS[:2] + ["新しい列"] + REAL_HEADER_LABELS[2:]
+    ) + "</tr></thead>"
+    ajax_by_horse = {"A": _ajax_json(AJAX_RESULTS_FRAGMENT),
+                     "B": _ajax_json(AJAX_RESULTS_FRAGMENT.replace(HISTORY_HEAD, shifted_head)),
+                     "C": None}
+
+    def fake_get(url, **kwargs):
+        if url.startswith(AJAX_URL):
+            return ajax_by_horse[kwargs["params"]["id"]]
+        return _FakeResp(LAYOUT_CHANGED_PAGE, url=url)
+
+    monkeypatch.setattr(c_horse_history, "http_get", fake_get)
+    race = _race([_entry(1, CURRENT5, ref="A"), _entry(2, CURRENT5, ref="B"), _entry(3, CURRENT5, ref="C")])
+    inv = hi.build_inventory(race, CONFIG, BEFORE, long_fetcher=c_horse_history.fetch_horse_history_for_research)
+    by_num = {h["num"]: h["long_history"] for h in inv["horses"]}
+    assert by_num[1]["status"] == "ok" and by_num[1]["retrieval"] == "ajax"
+    assert by_num[1]["source_total_rows"] == 3 and by_num[1]["returned_runs"] == 3
+    assert by_num[2]["status"] == "layout_mismatch" and by_num[2]["header_positions"]["レース名"] == 5
+    assert by_num[3]["status"] == "fetch_failed" and by_num[3]["ajax_diagnostics"] == {"fetched": False}
+    status = inv["source_status"]
+    assert status["long_history_status_counts"] == {"ok": 1, "layout_mismatch": 1, "fetch_failed": 1}
+    assert status["long_history_retrieval_counts"] == {"ajax": 1}
+    summary = status["ajax_failure_summary"]
+    assert summary["attempts"] == 2 and summary["http_failed"] == 1
+    assert summary["results_table_present"] == 1 and summary["header_matches"] == 0
+    assert status["blocked_page_summary"]["pages"] == 2      # 取れなかった2頭の馬のページの手がかり
+    ok_only = hi.build_inventory(_race([_entry(1, CURRENT5, ref="A")]), CONFIG, BEFORE,
+                                 long_fetcher=c_horse_history.fetch_horse_history_for_research)
+    assert ok_only["source_status"]["ajax_failure_summary"] is None
+
+
+def test_ajax_diagnostics_never_persist_response_text_or_url_tokens(monkeypatch, tmp_path: Path):
+    """public repo にコミットされる artifact に、ajax の応答の本文や URL の一時トークンを残さない。"""
+    leaky_html = _FakeResp(
+        "<html><body><p>IP=203.0.113.1 token=SECRET Ray ID: 8f1e2d3c4b5a6978</p></body></html>",
+        url=AJAX_URL + "?input=UTF-8&output=json&id=A&token=SECRET#x",
+        headers={"Content-Type": "text/html; charset=EUC-JP; token=SECRET"})
+    leaky_json = _ajax_json("<p>IP=203.0.113.1 token=SECRET</p>",
+                            url="https://user:SECRET@db.netkeiba.com/horse/ajax_horse_results.html?token=SECRET")
+    ajax_by_horse = {"A": leaky_html, "B": leaky_json}
+
+    def fake_get(url, **kwargs):
+        if url.startswith(AJAX_URL):
+            return ajax_by_horse[kwargs["params"]["id"]]
+        return _FakeResp(LAYOUT_CHANGED_PAGE, url=url)
+
+    monkeypatch.setattr(c_horse_history, "http_get", fake_get)
+    race = _race([_entry(1, CURRENT5, ref="A"), _entry(2, CURRENT5, ref="B")])
+    report = hi.capture({"races": [race]}, CONFIG, BEFORE, directory=tmp_path,
+                        long_fetcher=c_horse_history.fetch_horse_history_for_research)
+    [path] = report["written"]
+    persisted = Path(path).read_text(encoding="utf-8")
+    for secret in ("203.0.113.1", "SECRET", "8f1e2d3c4b5a6978", "#x", "token=", "user:", "?input"):
+        assert secret not in persisted, secret
+
+    inv = json.loads(persisted)
+    diag_a = inv["horses"][0]["long_history"]["ajax_diagnostics"]
+    diag_b = inv["horses"][1]["long_history"]["ajax_diagnostics"]
+    assert diag_a["final_url"] == AJAX_URL and diag_a["redirected"] is False
+    assert diag_a["media_type"] == "text/html"
+    assert diag_b["final_url"] == AJAX_URL and diag_b["json_parsed"] is True
+    assert diag_b["status_ok"] is True and diag_b["results_table_present"] is False
+
+
+def test_real_results_table_is_read_with_the_expected_columns():
+    """手元に実サンプルがあるときだけ（git 管理外なので CI では skip）。
+
+    実ページで ajax が差し込んだ戦績表（#horse_results_box の中身）を研究用のパーサで読み、
+    見出しの確認が通ること・本番のパーサと race_name 以外が一致することを確かめる。
+    """
+    import pytest
+    from bs4 import BeautifulSoup
+
+    sample = ROOT / "tests" / "samples" / "horse_teiem.html"
+    if not sample.exists():
+        pytest.skip("tests/samples/horse_teiem.html が無い（git 管理外。tests/samples/README.md を参照）")
+    html = sample.read_text(encoding="utf-8", errors="replace")
+    fragment = BeautifulSoup(html, "lxml").select_one("#horse_results_box").decode_contents()
+    parsed = c_horse_history.parse_horse_history_html_with_race_names(fragment)
+    assert parsed["header_matches"] is True
+    assert parsed["source_total_rows"] > 5
+    assert _without_race_name(parsed["runs"]) == c_horse_history.parse_horse_history_html(html, n_runs=1000)
