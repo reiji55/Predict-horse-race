@@ -1,0 +1,121 @@
+{
+  "version": "race-performance-v1",
+  "kind": "preregistered_research_definition",
+  "spec": "docs/research/RACE_PERFORMANCE_PREREG_V1.md",
+  "note": "研究専用の事前登録。この定義を読むのは Challenger race-performance-v1 だけ（実装は PR-C1）。Champion・既存の Challenger・本番の予想・買い目・UI は読まない。model_registry.HASH_CONFIGS には入れない。登録後に値を1つでも変えたら v1 ではない（新しい version として登録し直す）。",
+  "model": {
+    "challenger_id": "race-performance-v1",
+    "factor": "race_performance_raw",
+    "applies_to": ["race-performance-v1"],
+    "not_applied_to": ["win-v1-speed-guard", "top3-partner-v1", "race-regime-abstain-v1", "speed-base-times-v2-coverage"]
+  },
+  "hypothesis": "着順を頭数で正規化する現行の指標に加えて、レース格（class）と勝ち馬との差（margin_sec）を1つの成績内容因子として評価すると、登録後のレースの勝率予測 log loss が Champion より下がる。",
+  "inputs": {
+    "past_runs_source": "raw の entries[].past_runs（いまの予想の入力そのまま。発走前に作られたもの）",
+    "max_runs": 5,
+    "run_fields": ["date", "surface", "dist", "class", "margin_sec"],
+    "today_fields": ["course.surface", "course.dist", "race_date"],
+    "race_date": "race id の先頭8桁（YYYYMMDD）。読めなければそのレースの RPS は全馬 null",
+    "not_used": ["finish", "win_odds", "combo_odds", "long_history", "same_named_race"]
+  },
+  "class_strength": {
+    "mi": 0.10,
+    "1win": 0.25,
+    "2win": 0.40,
+    "3win": 0.55,
+    "op": 0.70,
+    "g3": 0.80,
+    "g2": 0.90,
+    "g1": 1.00
+  },
+  "usable_run": {
+    "position_limit": "past_runs の先頭から max_runs 走まで（それより後ろは beyond_max_runs）",
+    "cutoff": "run.date < race_date（当日・未来・日付不明は除外）",
+    "flat_surfaces": ["芝", "ダ"],
+    "same_surface_as_today": true,
+    "max_abs_dist_diff_m": 400,
+    "class_must_be_in_class_strength": true,
+    "margin_must_be_finite_number": true,
+    "exclusion_reasons": [
+      "beyond_max_runs",
+      "date_invalid",
+      "same_day",
+      "future",
+      "today_not_flat",
+      "run_not_flat",
+      "surface_mismatch",
+      "dist_missing",
+      "dist_out_of_range",
+      "class_unknown",
+      "margin_missing",
+      "margin_invalid"
+    ],
+    "exclusion_order": "exclusion_reasons の順に最初に当たった理由を1つだけ記録する"
+  },
+  "margin": {
+    "tau_sec": 1.0,
+    "run_value": "v_run = class_strength[class] × exp(−max(0, margin_sec) / tau_sec)",
+    "negative": "0 として扱い、margin_clamped_negative=true を記録する（勝ち馬の 0 より有利にしない）",
+    "missing": "null は除外（margin_missing）",
+    "invalid": "数値でない・bool・NaN・±Inf は除外（margin_invalid）",
+    "large_finite": "除外しない。exp で 0 に近づくだけで、NaN や −Inf は生まれない"
+  },
+  "weights": {
+    "recency_by_input_position": [1.0, 0.9, 0.8, 0.7, 0.6],
+    "recency_rule": "past_runs の入力位置（0 始まり）で決める。無効な走を詰めて位置をずらさない",
+    "dist_decay_m": 800,
+    "dist_weight": "w_dist = 1 − |run.dist − today.dist| / dist_decay_m（|差| ≤ 400 の走だけなので 0.5〜1.0）"
+  },
+  "aggregate": {
+    "formula": "rps_raw = Σ(v_run × w_recency × w_dist) / Σ(w_recency × w_dist)（有効走だけで計算）",
+    "min_usable_runs": 2,
+    "below_min_usable_runs": "null（0 埋め・平均補完・推測をしない）"
+  },
+  "audit_record": {
+    "per_horse": ["n_input_runs", "n_usable", "rps_raw", "excluded_by_reason", "margin_clamped_negative_runs", "usable_runs[].position", "usable_runs[].date", "usable_runs[].class", "usable_runs[].margin_sec", "usable_runs[].dist", "usable_runs[].v_run", "usable_runs[].w_recency", "usable_runs[].w_dist"],
+    "per_race": ["field_size", "rps_available_horses", "rps_coverage", "excluded_by_reason_total", "config_sha256", "version"]
+  },
+  "integration": {
+    "score_weights": {
+      "speed": 0.3825,
+      "aptitude": 0.2550,
+      "human": 0.2125,
+      "race_performance": 0.1500
+    },
+    "derived_from": {
+      "score_weights_at_registration": {"speed": 0.45, "aptitude": 0.30, "human": 0.25},
+      "existing_factors_scale": 0.85,
+      "race_performance_weight": 0.15,
+      "source": "config/cards.json の score_weights（登録時点）"
+    },
+    "standardization": "logic/base_score.z_standardize と同じ規則（レース内・母標準偏差。有効値1頭または sd=0 なら 0）。RPS は補完しないので stat_mask は使わない",
+    "missing": "RPS が null の馬は、その馬だけ残りの因子で重みを再正規化する（logic/base_score.composite_scores と同じ）",
+    "all_horses_missing": "RPS が全馬 null のレースは既存3因子と同じ合成になる（退化）。何頭で RPS が使えたかは必ず記録する",
+    "uncertain_flag": "変えない（既存3因子の定義のまま。RPS の欠損で uncertain を立てない）",
+    "character_score_weights": "unchanged_3_factor",
+    "character_score_weights_note": "kei / gen / otori の上書き重み（config/cards.json の characters[].score_weights）は変えず、RPS を入れない（キャラのルールを変えないため）。上書きの無いキャラは共通の重み（上の score_weights）を使う",
+    "unchanged": ["T", "score_scale", "p", "q", "myomi", "cards", "templates", "lambda", "budgets", "character_rules", "chappy", "otori_gate", "speed_guard", "base_times"]
+  },
+  "evaluation": {
+    "primary": "paired log loss（同じ発走前入力の Challenger − Champion。低いほど良い）",
+    "co_primary": "paired multi-class Brier（Σ_i (p_i − y_i)²。低いほど良い）",
+    "metric_definitions": "research/model_evaluation.py と research/calibration.win_metrics の log_loss / brier / paired と同じ（eps 1e-12、softmax は score のある全馬）",
+    "always_report": ["score_coverage", "rps_coverage", "paired_valid_race_rate"],
+    "diagnostics": ["recall@4", "recall@6", "character_selection", "calibration_buckets", "market_q_baseline", "spent", "payout", "roi", "pass_rate"],
+    "roi_note": "ROI は分散が大きいので、初期の採否の根拠に使わない",
+    "consistency_checks": ["post_at", "horse_set", "odds", "input_raw", "frozen_at", "temperature", "snapshot", "model_version"],
+    "not_evaluated": "欠損や違うモデル版を黙って落とさない。理由つきで coverage に残す",
+    "uncertainty": "レース単位の paired 差と、開催日単位の bootstrap など（会場・開催日内の相関を無視しない）",
+    "cross_check": "log loss が改善しても Brier・calibration・coverage が悪化していないかを見る",
+    "first_checkpoint_paired_races": 40,
+    "checkpoint_note": "バグ・coverage・方向感の点検。昇格の閾値ではない。少数レースの成績では昇格しない",
+    "promotion": "not_registered（採否の必要サンプル数と不確実性の閾値は、結果を見る前に別の事前登録で決める）"
+  },
+  "forward": {
+    "boundary": "post_at > max(事前登録の有効日時, Challenger の登録日時, 評価式の登録日時)",
+    "registration_times": "それぞれ、その登録を main に入れたマージ commit の committer 時刻（git の記録）。手で書いた日時は使わない",
+    "evaluation_registered_by": "この設定の evaluation 節（PR-C0）。PR-C2 は実装だけで定義を変えない",
+    "known_races": "登録より前に発走したレース（2026-10-03 / 10-04 を含む）は探索・バグ回帰専用。forward の成績として採点しない",
+    "requires": "両モデルの発走前 snapshot と capture が揃うレースだけ"
+  }
+}
