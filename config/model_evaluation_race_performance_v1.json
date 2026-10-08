@@ -1,0 +1,100 @@
+{
+  "version": "race-performance-v1-forward-eval-v1",
+  "spec": "docs/research/RACE_PERFORMANCE_PREREG_V1.md",
+  "prereg_config": "config/race_performance_v1.json",
+  "prereg_config_sha256": "592cf78fef99866839d1c385eded9a7388c7e6a5a7e5a1635d7bd9e902121b70",
+  "prereg_effective_at": "2026-10-09T00:26:18+09:00",
+  "registered_at": "2026-10-09T00:26:18+09:00",
+  "registered_at_note": "評価式は事前登録（PR #28）の evaluation 節で登録した。prereg_effective_at と registered_at はどちらも PR #28 のマージ時刻（merged_at 2026-10-08T15:26:18Z と、マージ commit e68a5ff の committer 時刻 2026-10-09T00:26:18+09:00 の遅い方。手で選んだ日時ではない）。forward の対象は post_time が max(この2つ, Challenger の registered_at) より後のレースだけ。Challenger の registered_at は PR-C1 のマージ時刻で、マージ後に記録する（記録するまで採点はしない。capture は記録するだけ）。このファイルの中身は capture の照合（evaluation_config_hash）に使うので変えない。集計の追加設定（bootstrap など）は別のファイルにする。",
+  "note": "evaluation-only / observe-only。Champion・Challenger の予想・選定・買い目・重み・T・λ には一切使わない。data/shadow/model_evaluation/ にだけ書く。正式成績(data/results.json)・UI には混ぜない。主指標は paired log loss、主要な副指標は paired multi-class Brier（事前登録 §7.2）。",
+  "champion_model_id": "win-v1-speed-guard",
+  "challenger_model_id": "race-performance-v1",
+  "capture_dir": "data/shadow/model_evaluation/race-performance-v1/prerace",
+  "capture_dir_note": "この評価の発走前 capture（Champion の分も）はここに置く。speed-v2 の評価（data/shadow/model_evaluation/prerace/）と分けるのは、2つの評価が同じ秒に Champion を記録したとき、ファイル名（時刻_phase）が重なって片方が捨てられないようにするため。",
+  "pairing": {
+    "require_same_frozen_at": true,
+    "require_same_config_hash": true,
+    "require_same_horses_and_odds": true,
+    "require_frozen_before_post": true,
+    "require_registered_artifact": true,
+    "require_captures": true,
+    "require_capture_fidelity": true,
+    "require_same_input_raw_hash": true
+  },
+  "probability": {
+    "temperature_source": "凍結時の T だけを使う。両モデルの capture があれば capture に残した T（両モデル同じ・capture 時の設定 hash が snapshot と同じこと）。capture が無ければ snapshot の config_hash がいまの本番設定と同じときだけいまの T。どちらでもなければ確率評価をしない（temperature_unverifiable）",
+    "score_source": "両モデルの発走前 capture が snapshot と一致していればその全精度 score、どちらかでも無ければ両モデルとも snapshot.marks の score（0.1丸め）",
+    "model_p_field": "本番と同じく score のある全馬で softmax。単勝オッズの有無で馬を落とさない。両モデルで score のある馬が違えば比べない（score_set_mismatch）",
+    "market_q": "参考の基準線。出走馬全員（marks の頭数 = speed_quality.total_horses）の正の単勝オッズが揃うときだけ（揃わなければ incomplete_market_odds / market_field_incomplete）。q の累積と calibration は q が出たレースだけで作る",
+    "min_score_coverage": 0.8,
+    "eps": 1e-12,
+    "calibration_bucket_edges": [
+      0.0,
+      0.02,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.5,
+      1.0
+    ]
+  },
+  "ranking": {
+    "recall_k": [
+      4,
+      6
+    ],
+    "order_sources": [
+      "base",
+      "top3",
+      "kei_sel",
+      "tetsu_sel",
+      "gen_sel"
+    ],
+    "card_selection_chars": [
+      "kei",
+      "tetsu",
+      "gen"
+    ]
+  },
+  "speed_quality": {
+    "keys": [
+      "used",
+      "qualified_horses",
+      "total_horses",
+      "coverage",
+      "raw_available_horses",
+      "reason"
+    ]
+  },
+  "diversity": {
+    "fixed_three": [
+      "kei",
+      "tetsu",
+      "gen"
+    ],
+    "redundancy_flag": {
+      "require_axis_match": true,
+      "min_jaccard": 0.6
+    }
+  },
+  "secondary": {
+    "fixed_three": [
+      "kei",
+      "tetsu",
+      "gen"
+    ],
+    "auto_chappy_chars": [
+      "chappy",
+      "otori"
+    ]
+  },
+  "primary_metric": "log_loss",
+  "key_secondary_metric": "brier",
+  "first_checkpoint_paired_races": 40,
+  "promotion": {
+    "status": "not_registered",
+    "note": "40 paired races はバグ・coverage・方向感の点検で、昇格の閾値ではない。採否に必要なサンプル数と不確実性の閾値は、結果を見る前に別の事前登録で決める（事前登録 §7.5・§7.6）。"
+  }
+}

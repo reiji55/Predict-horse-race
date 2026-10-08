@@ -24,6 +24,10 @@ Champion と speed-v2 Challenger を、**同じレース・同じ発走前情報
     - Challenger の snapshot が登録どおりの凍結表（artifact_id・lookup_sha256）で作られている
 登録前のレースは excluded_pre_registration に分けて出し、coverage の分母にも入れない。
 
+事前登録から始めた評価（race-performance-v1：config/model_evaluation_race_performance_v1.json）も、
+同じ関数を `--config` で使う。その評価の capture は設定の capture_dir（自分のフォルダ）に置き、
+capture についての照合（capture_problem）と、事前登録の有効日時（prereg_effective_at）を足す。
+
 このモジュールは予想経路（logic/・scraper/）から読まれない。出力は予想の入力にならない。
 """
 from __future__ import annotations
@@ -38,7 +42,7 @@ from pathlib import Path
 from typing import Any
 
 from logic import build_predictions as bp
-from logic import cards, model_registry, snapshots
+from logic import cards, model_registry, race_performance, snapshots
 from logic import speed_index as speed_mod
 from research import calibration, common, diversity, forward_diagnostics, prerace_capture
 from results import build_results
@@ -54,6 +58,8 @@ CAPTURE_DIR = EVAL_DIR / "prerace"
 CHALLENGER_ROOT = common.ROOT / "data" / "challengers"
 # registry に登録した凍結表の項目。snapshot の base_times_ref と全部一致したときだけ「登録どおり」とみなす
 ARTIFACT_PIN_KEYS = ("artifact_id", "lookup_sha256", "meta_content_sha256", "method_version", "cutoff_date")
+# 事前登録した Race Performance を使う Challenger は、snapshot の race_performance_ref を registry と照合する
+RACE_PERFORMANCE_PIN_KEYS = ("version", "config_sha256")
 
 # paired の向き。lower/higher は良し悪しの向き、descriptive は向きを決めない観察値（多様性）
 LOWER_IS_BETTER = "lower_is_better"
@@ -66,9 +72,30 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
         return json.load(f)
 
 
-def model_specs(cfg: dict[str, Any], registry: dict[str, Any] | None = None
-                ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """評価対象の (Champion, Challenger) の登録内容。config と registry が食い違えば止める。"""
+def capture_dir_for(cfg: dict[str, Any]) -> Path:
+    """
+    その評価式の発走前 capture の置き場所。設定に capture_dir が無ければ CAPTURE_DIR（speed-v2 の評価は従来どおり）。
+
+    Champion の capture は評価式ごとに取る。同じフォルダに置くと、2つの評価が同じ秒に取ったときに
+    ファイル名（時刻_phase）が重なり、後の方が duplicate_time で捨てられる。なので評価ごとに分ける。
+    """
+    relative = cfg.get("capture_dir")
+    if not relative:
+        return CAPTURE_DIR
+    path = (common.ROOT / relative).resolve()
+    if EVAL_DIR.resolve() not in path.parents:
+        raise ValueError(f"capture_dir は data/shadow/model_evaluation/ の下だけです: {relative}")
+    return path
+
+
+def model_specs(cfg: dict[str, Any], registry: dict[str, Any] | None = None,
+                require_registered: bool = True) -> tuple[dict[str, Any], dict[str, Any]]:
+    """評価対象の (Champion, Challenger) の登録内容。config と registry が食い違えば止める。
+
+    require_registered=False は発走前の capture だけ（記録するだけで、forward の境界はまだ使わない）。
+    Challenger の registered_at（マージの時刻）は、マージ後に記録するまで無いことがあるため。
+    採点（evaluate）は常に registered_at を求める。
+    """
     registry = registry or model_registry.load_registry()
     champion = registry["champion"]
     if champion["id"] != cfg["champion_model_id"]:
@@ -76,14 +103,20 @@ def model_specs(cfg: dict[str, Any], registry: dict[str, Any] | None = None
     challenger = next((m for m in registry.get("challengers", []) if m["id"] == cfg["challenger_model_id"]), None)
     if challenger is None:
         raise ValueError(f"Challenger {cfg['challenger_model_id']} が registry にありません")
-    if not challenger.get("registered_at"):
+    if require_registered and not challenger.get("registered_at"):
         raise ValueError(f"{challenger['id']} に registered_at がありません")
     return champion, challenger
 
 
 def forward_start(cfg: dict[str, Any], challenger: dict[str, Any]) -> datetime.datetime:
-    """forward の境界。評価式と Challenger の登録の遅い方（これより後に発走したレースだけを数える）。"""
+    """forward の境界。評価式・Challenger・（あれば）事前登録の有効日時のうち、いちばん遅いもの。
+
+    これより後に発走したレースだけを数える。事前登録の有効日時（prereg_effective_at）を持つのは
+    事前登録から始めた評価（race-performance-v1 など）だけで、speed-v2 の評価は従来どおり2つの遅い方。
+    """
     times = [common.parse_dt(cfg.get("registered_at")), common.parse_dt(challenger.get("registered_at"))]
+    if cfg.get("prereg_effective_at") is not None:
+        times.append(common.parse_dt(cfg.get("prereg_effective_at")))
     if any(t is None for t in times):
         raise ValueError("registered_at が読めません")
     return max(times)  # type: ignore[type-var]
@@ -100,10 +133,17 @@ def _base_times_for(spec: dict[str, Any]) -> dict[str, Any]:
     return own[0] if own is not None else speed_mod.load_base_times()
 
 
-def _latest_capture(race_dir: Path) -> dict[str, Any] | None:
+def _latest_capture(race_dir: Path, cfg_hash: str | None = None) -> dict[str, Any] | None:
+    """そのレースの最新の capture。cfg_hash を渡すと、その評価式で取ったものの中の最新。
+
+    Champion の capture は評価ごとに同じフォルダへ追記される（speed-v2 と race-performance-v1）。
+    評価式ごとに見ないと、別の評価の capture を「最新」と見て、変わっていない snapshot を毎回取り直してしまう。
+    """
     if not race_dir.is_dir():
         return None
     rows = [r for r in (common.read_json(p) for p in sorted(race_dir.glob("*.json"))) if isinstance(r, dict)]
+    if cfg_hash is not None:
+        rows = [r for r in rows if (r.get("provenance") or {}).get("evaluation_config_hash") == cfg_hash]
     return max(rows, key=lambda r: r.get("captured_at") or "") if rows else None
 
 
@@ -111,7 +151,8 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
                    now: datetime.datetime, phase: str, configs: dict[str, Any], base_times: dict[str, Any],
                    rates: tuple[float, float], cfg: dict[str, Any], post: datetime.datetime) -> dict[str, Any]:
     temperature = configs["myomi"]["prob_model"]["temperature"]
-    horses, marks = prerace_capture._recompute_horses(race, configs, base_times, rates)
+    # そのモデルの作り方で再計算する（事前登録した Race Performance を使う Challenger は4因子）
+    horses, marks = prerace_capture._recompute_horses(race, configs, base_times, rates, model_spec=spec)
     fidelity = prerace_capture._fidelity(marks, snapshot.get("marks") or [])
     ok = fidelity["recomputed_matches_snapshot"]
     if not ok:
@@ -130,6 +171,8 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
             "git_commit": common.git_commit(),
             "evaluation_version": cfg.get("version"),
             "evaluation_config_hash": common.config_hash(cfg),
+            # 両モデルが同じ raw のレースから作られたことを、モデル間で照合するための指紋
+            "input_raw_sha256": race_performance.canonical_sha256(race),
             "snapshot": {
                 "path": str(snapshot_path.relative_to(common.ROOT))
                 if snapshot_path.is_relative_to(common.ROOT) else str(snapshot_path),
@@ -139,6 +182,7 @@ def capture_record(race: dict[str, Any], spec: dict[str, Any], snapshot: dict[st
                 "config_hash": snapshot.get("config_hash"),
                 "base_times_hash": snapshot.get("base_times_hash"),
                 "base_times_ref": snapshot.get("base_times_ref"),
+                "race_performance_ref": snapshot.get("race_performance_ref"),
             },
         },
         "fidelity": fidelity,
@@ -160,11 +204,12 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None, phase: st
     now = now or datetime.datetime.now(common.JST)
     champion_dir = champion_dir or snapshots.SNAPSHOT_DIR
     challenger_root = challenger_root or CHALLENGER_ROOT
-    output_dir = output_dir or CAPTURE_DIR
     configs = configs or bp.load_configs()
     cfg = cfg or load_config()
-    specs = model_specs(cfg, registry)
+    output_dir = output_dir or capture_dir_for(cfg)
+    specs = model_specs(cfg, registry, require_registered=False)
     tables = {spec["id"]: _base_times_for(spec) for spec in specs}
+    cfg_hash = common.config_hash(cfg)
     rates = bp._overall_rates(raw)
     report: dict[str, list[Any]] = {"added": [], "skipped": []}
 
@@ -185,10 +230,10 @@ def capture(raw: dict[str, Any], now: datetime.datetime | None = None, phase: st
                                           "reason": "no_prerace_model_snapshot"})
                 continue
             race_dir = output_dir / spec["id"] / race_id
-            latest = _latest_capture(race_dir)
+            latest = _latest_capture(race_dir, cfg_hash)
             prov = (latest or {}).get("provenance") or {}
             if latest and (prov.get("snapshot") or {}).get("sha256") == common.sha256_file(path) \
-                    and prov.get("evaluation_config_hash") == common.config_hash(cfg):
+                    and prov.get("evaluation_config_hash") == cfg_hash:
                 report["skipped"].append({"race_id": race_id, "model_id": spec["id"], "reason": "unchanged_snapshot"})
                 continue
             record = capture_record(race, spec, snap, path, now, phase, configs, tables[spec["id"]],
@@ -242,14 +287,42 @@ def pairing_problem(champ: dict[str, Any], chall: dict[str, Any], post: datetime
     if chall.get("model_id") != challenger["id"]:
         return "challenger_model_id_mismatch"
     if rules["require_registered_artifact"]:
-        ref, pin = chall.get("base_times_ref") or {}, challenger.get("base_times") or {}
-        if any(ref.get(k) != pin.get(k) for k in ARTIFACT_PIN_KEYS):
-            return "challenger_artifact_mismatch"
+        if challenger.get("race_performance"):
+            # 事前登録した Race Performance の定義（version・設定の canonical SHA-256）が登録どおりか
+            ref, pin = chall.get("race_performance_ref") or {}, challenger["race_performance"]
+            if any(ref.get(k) != pin.get(k) for k in RACE_PERFORMANCE_PIN_KEYS):
+                return "challenger_artifact_mismatch"
+        else:
+            ref, pin = chall.get("base_times_ref") or {}, challenger.get("base_times") or {}
+            if any(ref.get(k) != pin.get(k) for k in ARTIFACT_PIN_KEYS):
+                return "challenger_artifact_mismatch"
     if rules["require_same_horses_and_odds"]:
         odds = [{int(m["num"]): m.get("odds") for m in s.get("marks") or [] if m.get("num") is not None}
                 for s in (champ, chall)]
         if odds[0] != odds[1]:
             return "prerace_inputs_differ"
+    return None
+
+
+def capture_problem(captures: dict[str, Any], cfg: dict[str, Any]) -> str | None:
+    """
+    発走前 capture についての照合（事前登録から始めた評価だけが使う規則。speed-v2 の評価には無い）。
+
+    - require_captures：両モデルの capture が揃うレースだけを対にする
+    - require_capture_fidelity：各モデルの capture が、そのモデル自身の snapshot と再計算で一致している
+    - require_same_input_raw_hash：両モデルが同じ raw のレースから作られている（モデル間の共通入力）
+    """
+    rules = cfg["pairing"]
+    if rules.get("require_captures") and any(c is None for c in captures.values()):
+        return "capture_missing"
+    present = [c for c in captures.values() if c is not None]
+    if rules.get("require_capture_fidelity") and any(
+            not (c.get("fidelity") or {}).get("recomputed_matches_snapshot") for c in present):
+        return "capture_fidelity_mismatch"
+    if rules.get("require_same_input_raw_hash"):
+        hashes = {(c.get("provenance") or {}).get("input_raw_sha256") for c in present}
+        if len(present) != len(captures) or len(hashes) != 1 or None in hashes:
+            return "input_raw_mismatch"
     return None
 
 
@@ -470,6 +543,9 @@ def evaluate_race(race_id: str, post: datetime.datetime, snaps: dict[str, Any], 
     cfg_hash = common.config_hash(cfg)
     captures = {who: matched_capture(model_ids[who], race_id, post, shas[who], capture_dir, cfg_hash)
                 for who in ("champion", "challenger")}
+    problem = capture_problem(captures, cfg)
+    if problem:
+        return {**base, "status": "not_evaluated", "reason": problem}
     temperature, temperature_source = resolve_temperature(
         captures, snaps["champion"].get("config_hash"), current_config_hash, current_temperature)
     # キャラ別選定順は両モデルとも揃ったときだけ使う（片方だけの比較にしない）
@@ -697,8 +773,8 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
         current_config_hash: str | None = None, now: datetime.datetime | None = None) -> dict[str, Any]:
     champion_dir = champion_dir or snapshots.SNAPSHOT_DIR
     challenger_root = challenger_root or CHALLENGER_ROOT
-    capture_dir = capture_dir or CAPTURE_DIR
     cfg = cfg or load_config()
+    capture_dir = capture_dir or capture_dir_for(cfg)
     champion, challenger = model_specs(cfg, registry)
     start = forward_start(cfg, challenger)
     output_dir = output_dir or EVAL_DIR / challenger["id"]
@@ -779,22 +855,26 @@ def run(race_results: dict[str, Any], champion_dir: Path | None = None, challeng
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="speed-v2 Challenger の forward 評価（evaluation-only）")
+    parser = argparse.ArgumentParser(description="Champion / Challenger の forward 評価（evaluation-only）")
     sub = parser.add_subparsers(dest="command", required=True)
     cap = sub.add_parser("capture", help="発走前に両モデルの評価用入力を記録する")
     cap.add_argument("--week", required=True)
     cap.add_argument("--phase", default="pipeline")
     ev = sub.add_parser("evaluate", help="結果確定後に対の評価と累積を書く")
     ev.add_argument("--results", default=str(common.ROOT / "data" / "race_results.json"))
+    for command in (cap, ev):
+        # 評価式ごとの設定ファイル。省略時は speed-v2 の評価（config/model_evaluation.json）
+        command.add_argument("--config", default=str(CONFIG_PATH))
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
+    cfg = load_config(Path(args.config))
 
     if args.command == "capture":
         raw = common.read_json(bp.RAW_DIR / f"{args.week}.json")
         if not isinstance(raw, dict):
             logger.warning("raw/%s.json が無いため評価用の発走前記録をスキップします", args.week)
             return
-        report = capture(raw, phase=args.phase)
+        report = capture(raw, phase=args.phase, cfg=cfg)
         print(f"model evaluation capture: added={len(report['added'])} skipped={len(report['skipped'])}")
         return
 
@@ -802,7 +882,7 @@ def main() -> None:
     if not isinstance(race_results, dict):
         logger.warning("%s を読めないため評価をスキップします", args.results)
         return
-    summary = run(race_results)
+    summary = run(race_results, cfg=cfg)
     print(json.dumps({"evaluated_pairs": summary["coverage"]["evaluated_pairs"],
                       "not_evaluated": len(summary["coverage"]["not_evaluated"]),
                       "errors": len(summary["errors"])}, ensure_ascii=False))

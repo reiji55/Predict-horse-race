@@ -37,9 +37,12 @@ version: `race-performance-v1`
 | 設定ファイル | `config/race_performance_v1.json` |
 | 設定の canonical SHA-256 | `592cf78fef99866839d1c385eded9a7388c7e6a5a7e5a1635d7bd9e902121b70` |
 | canonical の作り方 | `json.dumps(設定, ensure_ascii=False, sort_keys=True, separators=(",", ":"))` を UTF-8 にして SHA-256。`model_registry._canonical_sha256` と同じで、キーの順番・空白・改行には依存しない |
-| 登録 commit | この PR を main に入れたマージ commit。SHA・committer 時刻・PR の `merged_at` は、PR-C1 の最初にこの表へ追記する |
-| 事前登録の有効日時 | GitHub の PR の `merged_at` と、上の登録 commit の committer 時刻の**遅い方**。どちらも GitHub・git が記録した実際の時刻 |
-| 評価式の登録 | 設定の `evaluation` 節。有効日時は事前登録と同じ |
+| 登録 commit | PR #28 のマージ commit `e68a5ff9a4df3fa378b930d50f6fce09330f0e08`（PR-C1 で追記） |
+| 登録 commit の committer 時刻 | 2026-10-09T00:26:18+09:00 |
+| PR #28 の `merged_at` | 2026-10-08T15:26:18Z（= 2026-10-09T00:26:18+09:00） |
+| 事前登録の有効日時 | **2026-10-09T00:26:18+09:00**（GitHub の PR の `merged_at` と、上の登録 commit の committer 時刻の**遅い方**。この回は両方が同じ時刻） |
+| 評価式の登録 | 設定の `evaluation` 節。有効日時は事前登録と同じ（2026-10-09T00:26:18+09:00） |
+| Challenger の登録日時 | PR-C1 のマージ時刻（`merged_at` と committer 時刻の遅い方）。マージ後に、この表と `config/models.json` の `registered_at` へ記録する。記録するまで採点（evaluate）はしない |
 
 **登録日時を手で書かない理由**
 - 文書や設定の中に、それ自身を含む commit の SHA や時刻は書けない。
@@ -53,6 +56,7 @@ version: `race-performance-v1`
 |---|---|---|
 | 2026-10-08 | PR-C0 提出（`44d5f01`） | 初版。もとの仕様のとおりに式・パラメータ・統合・評価を書き起こした。仕様に無い点・既存実装との衝突は §11 に挙げ、仕様どおりに読める形を下書きとして入れた |
 | 2026-10-08 | PR-C0 レビュー対応（登録前の設計変更） | ① 識別力の無い RPS（使える馬が2頭未満・sd=0）は、そのレースだけ因子ごと無効にし、既存3因子に完全に戻す（§5.2）。② キャラ別の重みは `unchanged_3_factor` で確定。RPS で変わり得る経路の記述を実コードに合わせて直した（§5.3）。③ Brier を「主要な副指標（key secondary）」に統一し、照合の契約をモデル間とモデルごとに書き分けた（§7.2・§7.4）。④ 有効日時を `merged_at` と committer 時刻の遅い方にした。式・パラメータ・重みの値は変えていない |
+| 2026-10-09 | PR-C1 提出（Challenger の実装） | 登録記録（PR #28 のマージ commit・時刻）を追記した。登録した式・設定は変えずに Challenger `race-performance-v1` を実装した（§13）。設定の SHA-256 は `592cf78f…` のまま |
 
 マージ前のレビューで直した点は、登録前の設計変更としてこの表に残す。
 
@@ -412,3 +416,17 @@ ROI は分散が大きいので、初期の採否の根拠には使わない。
 - `factor_active=false` になったレースの数と理由（§5.2）。
 - `rps_coverage` の分布と、除外理由の分布。
 - 地方交流重賞（Jpn）を g と同格に丸めている既存の正規化の影響。
+
+## 13. 実装（PR-C1）
+
+登録した式・設定は変えていない。どこに何があるか：
+
+| 登録した内容 | 実装 |
+|---|---|
+| RPS の式・除外理由・重み・null（§4） | `logic/race_performance.py`（数値は設定ファイルから読むだけ） |
+| 因子ごと無効にする規則（§5.2） | `race_performance.factor_activation` と `build_predictions.compute_model_base_scores`（無効のときは Champion と同じ呼び出し） |
+| 4因子の合成（§5.1） | `base_score.RACE_PERFORMANCE_FACTOR_KEYS`。Champion・既存の Challenger・キャラ別の重みは既定の3因子のまま |
+| 設定の照合と fail-closed（§10） | `model_registry.load_model_race_performance`（SHA-256・version・challenger_id・既存3因子の重み）。失敗は `data/challengers/_failures/` に記録 |
+| snapshot の監査記録（§6） | `race_performance_ref`・`race_performance_quality`（その項目を持つモデルだけ写す） |
+| 発走前 capture と照合の契約（§7.4） | `research/model_evaluation.py` に `--config` と `capture_problem` を足した。評価設定は `config/model_evaluation_race_performance_v1.json`。capture（Champion の分も）は `data/shadow/model_evaluation/race-performance-v1/prerace/` に置き、speed-v2 の評価の capture とは分ける |
+| Challenger の登録 | `config/models.json` の `race-performance-v1`（`registered_at` はマージ後に記録） |

@@ -50,7 +50,9 @@ _RACE_FIELDS = (
     "otori_card_ev", "card_ev_myomi", "model_disagreement_myomi", "evaluation_scope", "record_note", "marks", "cards",
 )
 # 一部のモデルにしか無い項目。値があるときだけ写す（Champion のスナップショットの形は変えない）
-_OPTIONAL_RACE_FIELDS = ("base_times_ref",)
+#   base_times_ref                       … 凍結した基準タイム表を使う Challenger
+#   race_performance_ref / _quality      … 事前登録した Race Performance を使う Challenger
+_OPTIONAL_RACE_FIELDS = ("base_times_ref", "race_performance_ref", "race_performance_quality")
 
 
 def _race_fields(source: dict[str, Any]) -> dict[str, Any]:

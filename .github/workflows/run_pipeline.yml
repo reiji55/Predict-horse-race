@@ -109,6 +109,18 @@ jobs:
           WEEK="${{ steps.target.outputs.week }}"
           python -m research.model_evaluation capture --week "${WEEK}" --phase pipeline
 
+      - name: race-performance-v1 forward評価の発走前記録（evaluation-only）
+        # 事前登録（docs/research/RACE_PERFORMANCE_PREREG_V1.md）の評価式で、Champion と race-performance-v1
+        # Challenger の発走前 snapshot を読むだけ。そのモデルの作り方で再計算して snapshot と一致するか（fidelity）、
+        # 全精度 score・キャラ別選定順・入力 raw の指紋を data/shadow/model_evaluation/race-performance-v1/prerace/
+        # へ追記する（speed-v2 の capture とはフォルダを分ける）。
+        # 予想・snapshot は書き換えない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          WEEK="${{ steps.target.outputs.week }}"
+          python -m research.model_evaluation capture --week "${WEEK}" --phase pipeline \
+            --config config/model_evaluation_race_performance_v1.json
+
       - name: 過去走の棚卸し（observe-only・発走前のみ）
         # raw の past_runs（いまの予想の入力）から、条件実績・クラス・着差・取得済みだが未使用の値を
         # data/research/history_inventory/ に記録する。ネットワークは使わない（長期履歴は手動 workflow だけ）。
