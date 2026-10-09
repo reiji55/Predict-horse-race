@@ -27,12 +27,13 @@
       "role": "challenger",
       "enabled": true,
       "use_top3_partner": false,
+      "registered_at": "2026-10-09T01:09:54+09:00",
       "race_performance": {
         "config_file": "config/race_performance_v1.json",
         "config_sha256": "592cf78fef99866839d1c385eded9a7388c7e6a5a7e5a1635d7bd9e902121b70",
         "version": "race-performance-v1"
       },
-      "description": "Championと同一ロジック（speed・aptitude・human・guard・T・λ・テンプレ・キャラ固有の3因子の重み・Chappy・鳳）に、事前登録したRace Performance（class＋margin・docs/research/RACE_PERFORMANCE_PREREG_V1.md）を4番目の因子として足した影モデル。RPSが使える馬が2頭未満・sd=0のレースはChampionと同じ3因子に戻る。UIには出さない。registered_at（PR-C1のマージ時刻）はマージ後に記録する。"
+      "description": "Championと同一ロジック（speed・aptitude・human・guard・T・λ・テンプレ・キャラ固有の3因子の重み・Chappy・鳳）に、事前登録したRace Performance（class＋margin・docs/research/RACE_PERFORMANCE_PREREG_V1.md）を4番目の因子として足した影モデル。RPSが使える馬が2頭未満・sd=0のレースはChampionと同じ3因子に戻る。UIには出さない。registered_at は PR #29（PR-C1）のマージ時刻（merged_at と committer 時刻の遅い方）。採点は registered_at より後に発走したレースだけ。"
     },
     {
       "id": "speed-base-times-v2-coverage",
