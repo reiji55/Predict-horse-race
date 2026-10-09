@@ -139,6 +139,8 @@ def test_rps_evaluation_reports_what_the_preregistration_requires(world):
     block = summary["race_performance"]
     always = block["always_report"]
     assert always["paired_valid_race_rate"] == 1.0 and always["score_coverage"]["races"] == 4
+    assert always["forward_races_with_result"] == always["evaluated_pairs"] == always["probability_pairs"] == 4
+    assert always["probability_paired_valid_race_rate"] == always["probability_evaluated_rate"] == 1.0
     assert 0.0 < always["rps_coverage"]["mean"] <= 1.0
     for metric in ("log_loss", "brier"):
         boot = block["uncertainty"][metric]
@@ -148,6 +150,7 @@ def test_rps_evaluation_reports_what_the_preregistration_requires(world):
         assert math.isclose(boot["mean_delta"], paired["mean_delta_challenger_minus_champion"], abs_tol=1e-6)
     checkpoint = block["checkpoint"]
     assert checkpoint["first_checkpoint_paired_races"] == 40 and checkpoint["reached"] is False
+    assert checkpoint["counted"] == "probability_pairs"
     assert "昇格の閾値ではない" in checkpoint["note"]
     audit = block["audit"]
     assert audit["factor_active_races"] + sum(audit["factor_inactive_reasons"].values()) == 4
@@ -199,6 +202,50 @@ def test_snapshot_input_problem_rules():
     assert rps_eval.snapshot_input_problem(snap, None) == "capture_missing"
     other = {"provenance": {"input_raw_sha256": "b" * 64}}
     assert rps_eval.snapshot_input_problem(snap, other) == "snapshot_input_raw_mismatch"
+
+
+def _synthetic_row(i: int, probability_ok: bool) -> dict:
+    """summary_block に渡す evaluated 行（合成）。4つの開催日に散らす。"""
+    day = ("20261010", "20261011", "20261017", "20261018")[i % 4]
+    probability = {"status": "evaluated" if probability_ok else "score_set_mismatch",
+                   "evaluation_set": {"field_size": 16, "scored_horses": 16, "coverage": 1.0}}
+    if probability_ok:
+        probability["models"] = {"champion": {"log_loss": 2.0, "brier": 0.9},
+                                 "challenger": {"log_loss": 2.0 + (i % 5 - 2) * 0.01, "brier": 0.9}}
+    rps = {"factor_active": True, "rps_coverage": 0.9, "rps_available_horses": 14, "max_abs_z": 2.0,
+           "speed_used": False, "effective_rps_weight": 0.242915, "excluded_by_reason_total": {},
+           "capture_audit": {"status": "not_recorded"}}
+    return {"race_id": f"{day}-tokyo-{i:02d}", "probability": probability,
+            "models": {"challenger": {"race_performance": rps}}}
+
+
+@pytest.mark.parametrize("probability_pairs, reached", [(25, False), (40, True)])
+def test_checkpoint_counts_only_pairs_with_the_primary_metric(probability_pairs, reached):
+    # 40 レースで比較は成立したが、主指標（確率の paired log loss）を算出できたのが 25 レースだけなら、
+    # 「40 paired races」には届いていない（順位・カードだけ比べられたレースは数えない）
+    rows = [_synthetic_row(i, i < probability_pairs) for i in range(40)]
+    coverage = {"forward_races_with_result": 50, "coverage_rate": round(40 / 50, 4)}
+    block = rps_eval.summary_block(rows, coverage, me.load_config(EVAL_CONFIG), _summary_cfg(), PREREG)
+    checkpoint = block["checkpoint"]
+    assert checkpoint["counted"] == "probability_pairs"
+    assert (checkpoint["evaluated_pairs"], checkpoint["probability_pairs"]) == (40, probability_pairs)
+    assert checkpoint["reached"] is reached
+    always = block["always_report"]
+    assert always["paired_valid_race_rate"] == 0.8                                   # 比較が成立した率
+    assert always["probability_paired_valid_race_rate"] == round(probability_pairs / 50, 4)  # 主指標を算出できた率
+    assert always["probability_evaluated_rate"] == round(probability_pairs / 40, 4)  # 比較が成立した中での率
+    assert set(always["rate_definitions"]) == {"paired_valid_race_rate", "probability_paired_valid_race_rate",
+                                               "probability_evaluated_rate"}
+    for metric in ("log_loss", "brier"):
+        assert block["uncertainty"][metric]["races"] == probability_pairs           # bootstrap も主指標の対だけ
+
+
+def test_rates_without_forward_races_are_null():
+    block = rps_eval.summary_block([], {"forward_races_with_result": 0, "coverage_rate": None},
+                                   me.load_config(EVAL_CONFIG), _summary_cfg(), PREREG)
+    always = block["always_report"]
+    assert always["probability_paired_valid_race_rate"] is None and always["probability_evaluated_rate"] is None
+    assert block["checkpoint"]["reached"] is False and block["checkpoint"]["probability_pairs"] == 0
 
 
 # ------------------------------------------------------------------ 集計の部品

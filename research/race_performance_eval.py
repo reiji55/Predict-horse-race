@@ -215,12 +215,22 @@ def summary_block(evaluated: list[dict[str, Any]], coverage: dict[str, Any], cfg
                  - r["probability"]["models"]["champion"][metric]) for r in prob_rows]
 
     checkpoint = int(cfg["first_checkpoint_paired_races"])
+    forward = int(coverage.get("forward_races_with_result") or 0)
     return {
         "settings": {"version": settings["version"]},
-        # 事前登録 §7.2：主指標と一緒に必ず出す
+        # 事前登録 §7.2：主指標と一緒に必ず出す。比較が成立した率と、主指標（確率）を算出できた率を分けて出す
         "always_report": {
+            "forward_races_with_result": forward,
+            "evaluated_pairs": len(evaluated),
+            "probability_pairs": len(prob_rows),
             "paired_valid_race_rate": coverage.get("coverage_rate"),
+            "probability_paired_valid_race_rate": round(len(prob_rows) / forward, 4) if forward else None,
             "probability_evaluated_rate": round(len(prob_rows) / len(evaluated), 4) if evaluated else None,
+            "rate_definitions": {
+                "paired_valid_race_rate": "evaluated_pairs / forward_races_with_result（順位・カード・Secondary を含む比較が成立した率）",
+                "probability_paired_valid_race_rate": "probability_pairs / forward_races_with_result（主指標の確率 paired を算出できた率）",
+                "probability_evaluated_rate": "probability_pairs / evaluated_pairs（比較が成立したレースのうち、主指標も算出できた率）",
+            },
             "score_coverage": _stats([float(r["probability"]["evaluation_set"]["coverage"]) for r in evaluated
                                       if r["probability"].get("evaluation_set")]),
             "rps_coverage": _stats([float(b["rps_coverage"]) for b in blocks if b.get("rps_coverage") is not None]),
@@ -228,12 +238,14 @@ def summary_block(evaluated: list[dict[str, Any]], coverage: dict[str, Any], cfg
         # 事前登録 §7.5：開催日単位の bootstrap（判定はしない）
         "uncertainty": {metric: cluster_bootstrap(deltas(metric), settings["uncertainty"])
                         for metric in settings["uncertainty"]["metrics"]},
-        # 事前登録 §7.5：最初の運用点検。昇格の閾値ではない
+        # 事前登録 §7.5：最初の運用点検。昇格の閾値ではない。
+        # 「40 paired races」は主指標（paired log loss）を算出できた対の数で数える（順位・カードだけ比べられたレースは数えない）
         "checkpoint": {
             "first_checkpoint_paired_races": checkpoint,
+            "counted": "probability_pairs",
             "evaluated_pairs": len(evaluated),
             "probability_pairs": len(prob_rows),
-            "reached": len(evaluated) >= checkpoint,
+            "reached": len(prob_rows) >= checkpoint,
             "note": config["evaluation"]["checkpoint_note"],
         },
         # 事前登録 §12：forward で必ず見る監査項目
