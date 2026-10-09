@@ -62,6 +62,8 @@ version: `race-performance-v1`
 | 2026-10-08 | PR-C0 レビュー対応（登録前の設計変更） | ① 識別力の無い RPS（使える馬が2頭未満・sd=0）は、そのレースだけ因子ごと無効にし、既存3因子に完全に戻す（§5.2）。② キャラ別の重みは `unchanged_3_factor` で確定。RPS で変わり得る経路の記述を実コードに合わせて直した（§5.3）。③ Brier を「主要な副指標（key secondary）」に統一し、照合の契約をモデル間とモデルごとに書き分けた（§7.2・§7.4）。④ 有効日時を `merged_at` と committer 時刻の遅い方にした。式・パラメータ・重みの値は変えていない |
 | 2026-10-09 | PR-C1 提出（Challenger の実装） | 登録記録（PR #28 のマージ commit・時刻）を追記した。登録した式・設定は変えずに Challenger `race-performance-v1` を実装した（§13）。設定の SHA-256 は `592cf78f…` のまま |
 | 2026-10-09 | Challenger の登録記録 | PR #29 のマージ commit・時刻を、Challenger の登録日時として追記した（`config/models.json` の `registered_at` も同じ値）。式・設定・評価式は変えていない |
+| 2026-10-09 | PR-C2 提出（評価の実装） | §7 の評価と §12 の監査項目の集計を実装した（§14）。評価の定義（主指標・照合の契約・forward の境界）と評価設定（capture の照合キー）は変えていない。集計の実装上の設定（開催日単位の bootstrap の回数・種・区間）は別ファイルにし、forward の最初のレースの結果が出る前に決めた |
+| 2026-10-09 | PR-C2 レビュー対応 | §7.5 の「40 paired races」を、主指標（確率の paired log loss）を算出できた対の数と明確化した。係数・評価指標・forward の境界の変更ではなく、数える対象の明確化。主指標を算出できた率を、結果のある forward レース全体を分母にして併記した（§14） |
 
 マージ前のレビューで直した点は、登録前の設計変更としてこの表に残す。
 
@@ -435,3 +437,26 @@ ROI は分散が大きいので、初期の採否の根拠には使わない。
 | snapshot の監査記録（§6） | `race_performance_ref`・`race_performance_quality`（その項目を持つモデルだけ写す） |
 | 発走前 capture と照合の契約（§7.4） | `research/model_evaluation.py` に `--config` と `capture_problem` を足した。評価設定は `config/model_evaluation_race_performance_v1.json`。capture（Champion の分も）は `data/shadow/model_evaluation/race-performance-v1/prerace/` に置き、speed-v2 の評価の capture とは分ける |
 | Challenger の登録 | `config/models.json` の `race-performance-v1`（`registered_at` は PR #29 のマージ時刻。§1） |
+
+## 14. 実装（PR-C2：forward 評価）
+
+評価の定義（§7）は変えていない。評価設定 `config/model_evaluation_race_performance_v1.json` も変えていない（capture の照合キー `evaluation_config_hash` なので、変えると PR-C1 以降の capture が使えなくなる）。
+
+| 登録した内容 | 実装 |
+|---|---|
+| 主指標・主要な副指標（§7.2） | 既存の `research/model_evaluation.run` の paired log loss・Brier をそのまま使う |
+| 必ず併記するもの（§7.2） | `summary.json` の `race_performance.always_report`。率は2つを分けて出す：比較（順位・カード・Secondary を含む）が成立した率 `paired_valid_race_rate`＝evaluated_pairs／結果のある forward レース、主指標の確率 paired を算出できた率 `probability_paired_valid_race_rate`＝probability_pairs／結果のある forward レース。あわせて `probability_evaluated_rate`（probability_pairs／evaluated_pairs）・`score_coverage`・`rps_coverage` |
+| 不確実性（§7.5） | `race_performance.uncertainty`：開催日（race_id の先頭8桁）をまとまりにした bootstrap。同じ日の全会場のレースを一緒に再抽出する。区間を記録するだけで、判定はしない |
+| 40 paired races の点検（§7.5） | `race_performance.checkpoint`：**主指標（paired log loss）を算出できた対の数**（`probability_pairs`）で数える。順位・カードだけ比べられたレース（score_set_mismatch・coverage 不足・temperature_unverifiable など）は数えない。到達したかどうかだけで、昇格の閾値ではない |
+| 照合の契約（§7.4） | PR-C1 の照合に加え、Challenger の snapshot の `input_raw_hash` と capture の `input_raw_sha256` が同じことを確かめる（モデルごとの照合）。合わなければ `snapshot_input_raw_mismatch` として理由つきで残す |
+| 監査項目（§12） | `race_performance.audit`：因子が無効だったレースの数と理由、除外理由の合計、z の振れ（RPS の z の最大の絶対値と RPS がある頭数）、speed の有無ごとの実効比重、speed と RPS のレース内相関、JRA 以外の場の重賞の有効走 |
+| 集計の設定 | `config/model_evaluation_race_performance_v1_summary.json`（bootstrap の回数 10000・種・95% 区間など）。評価設定とは別のファイル |
+| 実行 | `run_results.yml` の「race-performance-v1 forward評価」。`--config` と `--summary-config` を渡す。`continue-on-error` |
+
+**通常の shadow 採点とは別物**
+- `run_results.yml` の「Challengerも同じ結果で採点」（`results.build_shadow_results`）は、全 Challenger 共通の shadow 採点（`data/challengers/race-performance-v1/results.json`・`data/model_comparison.json` の ROI など）。
+- 事前登録どおりの評価は `data/shadow/model_evaluation/race-performance-v1/` の paired 評価だけ。報告では2つを分けて扱い、shadow 採点の ROI を採否の根拠にしない。
+
+**speed と RPS の重なり・JRA 以外の重賞の数え方**
+- snapshot には各馬の speed や過去走の場が無いので、発走前の capture の時点で計算して `race_performance_audit` に残す。
+- PR-C2 より前に取った capture には無い。その回は `not_recorded` として数え、後から作り直さない（結果を見たあとに入力を組み直さないため）。
