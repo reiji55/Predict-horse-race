@@ -1,0 +1,262 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "win-v1-speed-guard",
+  "race_id": "20261010-tokyo-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-10-10T15:31:21+09:00",
+  "post_time": "15:45",
+  "minutes_to_post": 13.6,
+  "provenance": {
+    "git_commit": "1588ce1a04642f1dce5606c9364a08e81b3fc0d3",
+    "evaluation_version": "speed-v2-forward-eval-v2",
+    "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+    "input_raw_sha256": "c584092edf37a078550279c685df10fa5b7ea31b3ee7b6857c98e63b71835bf0",
+    "snapshot": {
+      "path": "data/snapshots/20261010-tokyo-11.json",
+      "sha256": "e3d16d47bec9f07e8ee068421e2af868f6e9fc8cc7c7fd9cf60dcf09e8e401fe",
+      "frozen_at": "2026-10-10T15:31:20+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "ab7d639c51b21e3a",
+      "base_times_ref": null,
+      "race_performance_ref": null
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      5,
+      3,
+      1,
+      9,
+      8,
+      2,
+      7,
+      6,
+      11,
+      4,
+      10
+    ],
+    "snapshot_order": [
+      5,
+      3,
+      1,
+      9,
+      8,
+      2,
+      7,
+      6,
+      11,
+      4,
+      10
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 76.01738427465533,
+      "odds": 22.8
+    },
+    {
+      "num": 2,
+      "score": 70.9361613403368,
+      "odds": 7.6
+    },
+    {
+      "num": 3,
+      "score": 77.3489983165166,
+      "odds": 12.9
+    },
+    {
+      "num": 4,
+      "score": 58.76227188518418,
+      "odds": 8.8
+    },
+    {
+      "num": 5,
+      "score": 82.47874421758927,
+      "odds": 2.3
+    },
+    {
+      "num": 6,
+      "score": 67.07850877866629,
+      "odds": 5.1
+    },
+    {
+      "num": 7,
+      "score": 70.27457857807784,
+      "odds": 81.4
+    },
+    {
+      "num": 8,
+      "score": 71.50406592355203,
+      "odds": 36.3
+    },
+    {
+      "num": 9,
+      "score": 75.05105758034179,
+      "odds": 8.8
+    },
+    {
+      "num": 10,
+      "score": 58.641812227264374,
+      "odds": 18.3
+    },
+    {
+      "num": 11,
+      "score": 61.906416877815545,
+      "odds": 19.5
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 3,
+        "sel": 0.9
+      },
+      {
+        "num": 5,
+        "sel": 0.85
+      },
+      {
+        "num": 1,
+        "sel": 0.83
+      },
+      {
+        "num": 9,
+        "sel": 0.685
+      },
+      {
+        "num": 8,
+        "sel": 0.615
+      },
+      {
+        "num": 2,
+        "sel": 0.47
+      },
+      {
+        "num": 7,
+        "sel": 0.46
+      },
+      {
+        "num": 6,
+        "sel": 0.27
+      },
+      {
+        "num": 11,
+        "sel": 0.245
+      },
+      {
+        "num": 10,
+        "sel": 0.145
+      },
+      {
+        "num": 4,
+        "sel": 0.03
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 3,
+        "sel": 0.9
+      },
+      {
+        "num": 1,
+        "sel": 0.88
+      },
+      {
+        "num": 9,
+        "sel": 0.66
+      },
+      {
+        "num": 5,
+        "sel": 0.64
+      },
+      {
+        "num": 8,
+        "sel": 0.64
+      },
+      {
+        "num": 7,
+        "sel": 0.56
+      },
+      {
+        "num": 2,
+        "sel": 0.42
+      },
+      {
+        "num": 11,
+        "sel": 0.32
+      },
+      {
+        "num": 6,
+        "sel": 0.18
+      },
+      {
+        "num": 10,
+        "sel": 0.16
+      },
+      {
+        "num": 4,
+        "sel": 0.14
+      }
+    ],
+    "gen": [
+      {
+        "num": 1,
+        "sel": 0.9
+      },
+      {
+        "num": 7,
+        "sel": 0.9
+      },
+      {
+        "num": 3,
+        "sel": 0.725
+      },
+      {
+        "num": 8,
+        "sel": 0.7
+      },
+      {
+        "num": 9,
+        "sel": 0.625
+      },
+      {
+        "num": 2,
+        "sel": 0.5
+      },
+      {
+        "num": 5,
+        "sel": 0.4
+      },
+      {
+        "num": 11,
+        "sel": 0.325
+      },
+      {
+        "num": 10,
+        "sel": 0.275
+      },
+      {
+        "num": 6,
+        "sel": 0.15
+      },
+      {
+        "num": 4,
+        "sel": 0.0
+      }
+    ]
+  }
+}
