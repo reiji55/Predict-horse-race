@@ -529,6 +529,8 @@ def _race_row(result: dict[str, Any], record: dict[str, Any], found: dict[str, A
         # 3着内の馬が、どの枠に入っていたか（買い目とは別に、枠の当たり方を見るため）
         "top3_frames": [{"finish": i, "num": n, "frames": frames.get(n, [])}
                         for i, n in enumerate(top3, start=1)],
+        "runners": len(frames),
+        "framed_runners": sum(1 for f in frames.values() if f),
         "cards": {char: _card_side(cards[char], dividends, set(top3))
                   for char in config["baseline_chars"] if char in cards},
     }
@@ -570,6 +572,8 @@ def _version_block(rows: list[dict[str, Any]], rule: dict[str, Any],
             tag["payout"] += bet["payout"]
     finishers = [f for r in settled for f in r["top3_frames"]]
     with_frame = sum(1 for f in finishers if f["frames"])
+    runners = sum(r["runners"] for r in settled)
+    framed = sum(r["framed_runners"] for r in settled)
     warnings = []
     if len(declared) > 1:
         warnings.append("記録によって baseline_char が違います（version の中では1つに固定します）")
@@ -591,8 +595,11 @@ def _version_block(rows: list[dict[str, Any]], rule: dict[str, Any],
         },
         "cards": {char: _totals([r["cards"][char] for r in settled if char in r["cards"]])
                   for char in config["baseline_chars"] if any(char in r["cards"] for r in settled)},
+        # rate を framed_runner_share（全出走馬のうち枠に入れた割合＝でたらめに選んだときの期待値）と比べる。
+        # 枠に入れる馬を増やせば rate は上がるので、rate だけでは枠の当たり方を判断しない
         "top3_finishers": {"total": len(finishers), "with_any_frame": with_frame,
-                           "rate": round(with_frame / len(finishers), 6) if finishers else None},
+                           "rate": round(with_frame / len(finishers), 6) if finishers else None,
+                           "framed_runner_share": round(framed / runners, 6) if runners else None},
         "by_frame_tag": {k: tags[k] for k in sorted(tags)},
         "warnings": warnings,
         "races": sorted(rows, key=lambda r: r["race_id"]),

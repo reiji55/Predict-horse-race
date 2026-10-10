@@ -323,7 +323,9 @@ def test_settle_scores_the_last_prerace_record_against_the_cards_of_the_same_sna
     assert v1["primary_baseline"]["payout"] == 1350
     assert v1["paired_payout_diff_vs_primary_baseline"]["mean"] == 150
     assert v1["experiment"]["roi"] == 3.0
-    assert v1["top3_finishers"] == {"total": 3, "with_any_frame": 3, "rate": 1.0}
+    # 8頭中3頭を枠に入れた（でたらめに選んだときの期待値 0.375）のに対し、3着内の3頭はすべて枠の中
+    assert v1["top3_finishers"] == {"total": 3, "with_any_frame": 3, "rate": 1.0, "framed_runner_share": 0.375}
+    assert (race["runners"], race["framed_runners"]) == (8, 3)
     assert v1["by_frame_tag"]["先行残り"] == {"bets": 2, "hit_bets": 2, "spent": 400, "payout": 1500}
     assert race["bet_horses_finish"] == {"1": 1, "2": 2, "3": 3}
     text = json.dumps(summary, ensure_ascii=False)
