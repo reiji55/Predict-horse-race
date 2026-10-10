@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-10-04T19:30:09+09:00",
-  "week_id": "2026-W40",
+  "generated_at": "2026-10-10T13:19:54+09:00",
+  "week_id": "2026-W41",
   "status": "warning",
   "publish_blocked": false,
   "blocking_reasons": [],
   "summary": {
-    "raw_races": 4,
-    "prediction_races": 4,
+    "raw_races": 2,
+    "prediction_races": 2,
     "critical_races": 0,
-    "warning_races": 4,
+    "warning_races": 1,
     "races_in_this_run": [
-      "20261004-kyoto-11",
-      "20261004-tokyo-11"
+      "20261010-kyoto-11",
+      "20261010-tokyo-11"
     ],
     "selected_this_run": 2,
     "built_this_run": 2,
@@ -19,42 +19,42 @@
     "entry_coverage": {
       "past_runs": 1.0,
       "win_odds": 1.0,
-      "jockey_stats": 0.5882,
-      "trainer_stats": 0.7206
+      "jockey_stats": 0.625,
+      "trainer_stats": 1.0
     }
   },
   "collection_report": {
     "requested_dates": [
-      "2026-10-04"
+      "2026-10-10"
     ],
     "selected": [
       {
-        "date": "2026-10-04",
+        "date": "2026-10-10",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608040211"
+        "source_ref": "202608040311"
       },
       {
-        "date": "2026-10-04",
+        "date": "2026-10-10",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605040211"
+        "source_ref": "202605040311"
       }
     ],
     "built": [
       {
-        "date": "2026-10-04",
+        "date": "2026-10-10",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608040211",
-        "race_id": "20261004-kyoto-11"
+        "source_ref": "202608040311",
+        "race_id": "20261010-kyoto-11"
       },
       {
-        "date": "2026-10-04",
+        "date": "2026-10-10",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605040211",
-        "race_id": "20261004-tokyo-11"
+        "source_ref": "202605040311",
+        "race_id": "20261010-tokyo-11"
       }
     ],
     "failed": []
@@ -62,121 +62,47 @@
   "global_issues": [],
   "races": [
     {
-      "race_id": "20261003-kyoto-11",
+      "race_id": "20261010-kyoto-11",
       "venue": "京都",
       "race_no": 11,
-      "name": "オパールS",
-      "status": "warning",
+      "name": "御陵S",
+      "status": "ok",
       "raw": {
-        "entries": 18,
+        "entries": 13,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.7222,
-        "trainer_stats_coverage": 0.3889,
+        "jockey_stats_coverage": 0.6154,
+        "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 18,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.1111,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 39% です"
-        },
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20261003-tokyo-11",
-      "venue": "東京",
-      "race_no": 11,
-      "name": "グリーンチャンネルC",
-      "status": "warning",
-      "raw": {
-        "entries": 15,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.7333,
-        "trainer_stats_coverage": 0.4667,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 15,
+        "marks": 13,
         "cards": 4,
         "speed_used": true,
-        "speed_coverage": 0.8,
+        "speed_coverage": 0.9231,
         "model_id": "win-v1-speed-guard"
       },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 47% です"
-        }
-      ]
+      "issues": []
     },
     {
-      "race_id": "20261004-kyoto-11",
-      "venue": "京都",
-      "race_no": 11,
-      "name": "京都大賞典",
-      "status": "warning",
-      "raw": {
-        "entries": 18,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.3889,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 18,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "low_jockey_stats_coverage",
-          "message": "騎手成績カバレッジが 39% です"
-        },
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20261004-tokyo-11",
+      "race_id": "20261010-tokyo-11",
       "venue": "東京",
       "race_no": 11,
-      "name": "毎日王冠",
+      "name": "サウジアラビアRC",
       "status": "warning",
       "raw": {
-        "entries": 17,
+        "entries": 11,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.5294,
+        "jockey_stats_coverage": 0.6364,
         "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 17,
+        "marks": 11,
         "cards": 4,
         "speed_used": false,
-        "speed_coverage": 0.1765,
+        "speed_coverage": 0.0909,
         "model_id": "win-v1-speed-guard"
       },
       "issues": [

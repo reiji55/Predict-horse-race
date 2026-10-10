@@ -1,0 +1,308 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "speed-base-times-v2-coverage",
+  "race_id": "20261010-kyoto-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-10-10T13:19:54+09:00",
+  "post_time": "15:30",
+  "minutes_to_post": 130.1,
+  "provenance": {
+    "git_commit": "848d7633f1dc54b68d5293f6d5dac97c118e337a",
+    "evaluation_version": "speed-v2-forward-eval-v2",
+    "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+    "input_raw_sha256": "d1d75084bf38798f772bc8be802f4360763d7c5bfe033db42f8c43d31fbfc727",
+    "snapshot": {
+      "path": "data/challengers/speed-base-times-v2-coverage/snapshots/20261010-kyoto-11.json",
+      "sha256": "b57aa135f2190a768dd0c0e74b40e9f07165103aa48cd1ab9d25ed58bf54f3a7",
+      "frozen_at": "2026-10-10T13:19:54+09:00",
+      "model_id": "speed-base-times-v2-coverage",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "4174dc69c392cc30",
+      "base_times_ref": {
+        "artifact_id": "base-times-v2-coverage-20260928-r2",
+        "lookup_file": "data/reference/base_times/base-times-v2-coverage-20260928-r2.json",
+        "lookup_sha256": "e671fd8ab3a2785fa63a7ea53248e5d8ecde404ee8071b1fef713dda64d98b9f",
+        "cutoff_date": "2026-09-27",
+        "meta_content_sha256": "58834c0e30e7bb3ac7944696eb629f190dafabbd1a42d490d3bb651f78f7a5fa",
+        "method_version": "v1-median-class-offset",
+        "file_hash": "4174dc69c392cc30"
+      },
+      "race_performance_ref": null
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      3,
+      1,
+      12,
+      11,
+      6,
+      5,
+      13,
+      9,
+      4,
+      2,
+      8,
+      10,
+      7
+    ],
+    "snapshot_order": [
+      3,
+      1,
+      12,
+      11,
+      6,
+      5,
+      13,
+      9,
+      4,
+      2,
+      8,
+      10,
+      7
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 77.09312998404255,
+      "odds": 6.1
+    },
+    {
+      "num": 2,
+      "score": 65.94873043736185,
+      "odds": 31.3
+    },
+    {
+      "num": 3,
+      "score": 80.35538059598453,
+      "odds": 7.1
+    },
+    {
+      "num": 4,
+      "score": 69.04667002311304,
+      "odds": 22.8
+    },
+    {
+      "num": 5,
+      "score": 71.62583603641578,
+      "odds": 6.8
+    },
+    {
+      "num": 6,
+      "score": 71.72468303380671,
+      "odds": 11.2
+    },
+    {
+      "num": 7,
+      "score": 57.35517800465976,
+      "odds": 41.1
+    },
+    {
+      "num": 8,
+      "score": 63.849681546232404,
+      "odds": 24.3
+    },
+    {
+      "num": 9,
+      "score": 70.6263846086084,
+      "odds": 29.7
+    },
+    {
+      "num": 10,
+      "score": 61.335719948870775,
+      "odds": 36.1
+    },
+    {
+      "num": 11,
+      "score": 72.94460384088799,
+      "odds": 8.2
+    },
+    {
+      "num": 12,
+      "score": 75.5870780794818,
+      "odds": 9.5
+    },
+    {
+      "num": 13,
+      "score": 71.29154299174294,
+      "odds": 3.4
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 3,
+        "sel": 1.0
+      },
+      {
+        "num": 12,
+        "sel": 0.916667
+      },
+      {
+        "num": 1,
+        "sel": 0.758333
+      },
+      {
+        "num": 11,
+        "sel": 0.6625
+      },
+      {
+        "num": 13,
+        "sel": 0.566667
+      },
+      {
+        "num": 6,
+        "sel": 0.558333
+      },
+      {
+        "num": 9,
+        "sel": 0.55
+      },
+      {
+        "num": 4,
+        "sel": 0.466667
+      },
+      {
+        "num": 2,
+        "sel": 0.3125
+      },
+      {
+        "num": 5,
+        "sel": 0.295833
+      },
+      {
+        "num": 8,
+        "sel": 0.216667
+      },
+      {
+        "num": 10,
+        "sel": 0.158333
+      },
+      {
+        "num": 7,
+        "sel": 0.0375
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 3,
+        "sel": 1.0
+      },
+      {
+        "num": 12,
+        "sel": 0.833333
+      },
+      {
+        "num": 1,
+        "sel": 0.716667
+      },
+      {
+        "num": 6,
+        "sel": 0.633333
+      },
+      {
+        "num": 9,
+        "sel": 0.616667
+      },
+      {
+        "num": 11,
+        "sel": 0.516667
+      },
+      {
+        "num": 4,
+        "sel": 0.5
+      },
+      {
+        "num": 2,
+        "sel": 0.416667
+      },
+      {
+        "num": 5,
+        "sel": 0.383333
+      },
+      {
+        "num": 13,
+        "sel": 0.3
+      },
+      {
+        "num": 10,
+        "sel": 0.25
+      },
+      {
+        "num": 8,
+        "sel": 0.233333
+      },
+      {
+        "num": 7,
+        "sel": 0.1
+      }
+    ],
+    "gen": [
+      {
+        "num": 3,
+        "sel": 0.9375
+      },
+      {
+        "num": 9,
+        "sel": 0.854167
+      },
+      {
+        "num": 2,
+        "sel": 0.6875
+      },
+      {
+        "num": 11,
+        "sel": 0.6875
+      },
+      {
+        "num": 4,
+        "sel": 0.645833
+      },
+      {
+        "num": 5,
+        "sel": 0.645833
+      },
+      {
+        "num": 1,
+        "sel": 0.604167
+      },
+      {
+        "num": 6,
+        "sel": 0.4375
+      },
+      {
+        "num": 12,
+        "sel": 0.416667
+      },
+      {
+        "num": 8,
+        "sel": 0.229167
+      },
+      {
+        "num": 10,
+        "sel": 0.145833
+      },
+      {
+        "num": 13,
+        "sel": 0.145833
+      },
+      {
+        "num": 7,
+        "sel": 0.0625
+      }
+    ]
+  }
+}
