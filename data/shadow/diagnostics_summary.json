@@ -1,6 +1,6 @@
 {
   "schema": "forward-diagnostics-summary-v1",
-  "generated_at": "2026-10-05T00:23:58+09:00",
+  "generated_at": "2026-10-11T00:53:24+09:00",
   "diagnostics_version": "forward-diagnostics-v1",
   "diagnostics_config_hash": "0e10c9314327c7fecc4386518d242d969f05dbee30fa840b6f2d8b9227e6bdd0",
   "spec": "docs/audit/FORWARD_DIAGNOSTICS_SPEC_20260927.md",
@@ -9,64 +9,64 @@
   "used_for_prediction": false,
   "note": "失敗段階の観測記録。少数標本なので良し悪しの判定には使わない。forward（事前登録後）と retrospective を分ける。予想・選定・買い目・重みには使わない。",
   "forward": {
-    "races": 2,
-    "available_races": 2,
+    "races": 6,
+    "available_races": 6,
     "unavailable": {},
-    "fixed_three_full_races": 2,
-    "fixed_three_axis_all_same_count": 0,
-    "fixed_three_axis_all_same_rate": 0.0,
-    "mean_dominant_axis_exposure_ratio": 0.7333,
+    "fixed_three_full_races": 6,
+    "fixed_three_axis_all_same_count": 1,
+    "fixed_three_axis_all_same_rate": 0.1667,
+    "mean_dominant_axis_exposure_ratio": 0.7222,
     "pairwise_mean_spearman": {
       "kei-gen": {
-        "races": 2,
-        "mean": 0.5369
+        "races": 6,
+        "mean": 0.5566
       },
       "kei-tetsu": {
-        "races": 2,
-        "mean": 0.9318
+        "races": 6,
+        "mean": 0.9298
       },
       "tetsu-gen": {
-        "races": 2,
-        "mean": 0.7398
+        "races": 6,
+        "mean": 0.7327
       }
     },
-    "speed_used_races": 1,
-    "speed_used_rate": 0.5,
+    "speed_used_races": 2,
+    "speed_used_rate": 0.3333,
     "recall": {
       "base": {
-        "races": 2,
-        "mean_at4": 0.6667,
-        "mean_at6": 1.0
+        "races": 6,
+        "mean_at4": 0.4444,
+        "mean_at6": 0.5556
       },
       "top3": {
-        "races": 2,
-        "mean_at4": 1.0,
-        "mean_at6": 1.0
+        "races": 6,
+        "mean_at4": 0.5,
+        "mean_at6": 0.6111
       },
       "kei_sel": {
-        "races": 2,
-        "mean_at4": 0.6667,
-        "mean_at6": 1.0
+        "races": 6,
+        "mean_at4": 0.4444,
+        "mean_at6": 0.5556
       },
       "tetsu_sel": {
-        "races": 2,
-        "mean_at4": 0.5,
-        "mean_at6": 0.6667
+        "races": 6,
+        "mean_at4": 0.3333,
+        "mean_at6": 0.5
       },
       "gen_sel": {
-        "races": 2,
-        "mean_at4": 0.3333,
+        "races": 6,
+        "mean_at4": 0.2778,
         "mean_at6": 0.3333
       },
       "chappy_integrated": {
-        "races": 2,
-        "mean_at4": 0.8333,
-        "mean_at6": 1.0
+        "races": 6,
+        "mean_at4": 0.5,
+        "mean_at6": 0.5556
       }
     },
     "by_char": {
       "kei": {
-        "cards": 2,
+        "cards": 6,
         "passes": 0,
         "not_evaluated": 0,
         "mean_direct_pair_coverage": 1.0,
@@ -75,7 +75,7 @@
         "winning_trio_selected_but_not_ticketed": 0
       },
       "tetsu": {
-        "cards": 2,
+        "cards": 6,
         "passes": 0,
         "not_evaluated": 0,
         "mean_direct_pair_coverage": 0.5,
@@ -84,7 +84,7 @@
         "winning_trio_selected_but_not_ticketed": 0
       },
       "gen": {
-        "cards": 2,
+        "cards": 6,
         "passes": 0,
         "not_evaluated": 0,
         "mean_direct_pair_coverage": 0.1667,
@@ -93,12 +93,12 @@
         "winning_trio_selected_but_not_ticketed": 0
       },
       "chappy": {
-        "cards": 1,
+        "cards": 5,
         "passes": 0,
         "not_evaluated": 0,
         "mean_direct_pair_coverage": 0.6667,
-        "conversion_loss_count": 0,
-        "winning_pair_present_but_not_ticketed": 0,
+        "conversion_loss_count": 1,
+        "winning_pair_present_but_not_ticketed": 1,
         "winning_trio_selected_but_not_ticketed": 0
       },
       "otori": {
@@ -112,25 +112,27 @@
       }
     },
     "chappy_stage": {
-      "races": 2,
+      "races": 6,
       "actual_top3_counts_total": {
-        "integrated_top4": 5,
-        "integrated_top6": 6,
-        "roles": 3,
-        "tickets": 3
+        "integrated_top4": 9,
+        "integrated_top6": 10,
+        "roles": 7,
+        "tickets": 7
       },
       "actual_top3_drops_total": {
         "integration_cut": 0,
-        "role_added_outside_integrated_top6": 0,
-        "role_cut": 3,
-        "role_to_ticket_pairs_missing": 0
+        "role_added_outside_integrated_top6": 1,
+        "role_cut": 4,
+        "role_to_ticket_pairs_missing": 1
       }
     },
     "race_failure_stage_counts": {
+      "feature_miss": 4,
       "base_rank_cut": 2,
-      "character_selection_cut": 2,
-      "chappy_role_cut": 2,
-      "ticket_conversion_loss": 1
+      "top3_rank_cut": 2,
+      "character_selection_cut": 5,
+      "chappy_role_cut": 3,
+      "ticket_conversion_loss": 2
     }
   },
   "retrospective": {
