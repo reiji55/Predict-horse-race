@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-10-11T19:43:24+09:00",
-  "week_id": "2026-W41",
+  "generated_at": "2026-10-12T08:36:04+09:00",
+  "week_id": "2026-W42",
   "status": "warning",
   "publish_blocked": false,
   "blocking_reasons": [],
   "summary": {
-    "raw_races": 4,
-    "prediction_races": 4,
+    "raw_races": 2,
+    "prediction_races": 2,
     "critical_races": 0,
-    "warning_races": 4,
+    "warning_races": 2,
     "races_in_this_run": [
-      "20261011-kyoto-11",
-      "20261011-tokyo-11"
+      "20261012-kyoto-11",
+      "20261012-tokyo-11"
     ],
     "selected_this_run": 2,
     "built_this_run": 2,
@@ -19,42 +19,42 @@
     "entry_coverage": {
       "past_runs": 1.0,
       "win_odds": 1.0,
-      "jockey_stats": 0.6852,
-      "trainer_stats": 0.7593
+      "jockey_stats": 0.5,
+      "trainer_stats": 0.6667
     }
   },
   "collection_report": {
     "requested_dates": [
-      "2026-10-11"
+      "2026-10-12"
     ],
     "selected": [
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608040411"
+        "source_ref": "202608040511"
       },
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605040411"
+        "source_ref": "202605040511"
       }
     ],
     "built": [
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608040411",
-        "race_id": "20261011-kyoto-11"
+        "source_ref": "202608040511",
+        "race_id": "20261012-kyoto-11"
       },
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605040411",
-        "race_id": "20261011-tokyo-11"
+        "source_ref": "202605040511",
+        "race_id": "20261012-tokyo-11"
       }
     ],
     "failed": []
@@ -62,60 +62,31 @@
   "global_issues": [],
   "races": [
     {
-      "race_id": "20261010-kyoto-11",
+      "race_id": "20261012-kyoto-11",
       "venue": "京都",
       "race_no": 11,
-      "name": "御陵S",
+      "name": "スワンS",
       "status": "warning",
       "raw": {
-        "entries": 13,
+        "entries": 18,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.6154,
-        "trainer_stats_coverage": 0.6923,
+        "jockey_stats_coverage": 0.6667,
+        "trainer_stats_coverage": 0.6667,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 13,
-        "cards": 4,
-        "speed_used": true,
-        "speed_coverage": 0.9231,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 69% です"
-        }
-      ]
-    },
-    {
-      "race_id": "20261010-tokyo-11",
-      "venue": "東京",
-      "race_no": 11,
-      "name": "サウジアラビアRC",
-      "status": "warning",
-      "raw": {
-        "entries": 11,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.6364,
-        "trainer_stats_coverage": 0.6364,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 11,
+        "marks": 17,
         "cards": 4,
         "speed_used": false,
-        "speed_coverage": 0.0909,
+        "speed_coverage": 0.1667,
         "model_id": "win-v1-speed-guard"
       },
       "issues": [
         {
           "severity": "warning",
           "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 64% です"
+          "message": "厩舎成績カバレッジが 67% です"
         },
         {
           "severity": "warning",
@@ -125,56 +96,37 @@
       ]
     },
     {
-      "race_id": "20261011-kyoto-11",
-      "venue": "京都",
+      "race_id": "20261012-tokyo-11",
+      "venue": "東京",
       "race_no": 11,
-      "name": "太秦S",
+      "name": "オクトーバーS",
       "status": "warning",
       "raw": {
-        "entries": 14,
+        "entries": 18,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.7143,
-        "trainer_stats_coverage": 0.7143,
+        "jockey_stats_coverage": 0.3333,
+        "trainer_stats_coverage": 0.6667,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 14,
+        "marks": 18,
         "cards": 4,
-        "speed_used": true,
-        "speed_coverage": 0.9286,
+        "speed_used": false,
+        "speed_coverage": 0.1111,
         "model_id": "win-v1-speed-guard"
       },
       "issues": [
         {
           "severity": "warning",
+          "code": "low_jockey_stats_coverage",
+          "message": "騎手成績カバレッジが 33% です"
+        },
+        {
+          "severity": "warning",
           "code": "low_trainer_stats_coverage",
-          "message": "厩舎成績カバレッジが 71% です"
-        }
-      ]
-    },
-    {
-      "race_id": "20261011-tokyo-11",
-      "venue": "東京",
-      "race_no": 11,
-      "name": "アイルランドT",
-      "status": "warning",
-      "raw": {
-        "entries": 16,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.75,
-        "trainer_stats_coverage": 0.9375,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 16,
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
+          "message": "厩舎成績カバレッジが 67% です"
+        },
         {
           "severity": "warning",
           "code": "speed_guard_disabled",
