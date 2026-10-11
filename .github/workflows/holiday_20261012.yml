@@ -1,0 +1,101 @@
+# One-day bridge for the three-day JRA meeting (2026-10-12).
+# Deliberately isolated from Champion, challengers and scenario-frame/v1.
+# Cron syntax recurs annually, but all jobs are date-gated to 2026-10-12 JST.
+name: 週末3CARDS 2026-10-12 祝日ブリッジ
+on:
+  push:
+    paths:
+      - ".github/workflows/holiday_20261012.yml"
+  schedule:
+    - cron: "13 1 12 10 *"   # 2026-10-12 10:13 JST: prediction
+    - cron: "29 2 12 10 *"   # 2026-10-12 11:29 JST: app sync
+    - cron: "17 4 12 10 *"   # 2026-10-12 13:17 JST: prediction refresh
+    - cron: "7 5 12 10 *"    # 2026-10-12 14:07 JST: app sync
+    - cron: "31 10 12 10 *"  # 2026-10-12 19:31 JST: results
+    - cron: "43 12 12 10 *"  # 2026-10-12 21:43 JST: app sync
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "forecast / results / sync"
+        required: true
+        type: choice
+        options:
+          - forecast
+          - results
+          - sync
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  forecast:
+    if: >
+      (github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'forecast') ||
+      (github.event_name == 'schedule' && (github.event.schedule == '13 1 12 10 *' || github.event.schedule == '17 4 12 10 *'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch existing canonical prediction pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(TZ=Asia/Tokyo date +%F)" != "2026-10-12" ]; then
+            echo "Not the target date. No-op."
+            exit 0
+          fi
+          gh workflow run run_pipeline.yml --repo "${{ github.repository }}" --ref main -f week_id=2026-W42 -f dates=2026-10-12
+          echo "Dispatched run_pipeline.yml week_id=2026-W42 dates=2026-10-12"
+
+  results:
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'results') ||
+      (github.event_name == 'schedule' && github.event.schedule == '31 10 12 10 *')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch existing canonical results workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(TZ=Asia/Tokyo date +%F)" != "2026-10-12" ]; then
+            echo "Not the target date. No-op."
+            exit 0
+          fi
+          gh workflow run run_results.yml --repo "${{ github.repository }}" --ref main -f week_id=2026-W42 -f refetch=false
+          echo "Dispatched run_results.yml week_id=2026-W42"
+
+  sync-pages:
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'sync') ||
+      (github.event_name == 'schedule' && (github.event.schedule == '29 2 12 10 *' || github.event.schedule == '7 5 12 10 *' || github.event.schedule == '43 12 12 10 *'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Copy data only from canonical main to Pages branch
+        run: |
+          if [ "$(TZ=Asia/Tokyo date +%F)" != "2026-10-12" ]; then
+            echo "Not the target date. No-op."
+            exit 0
+          fi
+          git fetch origin main claude/content-review-full-rw32o2
+          git switch --create pages-sync --track origin/claude/content-review-full-rw32o2
+          for f in data/predictions.json data/results.json data/race_results.json; do
+            git show "origin/main:$f" > "$f"
+          done
+          git config user.name weekend3cards-bot
+          git config user.email actions@users.noreply.github.com
+          git add data/predictions.json data/results.json data/race_results.json
+          if git diff --cached --quiet; then
+            echo "Pages data already up to date"
+          else
+            git commit -m "pages: 2026-10-12 holiday data sync"
+            for i in 1 2 3; do
+              git push origin HEAD:claude/content-review-full-rw32o2 && exit 0
+              sleep $((i * 3))
+              git fetch origin main claude/content-review-full-rw32o2
+              git rebase origin/claude/content-review-full-rw32o2 || exit 1
+            done
+            exit 1
+          fi
