@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py -q
 
       - name: 対象の週を決める
         id: target
@@ -109,6 +109,18 @@ jobs:
             python -m research.settle --results data/race_results.json
           else
             echo "結果がまだ無いため shadow 採点をスキップします"
+          fi
+
+      - name: チャット実験の採点（observe-only）
+        # チャットで作った実験ロジック（data/chat_experiments/）の発走前の記録を、Git のコミット時刻・ルールの不変・
+        # 見た snapshot の版で検証してから、同じ版の現行カードと並べて採点する（docs/research/CHAT_EXPERIMENTS.md）。
+        # data/shadow/chat_experiments/ にだけ書く。正式成績・UI・予想には混ぜない。失敗しても止めない。
+        continue-on-error: true
+        run: |
+          if [ -f data/race_results.json ] && [ -d data/chat_experiments ]; then
+            python -m research.chat_experiment settle --results data/race_results.json
+          else
+            echo "結果か実験の記録がまだ無いため、チャット実験の採点をスキップします"
           fi
 
       - name: forward diagnostics（observe-only）

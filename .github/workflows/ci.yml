@@ -39,3 +39,8 @@ jobs:
         # 発走前性（Gitの初回コミット時刻）は run_results で全履歴を取って検証する。
         # ここではスキーマ・候補馬の網羅・落とした理由の必須化などの規約だけを確かめる。
         run: python -m research.decision_log validate
+
+      - name: チャット実験の記録（構造と規約の検証）
+        # 発走前性（Git のコミット時刻・ルールの不変）は run_results で全履歴を取って検証する。
+        # ここでは形式・出走馬の網羅・ルールにある枠のラベル・置き場所・URL のトークンなどの規約だけを確かめる。
+        run: python -m research.chat_experiment validate

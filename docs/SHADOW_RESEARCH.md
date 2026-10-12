@@ -21,7 +21,9 @@
       └→ research.prerace_capture   発走前のレースだけ data/shadow/prerace/{race_id}/{時刻}_{phase}.json に追記
 [成績集計]     build_results（既存・変更なし）
       └→ research.settle            data/shadow/races/{race_id}.json と data/shadow/summary.json
+      └→ research.chat_experiment settle  data/shadow/chat_experiments/{experiment_id}/summary.json（§7）
 [CI]           research.decision_log validate（チャットChappy decision log の構造と規約）
+               research.chat_experiment validate（チャット実験の記録の構造と規約）
 ```
 
 どちらのステップも `continue-on-error: true` で、失敗しても予想本体と成績集計は止まりません。
@@ -228,6 +230,17 @@ settle では、検証を通った案について次を記録します。
 | `no_structural_miss_detected` | 馬以外 | 上のどれにも当たらない |
 
 ラベルは観測記録で、単一原因の断定ではない。少数標本のうちは良し悪しの判定に使わない。
+
+---
+
+## 7. チャット実験（chat-experiment-record-v1）
+
+チャットで作った買い目のロジック（仮説）を、本番に入れる前に前向きに試すための記録です。詳細は `docs/research/CHAT_EXPERIMENTS.md`。
+
+- ルール（`data/chat_experiments/{experiment_id}/rule_{version}.md`）を最初のレースより前に1回だけコミットし、書き換えない。変えるなら新しい version。
+- 各レースの記録（`races/{race_id}/*.json`）を発走前にコミットする。§5 と同じく、Git のコミット時刻で発走前性を検証する。
+- 記録が見た snapshot の版は、SHA-256 ではなく `frozen_at` で特定する（ChatGPT が計算しなくてよいように）。
+- 採点は、同じ版の snapshot にある現行カード（固定3人・Chappy）と並べ、version ごとに分けて集計する。出力は `data/shadow/chat_experiments/` だけ。
 
 ---
 

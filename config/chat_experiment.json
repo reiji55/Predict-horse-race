@@ -1,0 +1,12 @@
+{
+  "version": "chat-experiment-v1",
+  "note": "チャットで作った実験ロジック（仮説）の発走前の記録の規約。research/chat_experiment.py が読む。shadow 研究用で、予想・正式成績・UI には使わない。予想の config_hash（model_registry.HASH_CONFIGS）には入れない。",
+  "record_schema_version": "chat-experiment-record-v1",
+  "experiment_id_pattern": "^[a-z0-9][a-z0-9-]{1,40}$",
+  "rule_version_pattern": "^v[0-9]+$",
+  "frame_label_max_length": 40,
+  "amt_unit": 100,
+  "max_budget": 1000,
+  "bet_types": ["ワイド", "馬連", "3連複"],
+  "baseline_chars": ["kei", "tetsu", "gen", "chappy"]
+}
