@@ -233,3 +233,43 @@ def test_zero_odds_or_past_runs_is_critical():
     assert {"no_win_odds", "no_past_runs"} <= codes
     # この実行で作った唯一のレースが壊れている＝全滅なので止める
     assert report["status"] == "critical" and report["publish_blocked"] is True
+
+
+def test_unscored_runner_is_reported_without_changing_prediction():
+    """京都11Rネオトキオのような評価不能馬が黙って消えないこと。"""
+    raw = _raw()
+    predictions = _predictions()
+    predictions["races"][0]["marks"] = [{"num": n} for n in range(1, 5)]
+    before = [dict(mark) for mark in predictions["races"][0]["marks"]]
+
+    report = data_quality.build_report(raw, predictions)
+    race = report["races"][0]
+    issues = {item["code"] for item in race["issues"]}
+    assert "unscored_runners" in issues
+    assert race["prediction"]["unscored_runner_nums"] == [5]
+    assert race["prediction"]["marks_coverage"] == 0.8
+    assert race["status"] == "warning"
+    assert report["publish_blocked"] is False
+    assert predictions["races"][0]["marks"] == before  # observe-only
+
+
+def test_marks_entry_not_in_raw_is_reported():
+    raw = _raw()
+    predictions = _predictions()
+    predictions["races"][0]["marks"].append({"num": 99})
+
+    report = data_quality.build_report(raw, predictions)
+    race = report["races"][0]
+    codes = {i["code"] for i in race["issues"]}
+    assert "marks_not_in_raw" in codes
+    assert race["prediction"]["extra_mark_nums"] == [99]
+    assert race["prediction"]["unscored_runner_nums"] == []
+    assert race["prediction"]["marks_coverage"] == 1.0
+
+
+def test_raw_entries_all_scored_reports_no_mismatch():
+    report = data_quality.build_report(_raw(), _predictions())
+    race = report["races"][0]
+    assert race["prediction"]["marks_coverage"] == 1.0
+    assert race["prediction"]["unscored_runner_nums"] == []
+    assert race["prediction"]["extra_mark_nums"] == []
