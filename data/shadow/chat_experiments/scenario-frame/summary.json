@@ -1,0 +1,414 @@
+{
+  "schema": "chat-experiment-summary-v1",
+  "experiment_id": "scenario-frame",
+  "config_version": "chat-experiment-v1",
+  "note": "チャットで作った実験ロジックの shadow 採点。発走前の検証（Git のコミット時刻・ルールの不変・記録が見た snapshot の版）に通った記録だけを使い、ルールの version ごとに分けて集計する。比べる相手は、記録が見たのと同じ版の snapshot にある現行のカード。正式成績・UI・予想には使わない。少数のレースでは偶然の影響が大きいので、ルールに書いた評価レース数に達するまで結論を出さない。",
+  "official_results_untouched": true,
+  "versions": {
+    "v1": {
+      "rule": {
+        "path": "data/chat_experiments/scenario-frame/rule_v1.md",
+        "registered_at": "2026-10-11T13:18:18+09:00",
+        "unmodified": true
+      },
+      "races_settled": 2,
+      "races_pending": 0,
+      "baseline_chars_declared": [
+        "gen"
+      ],
+      "experiment": {
+        "races": 2,
+        "bet_races": 2,
+        "pass_races": 0,
+        "spent": 1000,
+        "payout": 0,
+        "roi": 0.0,
+        "roi_ex_max_payout_race": 0.0,
+        "hit_races": 0,
+        "mean_top3_capture": 1.5
+      },
+      "primary_baseline": {
+        "races": 2,
+        "bet_races": 2,
+        "pass_races": 0,
+        "spent": 1000,
+        "payout": 0,
+        "roi": 0.0,
+        "roi_ex_max_payout_race": 0.0,
+        "hit_races": 0,
+        "mean_top3_capture": 0.5
+      },
+      "paired_payout_diff_vs_primary_baseline": {
+        "races": 2,
+        "mean": 0.0,
+        "experiment_higher": 0,
+        "baseline_higher": 0,
+        "equal": 2
+      },
+      "cards": {
+        "kei": {
+          "races": 2,
+          "bet_races": 2,
+          "pass_races": 0,
+          "spent": 1000,
+          "payout": 0,
+          "roi": 0.0,
+          "roi_ex_max_payout_race": 0.0,
+          "hit_races": 0,
+          "mean_top3_capture": 0.5
+        },
+        "tetsu": {
+          "races": 2,
+          "bet_races": 2,
+          "pass_races": 0,
+          "spent": 1000,
+          "payout": 0,
+          "roi": 0.0,
+          "roi_ex_max_payout_race": 0.0,
+          "hit_races": 0,
+          "mean_top3_capture": 0.5
+        },
+        "gen": {
+          "races": 2,
+          "bet_races": 2,
+          "pass_races": 0,
+          "spent": 1000,
+          "payout": 0,
+          "roi": 0.0,
+          "roi_ex_max_payout_race": 0.0,
+          "hit_races": 0,
+          "mean_top3_capture": 0.5
+        },
+        "chappy": {
+          "races": 2,
+          "bet_races": 2,
+          "pass_races": 0,
+          "spent": 2000,
+          "payout": 1570,
+          "roi": 0.785,
+          "roi_ex_max_payout_race": 0.0,
+          "hit_races": 1,
+          "mean_top3_capture": 1.0
+        }
+      },
+      "top3_finishers": {
+        "total": 6,
+        "with_any_frame": 3,
+        "rate": 0.5,
+        "framed_runner_share": 0.333333
+      },
+      "by_frame_tag": {
+        "A+B+C": {
+          "bets": 10,
+          "hit_bets": 0,
+          "spent": 1000,
+          "payout": 0
+        }
+      },
+      "warnings": [],
+      "races": [
+        {
+          "race_id": "20261011-kyoto-11",
+          "record": "data/chat_experiments/scenario-frame/races/20261011-kyoto-11/20261011T132536.json",
+          "record_first_commit_at": "2026-10-11T15:23:59+09:00",
+          "snapshot_frozen_at": "2026-10-11T12:58:05+09:00",
+          "post_at": "2026-10-11T15:30:00+09:00",
+          "baseline_char": "gen",
+          "budget": 500,
+          "status": "settled",
+          "finish_top3": [
+            3,
+            8,
+            4
+          ],
+          "experiment": {
+            "action": "bet",
+            "spent": 500,
+            "payout": 0,
+            "hit": false,
+            "hit_bets": 0,
+            "top3_capture": 1,
+            "bets": [
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  3,
+                  13
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  2,
+                  5,
+                  13
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  3,
+                  5
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  2,
+                  13
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  3,
+                  5,
+                  13
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              }
+            ]
+          },
+          "bet_horses_finish": {
+            "1": 7,
+            "2": 6,
+            "3": 1,
+            "5": 14,
+            "13": 8
+          },
+          "top3_frames": [
+            {
+              "finish": 1,
+              "num": 3,
+              "frames": [
+                "C"
+              ]
+            },
+            {
+              "finish": 2,
+              "num": 8,
+              "frames": []
+            },
+            {
+              "finish": 3,
+              "num": 4,
+              "frames": []
+            }
+          ],
+          "runners": 14,
+          "framed_runners": 5,
+          "cards": {
+            "kei": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 0
+            },
+            "tetsu": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 0
+            },
+            "gen": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 0
+            },
+            "chappy": {
+              "action": "bet",
+              "spent": 1000,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 0
+            }
+          },
+          "superseded": []
+        },
+        {
+          "race_id": "20261011-tokyo-11",
+          "record": "data/chat_experiments/scenario-frame/races/20261011-tokyo-11/20261011T152548.json",
+          "record_first_commit_at": "2026-10-11T15:26:09+09:00",
+          "snapshot_frozen_at": "2026-10-11T12:58:05+09:00",
+          "post_at": "2026-10-11T15:45:00+09:00",
+          "baseline_char": "gen",
+          "budget": 500,
+          "status": "settled",
+          "finish_top3": [
+            16,
+            15,
+            11
+          ],
+          "experiment": {
+            "action": "bet",
+            "spent": 500,
+            "payout": 0,
+            "hit": false,
+            "hit_bets": 0,
+            "top3_capture": 2,
+            "bets": [
+              {
+                "type": "3連複",
+                "horses": [
+                  3,
+                  4,
+                  16
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  15,
+                  16
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  3,
+                  4,
+                  15
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  3,
+                  16
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  4,
+                  15,
+                  16
+                ],
+                "amt": 100,
+                "hit": false,
+                "payout": 0,
+                "frame_tag": "A+B+C"
+              }
+            ]
+          },
+          "bet_horses_finish": {
+            "1": 7,
+            "3": 8,
+            "4": 16,
+            "15": 2,
+            "16": 1
+          },
+          "top3_frames": [
+            {
+              "finish": 1,
+              "num": 16,
+              "frames": [
+                "A",
+                "B"
+              ]
+            },
+            {
+              "finish": 2,
+              "num": 15,
+              "frames": [
+                "A"
+              ]
+            },
+            {
+              "finish": 3,
+              "num": 11,
+              "frames": []
+            }
+          ],
+          "runners": 16,
+          "framed_runners": 5,
+          "cards": {
+            "kei": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 1
+            },
+            "tetsu": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 1
+            },
+            "gen": {
+              "action": "bet",
+              "spent": 500,
+              "payout": 0,
+              "hit": false,
+              "hit_bets": 0,
+              "top3_capture": 1
+            },
+            "chappy": {
+              "action": "bet",
+              "spent": 1000,
+              "payout": 1570,
+              "hit": true,
+              "hit_bets": 2,
+              "top3_capture": 2
+            }
+          },
+          "superseded": []
+        }
+      ]
+    }
+  },
+  "rejected_records": [],
+  "deleted_records": []
+}

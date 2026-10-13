@@ -1,0 +1,51 @@
+name: 週末3CARDS アプリ配信データ同期
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/predictions.json'
+      - 'data/race_results.json'
+      - 'data/results.json'
+      - '.github/workflows/manual_pages_data_sync.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: weekend3cards-pages-data-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Synchronize canonical main JSON to Pages source branch
+        run: |
+          set -euo pipefail
+          target="claude/content-review-full-rw32o2"
+          git fetch origin main "$target"
+          git switch --create pages-data-sync --track "origin/$target"
+          for file in data/predictions.json data/race_results.json data/results.json; do
+            git show "origin/main:$file" > "$file"
+          done
+          git config user.name weekend3cards-bot
+          git config user.email actions@users.noreply.github.com
+          git add data/predictions.json data/race_results.json data/results.json
+          if git diff --cached --quiet; then
+            echo "Already synchronized"
+            exit 0
+          fi
+          git commit -m "pages: synchronize canonical results and predictions"
+          for try in 1 2 3 4; do
+            if git push origin "HEAD:$target"; then exit 0; fi
+            sleep "$((try * 4))"
+            git fetch origin main "$target"
+            git rebase "origin/$target"
+            for file in data/predictions.json data/race_results.json data/results.json; do
+              git show "origin/main:$file" > "$file"
+            done
+            git add data/predictions.json data/race_results.json data/results.json
+            git diff --cached --quiet || git commit -m "pages: refresh canonical data"
+          done
+          exit 1
