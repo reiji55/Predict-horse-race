@@ -1,19 +1,20 @@
 name: 週末3CARDS 品質レポート再監査
+# 予想は作り直さず、raw と現在の predictions から品質レポートだけを作り直す手動用。
+# push では起動しない（別ブランチでファイルを触っても勝手にコミットしないように）。
 on:
-  push:
-    paths:
-      - '.github/workflows/manual_quality_reaudit.yml'
   workflow_dispatch:
     inputs:
       week_id:
-        description: 'ISO week to audit'
+        description: 'ISO week to audit (e.g. 2026-W42)'
         required: true
-        default: '2026-W42'
 permissions:
   contents: write
 jobs:
   audit:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      WEEK: ${{ inputs.week_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,9 +25,11 @@ jobs:
           pip install -r requirements-dev.txt
           python -m pytest tests/test_data_quality.py -q
       - name: Audit raw and current predictions without re-predicting
-        env:
-          WEEK: ${{ github.event_name == 'workflow_dispatch' && inputs.week_id || '2026-W42' }}
         run: |
+          case "$WEEK" in
+            [0-9][0-9][0-9][0-9]-W[0-9][0-9]) ;;
+            *) echo "week_id の形式が違います: $WEEK"; exit 1 ;;
+          esac
           test -f "raw/$WEEK.json"
           python -m logic.data_quality --raw "raw/$WEEK.json" --predictions data/predictions.json --output data/quality_report.json --fail-on never
       - name: Commit quality evidence only
@@ -37,7 +40,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Quality report unchanged"
           else
-            git commit -m "audit: refresh runner coverage for 2026-W42"
+            git commit -m "audit: refresh runner coverage for $WEEK"
             for i in 1 2 3; do
               git push && exit 0
               sleep "$((i * 4))"

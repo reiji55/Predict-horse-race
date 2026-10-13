@@ -1,26 +1,30 @@
 name: 週末3CARDS 週指定・成績集計再実行
+# 定刻の成績集計が日付をまたいで空振りしたとき（2026-10-12 祝日開催で発生）に、
+# 週を指定して正規の run_results.yml を main で走らせ直すための手動用。
+# push では起動しない（ファイルを触っただけで main の成績集計が走らないように）。
 on:
-  push:
-    paths:
-      - '.github/workflows/manual_week_results_backfill.yml'
   workflow_dispatch:
     inputs:
       week_id:
         description: 'ISO week to settle (e.g. 2026-W42)'
         required: true
-        default: '2026-W42'
 permissions:
   contents: read
   actions: write
 jobs:
   dispatch:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch canonical week-results workflow without wall-clock date guard
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          WEEK: ${{ github.event_name == 'workflow_dispatch' && inputs.week_id || '2026-W42' }}
+          WEEK: ${{ inputs.week_id }}
         run: |
+          case "$WEEK" in
+            [0-9][0-9][0-9][0-9]-W[0-9][0-9]) ;;
+            *) echo "week_id の形式が違います: $WEEK"; exit 1 ;;
+          esac
           gh workflow run run_results.yml --repo "$REPO" --ref main -f "week_id=$WEEK" -f refetch=false
           echo "Requested run_results.yml for $WEEK; verify the dispatched workflow result separately."
