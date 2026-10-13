@@ -1,0 +1,47 @@
+name: 週末3CARDS 品質レポート再監査
+on:
+  push:
+    paths:
+      - '.github/workflows/manual_quality_reaudit.yml'
+  workflow_dispatch:
+    inputs:
+      week_id:
+        description: 'ISO week to audit'
+        required: true
+        default: '2026-W42'
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit test data-quality audit
+        run: |
+          pip install -r requirements-dev.txt
+          python -m pytest tests/test_data_quality.py -q
+      - name: Audit raw and current predictions without re-predicting
+        env:
+          WEEK: ${{ github.event_name == 'workflow_dispatch' && inputs.week_id || '2026-W42' }}
+        run: |
+          test -f "raw/$WEEK.json"
+          python -m logic.data_quality --raw "raw/$WEEK.json" --predictions data/predictions.json --output data/quality_report.json --fail-on never
+      - name: Commit quality evidence only
+        run: |
+          git config user.name weekend3cards-bot
+          git config user.email actions@users.noreply.github.com
+          git add data/quality_report.json
+          if git diff --cached --quiet; then
+            echo "Quality report unchanged"
+          else
+            git commit -m "audit: refresh runner coverage for 2026-W42"
+            for i in 1 2 3; do
+              git push && exit 0
+              sleep "$((i * 4))"
+              git pull --rebase origin main
+            done
+            exit 1
+          fi
