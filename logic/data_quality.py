@@ -197,6 +197,23 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
                 _add(issues, "critical", "empty_marks", "予想の marks が空です")
             if not cards:
                 _add(issues, "critical", "empty_cards", "予想カードが1枚もありません")
+            # 評価不能馬も raw.entries には存在する。score=None の馬が
+            # assign_marks から消える場合、以前は品質レポート上で見落としていた。
+            # Champion の順位・買い目・snapshotには一切影響させない（observe-only）。
+            raw_nums = {e["num"] for e in entries if isinstance(e.get("num"), int)}
+            mark_nums = {m["num"] for m in marks if isinstance(m.get("num"), int)}
+            unscored_nums = sorted(raw_nums - mark_nums)
+            extra_mark_nums = sorted(mark_nums - raw_nums)
+            if unscored_nums:
+                _add(
+                    issues, "warning", "unscored_runners",
+                    f"raw 出走馬のうち {len(unscored_nums)} 頭が marks に存在しません: {unscored_nums}",
+                )
+            if extra_mark_nums:
+                _add(
+                    issues, "warning", "marks_not_in_raw",
+                    f"marks のうち {len(extra_mark_nums)} 頭は raw 出走馬に存在しません: {extra_mark_nums}",
+                )
             if speed_quality and not speed_quality.get("used", False):
                 _add(
                     issues, "warning", "speed_guard_disabled",
@@ -204,6 +221,9 @@ def build_report(raw: dict[str, Any], predictions: dict[str, Any]) -> dict[str, 
                 )
             prediction_info = {
                 "marks": len(marks),
+                "marks_coverage": _ratio(len(mark_nums & raw_nums), len(raw_nums)),
+                "unscored_runner_nums": unscored_nums,
+                "extra_mark_nums": extra_mark_nums,
                 "cards": len(cards),
                 "speed_used": speed_quality.get("used"),
                 "speed_coverage": speed_quality.get("coverage"),
