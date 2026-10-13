@@ -1,7 +1,11 @@
 name: 週末3CARDS アプリ配信データ同期
 on:
   push:
+    branches: [main]
     paths:
+      - 'data/predictions.json'
+      - 'data/race_results.json'
+      - 'data/results.json'
       - '.github/workflows/manual_pages_data_sync.yml'
   workflow_dispatch:
 permissions:
