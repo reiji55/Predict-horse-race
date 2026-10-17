@@ -1,0 +1,857 @@
+{
+  "schema": "forward-diagnostic-race-v1",
+  "diagnostics_version": "forward-diagnostics-v1",
+  "diagnostics_config_hash": "0e10c9314327c7fecc4386518d242d969f05dbee30fa840b6f2d8b9227e6bdd0",
+  "race_id": "20261017-kyoto-11",
+  "phase": "forward",
+  "registered_at": "2026-09-28T00:00:00+09:00",
+  "official_results_untouched": true,
+  "used_for_prediction": false,
+  "evidence": {
+    "status": "prerace_record_matched",
+    "snapshot_path": "data/snapshots/20261017-kyoto-11.json",
+    "snapshot_sha256": "39dfbfcb9c59c7225a81fb776cf100319472caae4fe72a0f4649df7a38bab988",
+    "snapshot_frozen_at": "2026-10-17T14:10:12+09:00",
+    "prerace_record_path": "data/shadow/prerace/20261017-kyoto-11/20261017T141014_pipeline.json",
+    "prerace_captured_at": "2026-10-17T14:10:14+09:00",
+    "prerace_minutes_to_post": 79.8,
+    "post_at": "2026-10-17T15:30:00+09:00"
+  },
+  "actual_top3": [
+    10,
+    5,
+    9
+  ],
+  "status": "available",
+  "pre_race": {
+    "status": "available",
+    "fidelity_recomputed_matches_snapshot": true,
+    "fixed_three": {
+      "active_chars": [
+        "kei",
+        "tetsu",
+        "gen"
+      ],
+      "passed_chars": [],
+      "missing_chars": [],
+      "axis_source": "ticket_template_index0",
+      "axes": {
+        "kei": 5,
+        "tetsu": 5,
+        "gen": 9
+      },
+      "axis_counts": {
+        "5": 2,
+        "9": 1
+      },
+      "max_axis_agreement": 2,
+      "axis_all_same": false,
+      "dominant_axis": 5,
+      "dominant_axis_exposure_yen": 900,
+      "total_stake_yen": 1500,
+      "dominant_axis_exposure_ratio": 0.6,
+      "pairwise_rank_spearman": {
+        "kei-tetsu": 0.917857,
+        "kei-gen": 0.5,
+        "tetsu-gen": 0.739286
+      },
+      "bet_horse_jaccard": {
+        "kei-tetsu": 0.4,
+        "kei-gen": 0.0,
+        "tetsu-gen": 0.333333
+      },
+      "redundant_pairs": [],
+      "redundancy_flag": false
+    },
+    "input_quality": {
+      "speed_quality": {
+        "raw_available_horses": 14,
+        "qualified_horses": 14,
+        "total_horses": 15,
+        "coverage": 0.9333,
+        "used": true,
+        "reason": "ok"
+      },
+      "speed_quality_status": "available",
+      "speed_degraded": false,
+      "model_running_as_designed": true,
+      "design_check": {
+        "version": "design-check-v1",
+        "required": [
+          "speed_used",
+          "win_odds_complete",
+          "scores_complete"
+        ],
+        "checks": {
+          "speed_used": true,
+          "win_odds_complete": true,
+          "scores_complete": true
+        }
+      }
+    },
+    "candidate_orders": {
+      "base": {
+        "status": "available",
+        "source": "snapshot.marks",
+        "order": [
+          5,
+          7,
+          6,
+          9,
+          10,
+          14,
+          1,
+          12,
+          11,
+          2,
+          15,
+          8,
+          13,
+          3,
+          4
+        ]
+      },
+      "top3": {
+        "status": "available",
+        "source": "snapshot.marks.top3_rank",
+        "order": [
+          6,
+          9,
+          10,
+          5,
+          14,
+          1,
+          11,
+          13,
+          12,
+          7,
+          15,
+          8,
+          3,
+          4
+        ]
+      },
+      "kei_sel": {
+        "status": "available",
+        "source": "prerace_record.diversity.sel_orders",
+        "order": [
+          5,
+          10,
+          7,
+          9,
+          6,
+          1,
+          14,
+          11,
+          12,
+          2,
+          15,
+          8,
+          3,
+          4,
+          13
+        ]
+      },
+      "tetsu_sel": {
+        "status": "available",
+        "source": "prerace_record.diversity.sel_orders",
+        "order": [
+          5,
+          7,
+          9,
+          1,
+          10,
+          11,
+          6,
+          15,
+          14,
+          2,
+          12,
+          8,
+          4,
+          13,
+          3
+        ]
+      },
+      "gen_sel": {
+        "status": "available",
+        "source": "prerace_record.diversity.sel_orders",
+        "order": [
+          9,
+          15,
+          11,
+          1,
+          5,
+          10,
+          7,
+          6,
+          4,
+          13,
+          2,
+          12,
+          14,
+          8,
+          3
+        ]
+      },
+      "chappy_integrated": {
+        "status": "available",
+        "source": "snapshot.chappy_decision.signal_board.integrated",
+        "order": [
+          6,
+          9,
+          10,
+          14,
+          5,
+          1,
+          11,
+          7,
+          12,
+          13,
+          15,
+          8,
+          2,
+          3,
+          4
+        ]
+      },
+      "chappy_roles": {
+        "win_anchor": 9,
+        "support": 6,
+        "top3_edge": 10,
+        "long_edge": 11
+      },
+      "ticket_horses": {
+        "kei": [
+          5,
+          7,
+          10
+        ],
+        "tetsu": [
+          1,
+          5,
+          7,
+          9
+        ],
+        "gen": [
+          1,
+          9,
+          11,
+          15
+        ],
+        "chappy": [
+          6,
+          9,
+          10,
+          11
+        ]
+      }
+    }
+  },
+  "post_race": {
+    "status": "available",
+    "note": "確定着順を使う監査専用の値。予想・選定・買い目の入力にはしない。",
+    "recall": {
+      "base": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 0.6667,
+        "count4": 2,
+        "at6": 1.0,
+        "count6": 3
+      },
+      "top3": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 1.0,
+        "count4": 3,
+        "at6": 1.0,
+        "count6": 3
+      },
+      "kei_sel": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 1.0,
+        "count4": 3,
+        "at6": 1.0,
+        "count6": 3
+      },
+      "tetsu_sel": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 0.6667,
+        "count4": 2,
+        "at6": 1.0,
+        "count6": 3
+      },
+      "gen_sel": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 0.3333,
+        "count4": 1,
+        "at6": 1.0,
+        "count6": 3
+      },
+      "chappy_integrated": {
+        "status": "available",
+        "denominator": 3,
+        "at4": 0.6667,
+        "count4": 2,
+        "at6": 1.0,
+        "count6": 3
+      }
+    },
+    "cards": {
+      "kei": {
+        "status": "evaluated",
+        "stake_yen": 500,
+        "selected_horses": [
+          5,
+          7,
+          10
+        ],
+        "actual_top3_selected": [
+          10,
+          5
+        ],
+        "actual_top3_selected_count": 2,
+        "direct_pairs_available": [
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            7,
+            10
+          ]
+        ],
+        "direct_pairs_available_count": 3,
+        "direct_pairs_ticketed": [
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            7,
+            10
+          ]
+        ],
+        "direct_pairs_ticketed_count": 3,
+        "direct_pair_coverage_ratio": 1.0,
+        "actual_top3_pairs_selected": [
+          [
+            5,
+            10
+          ]
+        ],
+        "actual_top3_pair_conversion": [
+          {
+            "pair": [
+              5,
+              10
+            ],
+            "winnable_types": [
+              "ワイド",
+              "馬連"
+            ],
+            "ticketed_types": [
+              "ワイド",
+              "馬連"
+            ],
+            "converted": true
+          }
+        ],
+        "actual_top3_pairs_directly_ticketed": [
+          [
+            5,
+            10
+          ]
+        ],
+        "actual_top3_pairs_not_directly_ticketed": [],
+        "winning_pair_present_but_not_ticketed": false,
+        "umaren_winning_pair": [
+          5,
+          10
+        ],
+        "umaren_winning_pair_selected": true,
+        "umaren_winning_pair_ticketed": true,
+        "all_top3_selected": false,
+        "winning_trio_ticketed": false,
+        "winning_trio_selected_but_not_ticketed": false,
+        "upstream_sources": [
+          "base",
+          "top3",
+          "kei_sel"
+        ],
+        "failure_stage": [
+          "character_selection_cut"
+        ]
+      },
+      "tetsu": {
+        "status": "evaluated",
+        "stake_yen": 500,
+        "selected_horses": [
+          1,
+          5,
+          7,
+          9
+        ],
+        "actual_top3_selected": [
+          5,
+          9
+        ],
+        "actual_top3_selected_count": 2,
+        "direct_pairs_available": [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            7,
+            9
+          ]
+        ],
+        "direct_pairs_available_count": 6,
+        "direct_pairs_ticketed": [
+          [
+            1,
+            5
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            5,
+            9
+          ]
+        ],
+        "direct_pairs_ticketed_count": 3,
+        "direct_pair_coverage_ratio": 0.5,
+        "actual_top3_pairs_selected": [
+          [
+            5,
+            9
+          ]
+        ],
+        "actual_top3_pair_conversion": [
+          {
+            "pair": [
+              5,
+              9
+            ],
+            "winnable_types": [
+              "ワイド"
+            ],
+            "ticketed_types": [
+              "馬連"
+            ],
+            "converted": false
+          }
+        ],
+        "actual_top3_pairs_directly_ticketed": [],
+        "actual_top3_pairs_not_directly_ticketed": [
+          [
+            5,
+            9
+          ]
+        ],
+        "winning_pair_present_but_not_ticketed": true,
+        "umaren_winning_pair": [
+          5,
+          10
+        ],
+        "umaren_winning_pair_selected": false,
+        "umaren_winning_pair_ticketed": false,
+        "all_top3_selected": false,
+        "winning_trio_ticketed": false,
+        "winning_trio_selected_but_not_ticketed": false,
+        "upstream_sources": [
+          "base",
+          "top3",
+          "tetsu_sel"
+        ],
+        "failure_stage": [
+          "character_selection_cut",
+          "ticket_conversion_loss"
+        ]
+      },
+      "gen": {
+        "status": "evaluated",
+        "stake_yen": 500,
+        "selected_horses": [
+          1,
+          9,
+          11,
+          15
+        ],
+        "actual_top3_selected": [
+          9
+        ],
+        "actual_top3_selected_count": 1,
+        "direct_pairs_available": [
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            11
+          ],
+          [
+            1,
+            15
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            9,
+            15
+          ],
+          [
+            11,
+            15
+          ]
+        ],
+        "direct_pairs_available_count": 6,
+        "direct_pairs_ticketed": [
+          [
+            9,
+            15
+          ]
+        ],
+        "direct_pairs_ticketed_count": 1,
+        "direct_pair_coverage_ratio": 0.1667,
+        "actual_top3_pairs_selected": [],
+        "actual_top3_pair_conversion": [],
+        "actual_top3_pairs_directly_ticketed": [],
+        "actual_top3_pairs_not_directly_ticketed": [],
+        "winning_pair_present_but_not_ticketed": false,
+        "umaren_winning_pair": [
+          5,
+          10
+        ],
+        "umaren_winning_pair_selected": false,
+        "umaren_winning_pair_ticketed": false,
+        "all_top3_selected": false,
+        "winning_trio_ticketed": false,
+        "winning_trio_selected_but_not_ticketed": false,
+        "upstream_sources": [
+          "base",
+          "top3",
+          "gen_sel"
+        ],
+        "failure_stage": [
+          "character_selection_cut"
+        ]
+      },
+      "chappy": {
+        "status": "evaluated",
+        "stake_yen": 1000,
+        "selected_horses": [
+          6,
+          9,
+          10,
+          11
+        ],
+        "actual_top3_selected": [
+          10,
+          9
+        ],
+        "actual_top3_selected_count": 2,
+        "direct_pairs_available": [
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            11
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            10,
+            11
+          ]
+        ],
+        "direct_pairs_available_count": 6,
+        "direct_pairs_ticketed": [
+          [
+            6,
+            9
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            11
+          ]
+        ],
+        "direct_pairs_ticketed_count": 4,
+        "direct_pair_coverage_ratio": 0.6667,
+        "actual_top3_pairs_selected": [
+          [
+            9,
+            10
+          ]
+        ],
+        "actual_top3_pair_conversion": [
+          {
+            "pair": [
+              9,
+              10
+            ],
+            "winnable_types": [
+              "ワイド"
+            ],
+            "ticketed_types": [
+              "ワイド"
+            ],
+            "converted": true
+          }
+        ],
+        "actual_top3_pairs_directly_ticketed": [
+          [
+            9,
+            10
+          ]
+        ],
+        "actual_top3_pairs_not_directly_ticketed": [],
+        "winning_pair_present_but_not_ticketed": false,
+        "umaren_winning_pair": [
+          5,
+          10
+        ],
+        "umaren_winning_pair_selected": false,
+        "umaren_winning_pair_ticketed": false,
+        "all_top3_selected": false,
+        "winning_trio_ticketed": false,
+        "winning_trio_selected_but_not_ticketed": false,
+        "failure_stage": [
+          "chappy_role_cut"
+        ]
+      }
+    },
+    "chappy_stage": {
+      "status": "evaluated",
+      "roles": {
+        "win_anchor": 9,
+        "support": 6,
+        "top3_edge": 10,
+        "long_edge": 11
+      },
+      "integrated_recall": {
+        "at4": 0.6667,
+        "at6": 1.0,
+        "count4": 2,
+        "count6": 3
+      },
+      "actual_top3_counts": {
+        "integrated_top6": 3,
+        "integrated_top4": 2,
+        "roles": 2,
+        "tickets": 2
+      },
+      "integrated_top4_not_in_roles": [
+        {
+          "num": 14,
+          "integrated_rank": 4,
+          "actual_top3": false
+        }
+      ],
+      "roles_outside_integrated_top4": [
+        {
+          "role": "long_edge",
+          "num": 11,
+          "integrated_rank": 7,
+          "actual_top3": false
+        }
+      ],
+      "role_ticket_usage": [
+        {
+          "role": "win_anchor",
+          "num": 9,
+          "actual_top3": true,
+          "direct_pairs_with_roles": 3,
+          "direct_pairs_ticketed": 3,
+          "trios_with_roles": 3,
+          "trios_ticketed": 3
+        },
+        {
+          "role": "support",
+          "num": 6,
+          "actual_top3": false,
+          "direct_pairs_with_roles": 3,
+          "direct_pairs_ticketed": 2,
+          "trios_with_roles": 3,
+          "trios_ticketed": 3
+        },
+        {
+          "role": "top3_edge",
+          "num": 10,
+          "actual_top3": true,
+          "direct_pairs_with_roles": 3,
+          "direct_pairs_ticketed": 2,
+          "trios_with_roles": 3,
+          "trios_ticketed": 3
+        },
+        {
+          "role": "long_edge",
+          "num": 11,
+          "actual_top3": false,
+          "direct_pairs_with_roles": 3,
+          "direct_pairs_ticketed": 1,
+          "trios_with_roles": 3,
+          "trios_ticketed": 3
+        }
+      ],
+      "role_horses_not_fully_used": [
+        6,
+        10,
+        11
+      ],
+      "actual_top3_role_pairs": [
+        [
+          9,
+          10
+        ]
+      ],
+      "actual_top3_role_pairs_not_directly_ticketed": [],
+      "actual_top3_drops": {
+        "integration_cut": 0,
+        "role_cut": 1,
+        "role_added_outside_integrated_top6": 0,
+        "role_to_ticket_pairs_missing": 0
+      }
+    },
+    "failure_stage": {
+      "thresholds": {
+        "cut_k": 4,
+        "seen_k": 6
+      },
+      "race": [
+        "base_rank_cut",
+        "character_selection_cut",
+        "chappy_role_cut",
+        "ticket_conversion_loss"
+      ],
+      "by_card": {
+        "kei": [
+          "character_selection_cut"
+        ],
+        "tetsu": [
+          "character_selection_cut",
+          "ticket_conversion_loss"
+        ],
+        "gen": [
+          "character_selection_cut"
+        ],
+        "chappy": [
+          "chappy_role_cut"
+        ]
+      },
+      "by_horse": [
+        {
+          "num": 10,
+          "finish_position": 1,
+          "ranks": {
+            "base": 5,
+            "top3": 3,
+            "kei_sel": 2,
+            "tetsu_sel": 5,
+            "gen_sel": 6,
+            "chappy_integrated": 3
+          },
+          "ticketed_by": [
+            "kei",
+            "chappy"
+          ],
+          "in_chappy_roles": true,
+          "labels": [
+            "base_rank_cut"
+          ]
+        },
+        {
+          "num": 5,
+          "finish_position": 2,
+          "ranks": {
+            "base": 1,
+            "top3": 4,
+            "kei_sel": 1,
+            "tetsu_sel": 1,
+            "gen_sel": 5,
+            "chappy_integrated": 5
+          },
+          "ticketed_by": [
+            "kei",
+            "tetsu"
+          ],
+          "in_chappy_roles": false,
+          "labels": []
+        },
+        {
+          "num": 9,
+          "finish_position": 3,
+          "ranks": {
+            "base": 4,
+            "top3": 2,
+            "kei_sel": 4,
+            "tetsu_sel": 3,
+            "gen_sel": 1,
+            "chappy_integrated": 2
+          },
+          "ticketed_by": [
+            "tetsu",
+            "gen",
+            "chappy"
+          ],
+          "in_chappy_roles": true,
+          "labels": []
+        }
+      ]
+    }
+  }
+}
