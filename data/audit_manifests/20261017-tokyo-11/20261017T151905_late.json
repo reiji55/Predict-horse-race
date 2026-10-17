@@ -1,0 +1,453 @@
+{
+  "version": "audit-manifest-v2",
+  "mode": "audit_only",
+  "race_id": "20261017-tokyo-11",
+  "post_time": "15:45",
+  "post_at": "2026-10-17T15:45:00+09:00",
+  "time_definitions": {
+    "observed_at": "こちら（GitHub Actions）がHTTP取得を終えた時刻。いつ取りに行ったかの証拠で、価格の時刻ではない",
+    "source_time": "provider returned official_datetime（netkeibaが返した official_datetime をそのまま保存）。価格の鮮度はこれで判定する",
+    "post_at": "発走予定時刻（JST）",
+    "frozen_at": "予想 snapshot のビルド時刻",
+    "recorded_at": "ファイルを書いた時刻（通常pipelineの観測なら raw 全体の構築完了、manifest なら manifest の作成）。価格の時刻でも HTTP 取得時刻でもない"
+  },
+  "source_time_caveat": "netkeiba の official_datetime が本当に『その券種の価格の更新時刻』を意味するかは、まだ完全には確かめていない。source_time = provider returned official_datetime として保存・監査しているだけ",
+  "proof_scope": "internal_hash_manifest",
+  "freshness_rules": {
+    "basis": "source_time",
+    "target_min_minutes": 5.0,
+    "target_max_minutes": 15.0,
+    "stale_after_minutes": 30.0
+  },
+  "recorded_at": "2026-10-17T15:19:05+09:00",
+  "phase": "late",
+  "pre_race": true,
+  "artifacts": {
+    "prediction": {
+      "path": "data/snapshots/20261017-tokyo-11.json",
+      "sha256": "4edaab9327c617f93cc746be532b6d7baca6c4df0e494ff5119da119dbea74d4",
+      "frozen_at": "2026-10-17T14:10:12+09:00",
+      "minutes_to_post": 94.8,
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737"
+    },
+    "context": {
+      "path": "data/context_snapshots/20261017-tokyo-11/20261017T151905_late.json",
+      "sha256": "954051ab5df4715524c13741acba08a3dc0c00ea9e52412ef33fdf020497cbab",
+      "phase": "late",
+      "observed_at": "2026-10-17T15:19:05+09:00",
+      "minutes_to_post": 25.917
+    },
+    "odds": {
+      "path": "data/odds_history/20261017-tokyo-11/20261017T150112_late.json",
+      "sha256": "f236d4204b80a00a5a4e56f9ba36c97be61740b7557ef99571535764beeb81fe",
+      "phase": "late",
+      "observed_at": "2026-10-17T15:01:12+09:00",
+      "observed_at_basis": "win_http_completed",
+      "recorded_at": "2026-10-17T15:01:12+09:00",
+      "observed_minutes_to_post": 43.8,
+      "source_time": "2026-10-17 14:40:20",
+      "source_time_market": "win",
+      "market_scope": "win",
+      "rows": 14,
+      "markets": {
+        "win": {
+          "source_time": "2026-10-17 14:40:20",
+          "observed_at": "2026-10-17T15:01:12+09:00",
+          "observed_minutes_to_post": 43.8,
+          "fetch_status": "ok",
+          "rows": 14,
+          "freshness": {
+            "status": "stale",
+            "freshness_basis": "source_time",
+            "source_time": "2026-10-17 14:40:20",
+            "minutes_to_post": 64.667,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "umaren": {
+          "source_time": null,
+          "observed_at": null,
+          "observed_minutes_to_post": null,
+          "fetch_status": "not_fetched",
+          "rows": 0,
+          "freshness": {
+            "status": "not_in_scope",
+            "freshness_basis": "unavailable",
+            "reason": "not_fetched",
+            "source_time": null,
+            "minutes_to_post": null,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "wide": {
+          "source_time": null,
+          "observed_at": null,
+          "observed_minutes_to_post": null,
+          "fetch_status": "not_fetched",
+          "rows": 0,
+          "freshness": {
+            "status": "not_in_scope",
+            "freshness_basis": "unavailable",
+            "reason": "not_fetched",
+            "source_time": null,
+            "minutes_to_post": null,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "sanrenpuku": {
+          "source_time": null,
+          "observed_at": null,
+          "observed_minutes_to_post": null,
+          "fetch_status": "not_fetched",
+          "rows": 0,
+          "freshness": {
+            "status": "not_in_scope",
+            "freshness_basis": "unavailable",
+            "reason": "not_fetched",
+            "source_time": null,
+            "minutes_to_post": null,
+            "fresh": false,
+            "target_window": false
+          }
+        }
+      }
+    }
+  },
+  "odds_freshness": {
+    "market": "win",
+    "status": "stale",
+    "freshness_basis": "source_time",
+    "source_time": "2026-10-17 14:40:20",
+    "minutes_to_post": 64.667,
+    "fresh": false,
+    "target_window": false
+  },
+  "prediction_price_basis": {
+    "status": "linked",
+    "link_rule": "latest_pipeline_odds_observation_recorded_at_or_before_prediction_frozen_at",
+    "prediction_odds_match": true,
+    "odds": {
+      "path": "data/odds_history/20261017-tokyo-11/20261017T140948_pipeline.json",
+      "sha256": "ae1339b80808fb3d01492e08ca451085337da180b2b4a9c3664def1b54eb4db0",
+      "phase": "pipeline",
+      "observed_at": "2026-10-17T14:09:48+09:00",
+      "observed_at_basis": "win_http_completed",
+      "recorded_at": "2026-10-17T14:10:03+09:00",
+      "observed_minutes_to_post": 95.2,
+      "source_time": "2026-10-17 13:40:10",
+      "source_time_market": "win",
+      "market_scope": "all",
+      "rows": 14,
+      "markets": {
+        "win": {
+          "source_time": "2026-10-17 13:40:10",
+          "observed_at": "2026-10-17T14:09:48+09:00",
+          "observed_minutes_to_post": 95.2,
+          "fetch_status": "ok",
+          "rows": 14,
+          "freshness": {
+            "status": "stale",
+            "freshness_basis": "source_time",
+            "source_time": "2026-10-17 13:40:10",
+            "minutes_to_post": 124.833,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "umaren": {
+          "source_time": "2026-10-17 13:40:10",
+          "observed_at": "2026-10-17T14:09:51+09:00",
+          "observed_minutes_to_post": 95.15,
+          "fetch_status": "ok",
+          "rows": 80,
+          "freshness": {
+            "status": "stale",
+            "freshness_basis": "source_time",
+            "source_time": "2026-10-17 13:40:10",
+            "minutes_to_post": 124.833,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "wide": {
+          "source_time": "2026-10-17 13:40:10",
+          "observed_at": "2026-10-17T14:09:56+09:00",
+          "observed_minutes_to_post": 95.067,
+          "fetch_status": "ok",
+          "rows": 91,
+          "freshness": {
+            "status": "stale",
+            "freshness_basis": "source_time",
+            "source_time": "2026-10-17 13:40:10",
+            "minutes_to_post": 124.833,
+            "fresh": false,
+            "target_window": false
+          }
+        },
+        "sanrenpuku": {
+          "source_time": "2026-10-17 13:40:10",
+          "observed_at": "2026-10-17T14:09:59+09:00",
+          "observed_minutes_to_post": 95.017,
+          "fetch_status": "ok",
+          "rows": 172,
+          "freshness": {
+            "status": "stale",
+            "freshness_basis": "source_time",
+            "source_time": "2026-10-17 13:40:10",
+            "minutes_to_post": 124.833,
+            "fresh": false,
+            "target_window": false
+          }
+        }
+      }
+    }
+  },
+  "card_price_evidence": {
+    "basis_status": "linked",
+    "markets": {
+      "win": {
+        "source_time": "2026-10-17 13:40:10",
+        "fetch_status": "ok",
+        "freshness": "stale"
+      },
+      "umaren": {
+        "source_time": "2026-10-17 13:40:10",
+        "fetch_status": "ok",
+        "freshness": "stale"
+      },
+      "wide": {
+        "source_time": "2026-10-17 13:40:10",
+        "fetch_status": "ok",
+        "freshness": "stale"
+      },
+      "sanrenpuku": {
+        "source_time": "2026-10-17 13:40:10",
+        "fetch_status": "ok",
+        "freshness": "stale"
+      }
+    },
+    "cards": [
+      {
+        "char": "kei",
+        "market_ev_computed": true,
+        "pq_basis_win": {
+          "source_time": "2026-10-17 13:40:10",
+          "freshness": "stale"
+        },
+        "markets_used": {
+          "wide": {
+            "bet_type": "ワイド",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "umaren": {
+            "bet_type": "馬連",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          }
+        },
+        "prices_not_fresh": [
+          "umaren",
+          "wide"
+        ]
+      },
+      {
+        "char": "tetsu",
+        "market_ev_computed": true,
+        "pq_basis_win": {
+          "source_time": "2026-10-17 13:40:10",
+          "freshness": "stale"
+        },
+        "markets_used": {
+          "sanrenpuku": {
+            "bet_type": "3連複",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "wide": {
+            "bet_type": "ワイド",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "umaren": {
+            "bet_type": "馬連",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          }
+        },
+        "prices_not_fresh": [
+          "sanrenpuku",
+          "umaren",
+          "wide"
+        ]
+      },
+      {
+        "char": "gen",
+        "market_ev_computed": true,
+        "pq_basis_win": {
+          "source_time": "2026-10-17 13:40:10",
+          "freshness": "stale"
+        },
+        "markets_used": {
+          "sanrenpuku": {
+            "bet_type": "3連複",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "wide": {
+            "bet_type": "ワイド",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          }
+        },
+        "prices_not_fresh": [
+          "sanrenpuku",
+          "wide"
+        ]
+      },
+      {
+        "char": "chappy",
+        "market_ev_computed": true,
+        "pq_basis_win": {
+          "source_time": "2026-10-17 13:40:10",
+          "freshness": "stale"
+        },
+        "markets_used": {
+          "sanrenpuku": {
+            "bet_type": "3連複",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "wide": {
+            "bet_type": "ワイド",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          },
+          "umaren": {
+            "bet_type": "馬連",
+            "source_time": "2026-10-17 13:40:10",
+            "freshness": "stale"
+          }
+        },
+        "prices_not_fresh": [
+          "sanrenpuku",
+          "umaren",
+          "wide"
+        ]
+      }
+    ],
+    "otori": {
+      "legendary": false,
+      "card_present": false,
+      "otori_card_ev_recorded": false,
+      "prices_not_fresh": [],
+      "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+    }
+  },
+  "fetch_attempts": {
+    "count": 5,
+    "latest": {
+      "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T151902_late.json",
+      "sha256": "bf3eae1fa748d73a8b4988d5a93d5fa17eb152e494c645b5c9f374e283bc2c66",
+      "phase": "late",
+      "observed_at": "2026-10-17T15:19:02+09:00",
+      "observed_minutes_to_post": 25.967,
+      "returned_source_time": "2026-10-17 14:40:20",
+      "market_scope": "win",
+      "result": "duplicate",
+      "odds_sha256": "9c25d5538cef487fc98c47cf58aba6f508123e77a4f722cf8bc4747db6d06dd2",
+      "observation_file": "20261017T150112_late.json",
+      "win_freshness": "stale"
+    },
+    "attempts": [
+      {
+        "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T123756_pipeline.json",
+        "sha256": "bb8f4ec2b832d530a426c4e942cddaba288090f0b6b80417b232f14ee6249263",
+        "phase": "pipeline",
+        "observed_at": "2026-10-17T12:37:56+09:00",
+        "observed_minutes_to_post": 187.067,
+        "returned_source_time": "2026-10-17 11:40:05",
+        "market_scope": "all",
+        "result": "added",
+        "odds_sha256": "a0a330ff93cd4f74d9fa08732e0a6d23d068f98ae85bfe173598f9de6b09e3e1",
+        "observation_file": "20261017T123756_pipeline.json",
+        "win_freshness": "stale"
+      },
+      {
+        "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T140948_pipeline.json",
+        "sha256": "96063d0ad07ea4284d2acc50fe654790598f62292e172a92f1acf65e8981940d",
+        "phase": "pipeline",
+        "observed_at": "2026-10-17T14:09:48+09:00",
+        "observed_minutes_to_post": 95.2,
+        "returned_source_time": "2026-10-17 13:40:10",
+        "market_scope": "all",
+        "result": "added",
+        "odds_sha256": "b062e8c9f7a53d1558f5107b8130d25d72686164b1985442c47b3f84eaf5ad36",
+        "observation_file": "20261017T140948_pipeline.json",
+        "win_freshness": "stale"
+      },
+      {
+        "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T143634_late.json",
+        "sha256": "ac49bafdc32f1b86b9171ff96d0bc119249e0bad6ea4c6086ea2dd4ab37b6813",
+        "phase": "late",
+        "observed_at": "2026-10-17T14:36:34+09:00",
+        "observed_minutes_to_post": 68.433,
+        "returned_source_time": "2026-10-17 13:40:10",
+        "market_scope": "win",
+        "result": "added",
+        "odds_sha256": "b062e8c9f7a53d1558f5107b8130d25d72686164b1985442c47b3f84eaf5ad36",
+        "observation_file": "20261017T143634_late.json",
+        "win_freshness": "stale"
+      },
+      {
+        "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T150112_late.json",
+        "sha256": "9bffe6cc29a0d440d2cf2c961867deb5fe7acebdf51040b0a1297083a48d686c",
+        "phase": "late",
+        "observed_at": "2026-10-17T15:01:12+09:00",
+        "observed_minutes_to_post": 43.8,
+        "returned_source_time": "2026-10-17 14:40:20",
+        "market_scope": "win",
+        "result": "added",
+        "odds_sha256": "9c25d5538cef487fc98c47cf58aba6f508123e77a4f722cf8bc4747db6d06dd2",
+        "observation_file": "20261017T150112_late.json",
+        "win_freshness": "stale"
+      },
+      {
+        "path": "data/odds_history/20261017-tokyo-11/attempts/20261017T151902_late.json",
+        "sha256": "bf3eae1fa748d73a8b4988d5a93d5fa17eb152e494c645b5c9f374e283bc2c66",
+        "phase": "late",
+        "observed_at": "2026-10-17T15:19:02+09:00",
+        "observed_minutes_to_post": 25.967,
+        "returned_source_time": "2026-10-17 14:40:20",
+        "market_scope": "win",
+        "result": "duplicate",
+        "odds_sha256": "9c25d5538cef487fc98c47cf58aba6f508123e77a4f722cf8bc4747db6d06dd2",
+        "observation_file": "20261017T150112_late.json",
+        "win_freshness": "stale"
+      }
+    ],
+    "note": "価格が前回と同じでも、実際に取りに行った回はすべて残す。returned_source_time は provider が返した単勝の official_datetime"
+  },
+  "context_completeness": {
+    "horse_rows": 14,
+    "body_weight_current": 14,
+    "body_weight_current_coverage": 1.0,
+    "track_metrics_present": true,
+    "odds_movement_horses": 14,
+    "paddock_observed": false,
+    "prediction_snapshot_present": true,
+    "context_snapshot_present": true,
+    "odds_snapshot_present": true
+  },
+  "speed": {
+    "used": false,
+    "coverage": 0.1429,
+    "qualified_horses": 2,
+    "total_horses": 14,
+    "reason": "insufficient_race_coverage"
+  }
+}
