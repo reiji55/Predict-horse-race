@@ -1,0 +1,327 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "speed-base-times-v2-coverage",
+  "race_id": "20261017-tokyo-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-10-17T12:38:26+09:00",
+  "post_time": "15:45",
+  "minutes_to_post": 186.6,
+  "provenance": {
+    "git_commit": "1eb43f7ce267fce97d4846fd69b085b7dd0f1ce2",
+    "evaluation_version": "speed-v2-forward-eval-v2",
+    "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+    "input_raw_sha256": "e3f1e4c0b76e97d19154d9845bfd0c7d9ac8ad98c68770fb9e365ff6b44ffa7b",
+    "snapshot": {
+      "path": "data/challengers/speed-base-times-v2-coverage/snapshots/20261017-tokyo-11.json",
+      "sha256": "0d83c3e86375676ce5a037bd13bdf3f42c0273d42118e098ce70bd6249b566ea",
+      "frozen_at": "2026-10-17T12:38:24+09:00",
+      "model_id": "speed-base-times-v2-coverage",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "4174dc69c392cc30",
+      "base_times_ref": {
+        "artifact_id": "base-times-v2-coverage-20260928-r2",
+        "lookup_file": "data/reference/base_times/base-times-v2-coverage-20260928-r2.json",
+        "lookup_sha256": "e671fd8ab3a2785fa63a7ea53248e5d8ecde404ee8071b1fef713dda64d98b9f",
+        "cutoff_date": "2026-09-27",
+        "meta_content_sha256": "58834c0e30e7bb3ac7944696eb629f190dafabbd1a42d490d3bb651f78f7a5fa",
+        "method_version": "v1-median-class-offset",
+        "file_hash": "4174dc69c392cc30"
+      },
+      "race_performance_ref": null
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      10,
+      4,
+      1,
+      6,
+      5,
+      11,
+      9,
+      8,
+      14,
+      7,
+      2,
+      12,
+      13,
+      3
+    ],
+    "snapshot_order": [
+      10,
+      4,
+      1,
+      6,
+      5,
+      11,
+      9,
+      8,
+      14,
+      7,
+      2,
+      12,
+      13,
+      3
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 74.77387443417425,
+      "odds": 13.5
+    },
+    {
+      "num": 2,
+      "score": 66.92267428163105,
+      "odds": 52.9
+    },
+    {
+      "num": 3,
+      "score": 46.57867126360863,
+      "odds": 130.2
+    },
+    {
+      "num": 4,
+      "score": 76.69856411966504,
+      "odds": 3.5
+    },
+    {
+      "num": 5,
+      "score": 74.1673257633199,
+      "odds": 5.7
+    },
+    {
+      "num": 6,
+      "score": 74.72875120237406,
+      "odds": 39.3
+    },
+    {
+      "num": 7,
+      "score": 70.82583753696247,
+      "odds": 16.2
+    },
+    {
+      "num": 8,
+      "score": 72.0206559497595,
+      "odds": 13.1
+    },
+    {
+      "num": 9,
+      "score": 72.49538726599336,
+      "odds": 26.8
+    },
+    {
+      "num": 10,
+      "score": 80.899978002218,
+      "odds": 3.5
+    },
+    {
+      "num": 11,
+      "score": 73.29200090135548,
+      "odds": 30.6
+    },
+    {
+      "num": 12,
+      "score": 66.64319059701263,
+      "odds": 30.9
+    },
+    {
+      "num": 13,
+      "score": 58.878654751152055,
+      "odds": 43.4
+    },
+    {
+      "num": 14,
+      "score": 71.07443393077361,
+      "odds": 8.0
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 6,
+        "sel": 0.934615
+      },
+      {
+        "num": 10,
+        "sel": 0.861538
+      },
+      {
+        "num": 4,
+        "sel": 0.719231
+      },
+      {
+        "num": 1,
+        "sel": 0.703846
+      },
+      {
+        "num": 5,
+        "sel": 0.676923
+      },
+      {
+        "num": 11,
+        "sel": 0.661538
+      },
+      {
+        "num": 9,
+        "sel": 0.584615
+      },
+      {
+        "num": 8,
+        "sel": 0.473077
+      },
+      {
+        "num": 7,
+        "sel": 0.419231
+      },
+      {
+        "num": 14,
+        "sel": 0.296154
+      },
+      {
+        "num": 12,
+        "sel": 0.265385
+      },
+      {
+        "num": 2,
+        "sel": 0.234615
+      },
+      {
+        "num": 13,
+        "sel": 0.123077
+      },
+      {
+        "num": 3,
+        "sel": 0.046154
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 6,
+        "sel": 0.861538
+      },
+      {
+        "num": 1,
+        "sel": 0.815385
+      },
+      {
+        "num": 11,
+        "sel": 0.738462
+      },
+      {
+        "num": 9,
+        "sel": 0.661538
+      },
+      {
+        "num": 10,
+        "sel": 0.630769
+      },
+      {
+        "num": 4,
+        "sel": 0.553846
+      },
+      {
+        "num": 5,
+        "sel": 0.476923
+      },
+      {
+        "num": 8,
+        "sel": 0.461538
+      },
+      {
+        "num": 2,
+        "sel": 0.415385
+      },
+      {
+        "num": 7,
+        "sel": 0.4
+      },
+      {
+        "num": 12,
+        "sel": 0.338462
+      },
+      {
+        "num": 14,
+        "sel": 0.323077
+      },
+      {
+        "num": 13,
+        "sel": 0.2
+      },
+      {
+        "num": 3,
+        "sel": 0.123077
+      }
+    ],
+    "gen": [
+      {
+        "num": 6,
+        "sel": 0.826923
+      },
+      {
+        "num": 2,
+        "sel": 0.865385
+      },
+      {
+        "num": 11,
+        "sel": 0.826923
+      },
+      {
+        "num": 1,
+        "sel": 0.673077
+      },
+      {
+        "num": 9,
+        "sel": 0.673077
+      },
+      {
+        "num": 12,
+        "sel": 0.557692
+      },
+      {
+        "num": 13,
+        "sel": 0.423077
+      },
+      {
+        "num": 7,
+        "sel": 0.403846
+      },
+      {
+        "num": 14,
+        "sel": 0.403846
+      },
+      {
+        "num": 8,
+        "sel": 0.365385
+      },
+      {
+        "num": 10,
+        "sel": 0.365385
+      },
+      {
+        "num": 4,
+        "sel": 0.288462
+      },
+      {
+        "num": 3,
+        "sel": 0.173077
+      },
+      {
+        "num": 5,
+        "sel": 0.153846
+      }
+    ]
+  }
+}
