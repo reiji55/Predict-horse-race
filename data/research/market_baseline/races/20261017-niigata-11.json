@@ -1,0 +1,71 @@
+{
+  "schema": "market-baseline-race-v1",
+  "race_id": "20261017-niigata-11",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-17T15:15:00+09:00",
+  "pinned": {
+    "commit": "1cb45f3964cdaeb067b031f91bb02171f3ab89c4",
+    "frozen_at": "2026-10-17T14:10:12+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 18,
+    "entries": 18,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "listed": 265,
+    "unlisted": 551,
+    "total": 816,
+    "invalid_rows": 0,
+    "dropped_rows_with_runner_without_odds": 0,
+    "listed_mass_before_normalisation": 0.84408,
+    "method": "residual_from_payout",
+    "residual_mass": 0.15592,
+    "unlisted_cap_per_trio": 0.000752,
+    "max_listed_odds": 997.4
+  },
+  "distribution_sums": {
+    "harville": 1.0,
+    "discounted_harville": 1.0,
+    "market_trio": 1.0
+  },
+  "top3": [
+    6,
+    12,
+    15
+  ],
+  "winner": 6,
+  "win_logloss_market": 2.379291,
+  "models": {
+    "market_trio": {
+      "p_actual_trio": 0.0138889,
+      "trio_logloss": 4.276666,
+      "top3_brier": 0.094442,
+      "actual_trio_rank": 9,
+      "top5_hit": false,
+      "top5_prob_sum": 0.1498
+    },
+    "harville": {
+      "p_actual_trio": 0.0108285,
+      "trio_logloss": 4.525576,
+      "top3_brier": 0.101305,
+      "actual_trio_rank": 9,
+      "top5_hit": false,
+      "top5_prob_sum": 0.08439
+    },
+    "discounted_harville": {
+      "p_actual_trio": 0.0079568,
+      "trio_logloss": 4.833734,
+      "top3_brier": 0.106213,
+      "actual_trio_rank": 9,
+      "top5_hit": false,
+      "top5_prob_sum": 0.05628
+    }
+  },
+  "status": "evaluated"
+}
