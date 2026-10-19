@@ -1,0 +1,94 @@
+{
+  "schema": "market-baseline-summary-v1",
+  "generated_at": "2026-10-19T22:24:15+09:00",
+  "config_version": "market-baseline-v1",
+  "config_hash": "8c1eb540296256767a9fca6b827835baf0cffb1171d90f9c80261655b500f24f",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "note": "市場だけの基準線（モデル不使用）。すべて発走前に固定した版のオッズで、時点が pre_race_verified のレースだけ。3連複の未収録組には残りの質量を Harville の形で配っている（近似）。少数標本なので有意性は判定しない。",
+  "races": 25,
+  "evaluated": 12,
+  "pending_result": [],
+  "excluded": {
+    "no_prerace_commit": [
+      "20260919-hanshin-11",
+      "20260919-nakayama-11",
+      "20260920-hanshin-11",
+      "20260920-nakayama-11",
+      "20260921-hanshin-11",
+      "20260926-hanshin-11",
+      "20260926-nakayama-11",
+      "20260927-hanshin-11",
+      "20260927-nakayama-11"
+    ],
+    "odds_timing_not_pre_race_verified": [
+      "20261003-kyoto-11",
+      "20261003-tokyo-11",
+      "20261004-kyoto-11",
+      "20261004-tokyo-11"
+    ]
+  },
+  "mean_win_logloss_market": 2.15815,
+  "models": {
+    "market_trio": {
+      "races": 12,
+      "mean_trio_logloss": 4.747671,
+      "mean_top3_brier": 0.135542,
+      "top5_hit_races": 3,
+      "median_actual_trio_rank": 17.5
+    },
+    "harville": {
+      "races": 12,
+      "mean_trio_logloss": 4.790045,
+      "mean_top3_brier": 0.137528,
+      "top5_hit_races": 2,
+      "median_actual_trio_rank": 14.5
+    },
+    "discounted_harville": {
+      "races": 12,
+      "mean_trio_logloss": 4.871142,
+      "mean_top3_brier": 0.138258,
+      "top5_hit_races": 2,
+      "median_actual_trio_rank": 14.5
+    }
+  },
+  "paired_vs_market_trio": {
+    "harville": {
+      "trio_logloss": {
+        "n": 12,
+        "mean_diff_vs_market_trio": 0.042374,
+        "se": 0.110825,
+        "model_better": 6,
+        "market_trio_better": 6
+      },
+      "top3_brier": {
+        "n": 12,
+        "mean_diff_vs_market_trio": 0.001986,
+        "se": 0.002517,
+        "model_better": 5,
+        "market_trio_better": 7
+      }
+    },
+    "discounted_harville": {
+      "trio_logloss": {
+        "n": 12,
+        "mean_diff_vs_market_trio": 0.123471,
+        "se": 0.1196,
+        "model_better": 5,
+        "market_trio_better": 7
+      },
+      "top3_brier": {
+        "n": 12,
+        "mean_diff_vs_market_trio": 0.002716,
+        "se": 0.002584,
+        "model_better": 4,
+        "market_trio_better": 8
+      }
+    }
+  },
+  "significance": "not_assessed",
+  "market_trio_methods": [
+    "residual_clamped_to_cap",
+    "residual_from_payout"
+  ]
+}

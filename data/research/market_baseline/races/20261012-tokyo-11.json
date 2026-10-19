@@ -1,0 +1,71 @@
+{
+  "schema": "market-baseline-race-v1",
+  "race_id": "20261012-tokyo-11",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-12T15:30:00+09:00",
+  "pinned": {
+    "commit": "329216f5dc0807bcc725afe25e7c12334f4d6df0",
+    "frozen_at": "2026-10-12T08:36:02+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 18,
+    "entries": 18,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "listed": 274,
+    "unlisted": 542,
+    "total": 816,
+    "invalid_rows": 0,
+    "dropped_rows_with_runner_without_odds": 0,
+    "listed_mass_before_normalisation": 0.86744,
+    "method": "residual_from_payout",
+    "residual_mass": 0.13256,
+    "unlisted_cap_per_trio": 0.0007502,
+    "max_listed_odds": 999.8
+  },
+  "distribution_sums": {
+    "harville": 1.0,
+    "discounted_harville": 1.0,
+    "market_trio": 1.0
+  },
+  "top3": [
+    2,
+    10,
+    16
+  ],
+  "winner": 2,
+  "win_logloss_market": 1.562775,
+  "models": {
+    "market_trio": {
+      "p_actual_trio": 0.0041028,
+      "trio_logloss": 5.496075,
+      "top3_brier": 0.113709,
+      "actual_trio_rank": 57,
+      "top5_hit": false,
+      "top5_prob_sum": 0.10817
+    },
+    "harville": {
+      "p_actual_trio": 0.0052266,
+      "trio_logloss": 5.253998,
+      "top3_brier": 0.111734,
+      "actual_trio_rank": 41,
+      "top5_hit": false,
+      "top5_prob_sum": 0.08776
+    },
+    "discounted_harville": {
+      "p_actual_trio": 0.0045596,
+      "trio_logloss": 5.390517,
+      "top3_brier": 0.11452,
+      "actual_trio_rank": 41,
+      "top5_hit": false,
+      "top5_prob_sum": 0.05912
+    }
+  },
+  "status": "evaluated"
+}

@@ -1,0 +1,12 @@
+{
+  "version": "market-baseline-v1",
+  "note": "市場だけの基準線（#39 PR-B）。値はここで当てはめない固定値。当てはめ（walk-forward）は PR-C の担当。",
+  "trio_payout": 0.75,
+  "discounted_harville": {
+    "lambda_second": 0.81,
+    "lambda_third": 0.65,
+    "source": "Lo・Bacon-Shone 系の discounted Harville で文献によく引用される値。本プロジェクトのデータでは推定していない"
+  },
+  "require_timing": "pre_race_verified",
+  "eps": 1e-12
+}
