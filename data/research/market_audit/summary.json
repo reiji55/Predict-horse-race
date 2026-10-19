@@ -1,6 +1,6 @@
 {
   "schema": "market-audit-summary-v1",
-  "generated_at": "2026-10-19T20:18:58+09:00",
+  "generated_at": "2026-10-19T22:05:04+09:00",
   "note": "発走前の市場オッズ監査（observe-only）。raw は snapshot を発走前に最後に更新したコミットに固定して読む。3連複の確率は 0.75/オッズ の近似（approx）で、未収録の組は不明として扱う。全組で正規化した分布ではないので、和や条件付きの値を精密な確率として扱わない。予想・正式成績・UI には使わない。",
   "used_for_prediction": false,
   "official_results_untouched": true,
@@ -46,6 +46,30 @@
     }
   ],
   "pinned_post_race_odds": [],
+  "pinned_odds_timing": {
+    "pre_race_verified": [
+      "20261010-kyoto-11",
+      "20261010-tokyo-11",
+      "20261011-kyoto-11",
+      "20261011-tokyo-11",
+      "20261012-kyoto-11",
+      "20261012-tokyo-11",
+      "20261017-kyoto-11",
+      "20261017-niigata-11",
+      "20261017-tokyo-11",
+      "20261018-kyoto-11",
+      "20261018-niigata-11",
+      "20261018-tokyo-11"
+    ],
+    "unknown": [
+      "20261003-kyoto-11",
+      "20261003-tokyo-11",
+      "20261004-kyoto-11",
+      "20261004-tokyo-11"
+    ],
+    "inconsistent": [],
+    "post_race_detected": []
+  },
   "head_raw_post_race_odds": [
     "20261010-kyoto-11",
     "20261010-tokyo-11",
@@ -74,6 +98,7 @@
         "1": 16
       },
       "trio_hit_prob_approx_n": 0,
+      "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": null
     },
     "tetsu": {
@@ -83,6 +108,7 @@
         "0": 16
       },
       "trio_hit_prob_approx_n": 13,
+      "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": 0.0088
     },
     "gen": {
@@ -92,6 +118,7 @@
         "0": 16
       },
       "trio_hit_prob_approx_n": 2,
+      "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": 0.0167
     },
     "chappy": {
@@ -101,6 +128,7 @@
         "2": 15
       },
       "trio_hit_prob_approx_n": 9,
+      "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": 0.0492
     },
     "scenario_frame": {
@@ -110,6 +138,7 @@
         "1": 5
       },
       "trio_hit_prob_approx_n": 4,
+      "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": 0.0796
     }
   }

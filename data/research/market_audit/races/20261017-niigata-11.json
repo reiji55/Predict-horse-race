@@ -16,6 +16,7 @@
   "market": {
     "runners": 18,
     "trio_combos_listed": 265,
+    "trio_invalid_rows": 0,
     "trio_combos_total": 816,
     "trio_inverse_odds_sum": 1.1254,
     "trio_mass_listed_approx": 0.8441,
@@ -24,8 +25,9 @@
     "trio_observed_at": "2026-10-17T14:09:35+09:00",
     "win_source_time": "2026-10-17T13:11:15+09:00",
     "minutes_before_post": 123.8,
+    "odds_timing_status": "pre_race_verified",
+    "timing_issues": [],
     "post_race_odds": false,
-    "timing_known": true,
     "approx": true,
     "x": {
       "horse": 15,
@@ -33,6 +35,7 @@
     }
   },
   "head_raw": {
+    "odds_timing_status": "post_race_detected",
     "post_race_odds": true,
     "trio_source_time": "2026-10-17T15:22:57+09:00",
     "same_as_pinned": false
@@ -347,9 +350,12 @@
       "record": "data/chat_experiments/scenario-frame/races/20261017-niigata-11/20261017T150015.json",
       "snapshot_frozen_at": "2026-10-17T14:10:12+09:00",
       "action": "bet",
-      "status": "audited",
+      "audit_scope": "market_only",
+      "official_v1_valid": true,
+      "official_validity": "prerace_verified",
+      "status": "audited_market_only",
       "pinned_commit": "1cb45f3964cdaeb067b031f91bb02171f3ab89c4",
-      "market_post_race_odds": false,
+      "market_odds_timing_status": "pre_race_verified",
       "tickets": [
         {
           "type": "3連複",

@@ -92,11 +92,13 @@ def test_pins_raw_to_last_prerace_snapshot_commit(repo: Path) -> None:
     assert market["trio_combos_listed"] == len(PRE_TRIO)
     assert market["trio_source_time"] == "2099-10-11T13:40:00+09:00"
     assert market["post_race_odds"] is False
+    assert market["odds_timing_status"] == "pre_race_verified"
     assert market["minutes_before_post"] == 125.0
     assert market["trio_combos_total"] == 10
     assert market["trio_inverse_odds_sum"] == pytest.approx(sum(1 / v for v in PRE_TRIO.values()), abs=1e-4)
     # 現在の main（HEAD）の raw には発走後のオッズが入っていることを検出する
     assert out["head_raw"]["post_race_odds"] is True
+    assert out["head_raw"]["odds_timing_status"] == "post_race_detected"
     assert out["head_raw"]["same_as_pinned"] is False
 
 
@@ -128,9 +130,12 @@ def test_unlisted_combo_is_unknown_not_zero(repo: Path) -> None:
 
 def test_scenario_record_uses_the_version_it_saw(repo: Path) -> None:
     rows = ma.audit_race(RACE, repo)["scenario_frame"]
-    assert len(rows) == 1 and rows[0]["status"] == "audited"
+    assert len(rows) == 1 and rows[0]["status"] == "audited_market_only"
+    assert rows[0]["audit_scope"] == "market_only"
     assert rows[0]["snapshot_frozen_at"] == "2099-10-11T12:30:00+09:00"
-    assert rows[0]["market_post_race_odds"] is False
+    assert rows[0]["market_odds_timing_status"] == "pre_race_verified"
+    # ルールの登録が無いので、正式な v1 記録としては有効にならない（有効性は chat_experiment.verify の判定を写す）
+    assert rows[0]["official_v1_valid"] is False
     assert rows[0]["if_axis_out"]["tickets_left"] == 0
 
 
@@ -158,3 +163,51 @@ def test_run_writes_only_under_out_dir(repo: Path, tmp_path_factory) -> None:
     assert summary["concentration"]["gen"]["tickets_left_if_axis_out_counts"] == {"0": 1}
     text = (out_dir / "races" / f"{RACE}.json").read_text(encoding="utf-8")
     assert "http" not in text  # URL を写さない
+
+
+def test_record_added_after_post_is_never_official(repo: Path) -> None:
+    """発走後に足した記録は、見た版が発走前の snapshot でも「正式な v1 記録」にならない。"""
+    _write(repo, f"{ma.SCENARIO_FRAME_DIR}/{RACE}/20991011T150500.json", {
+        "snapshot_ref": {"frozen_at": "2099-10-11T14:10:00+09:00"}, "action": "bet",
+        "bets": [{"type": "3連複", "horses": [1, 2, 3], "amt": 100}]})
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "late record", date="2099-10-11T18:00:00+09:00")
+    rows = ma.audit_race(RACE, repo)["scenario_frame"]
+    late = [r for r in rows if r["record"].endswith("20991011T150500.json")][0]
+    assert late["status"] == "audited_market_only"
+    assert late["official_v1_valid"] is False
+    summary = ma.summarize([ma.audit_race(RACE, repo)])
+    assert summary["concentration"]["scenario_frame"]["n"] == 0
+
+
+@pytest.mark.parametrize("source,observed,expected", [
+    (None, None, "unknown"),
+    ("2099-10-11 13:40:00", None, "unknown"),
+    ("2099-10-11 13:40:00", "2099-10-11T13:30:00+09:00", "inconsistent"),   # 観測が元の時刻より前
+    ("2099-10-11 13:40:00", "2099-10-11T14:20:00+09:00", "inconsistent"),   # 観測がコミットより後
+    ("2099-10-11 15:50:00", "2099-10-11T16:00:00+09:00", "post_race_detected"),
+    ("2099-10-11 13:40:00", "2099-10-11T14:09:00+09:00", "pre_race_verified"),
+])
+def test_odds_timing_is_three_valued(source, observed, expected) -> None:
+    race = _raw(source or "", observed or "", PRE_TRIO)["races"][0]
+    meta = race["odds_market_meta"]["markets"]["sanrenpuku"]
+    if source is None:
+        meta.pop("source_time")
+    if observed is None:
+        meta.pop("observed_at")
+    post = ma.common.parse_dt("2099-10-11T15:45:00+09:00")
+    committed = ma.common.parse_dt("2099-10-11T14:10:30+09:00")
+    block = ma.market_block(race, post, committed)
+    assert block["odds_timing_status"] == expected
+    # 時刻が無いことを「発走前」と同一視しない
+    assert block["post_race_odds"] is {"post_race_detected": True, "pre_race_verified": False}.get(expected)
+
+
+def test_trio_rows_with_unknown_horses_are_dropped_and_counted() -> None:
+    race = _raw("2099-10-11 13:40:00", "2099-10-11T14:09:00+09:00",
+                {**PRE_TRIO, "1-2-9": 3.0, "x-y-z": 4.0, "1-1-2": 5.0, "2-3-5": -1})["races"][0]
+    block = ma.market_block(race, None)
+    assert block["trio_combos_listed"] == len(PRE_TRIO)
+    assert block["trio_invalid_rows"] == 4
+    assert (1, 2, 9) not in ma.trio_table(race)
+

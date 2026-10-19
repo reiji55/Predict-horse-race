@@ -136,34 +136,75 @@ def raw_race(sha: str, week_id: str, race_id: str, repo: Path) -> dict[str, Any]
 
 # ------------------------------------------------------------------ 市場
 
-def trio_table(race: dict[str, Any]) -> dict[tuple[int, int, int], float]:
-    """収録されている 3連複オッズ {(a,b,c): odds}。不正な値は捨てる。"""
-    table = {}
+def _trio_parse(race: dict[str, Any]) -> tuple[dict[tuple[int, int, int], float], int]:
+    """収録されている 3連複オッズ {(a,b,c): odds} と、捨てた行の数。
+
+    形式が不正な行・オッズが正の有限数でない行・raw.entries に無い馬番を含む行は捨てて数える
+    （存在しない馬番を確率質量に積み上げない）。
+    """
+    runners = {e.get("num") for e in race.get("entries") or [] if isinstance(e.get("num"), int)}
+    table, invalid = {}, 0
     for key, odds in ((race.get("combo_odds") or {}).get(TRIO) or {}).items():
         try:
             combo = tuple(sorted(int(x) for x in str(key).split("-")))
             value = float(odds)
         except (TypeError, ValueError):
+            invalid += 1
             continue
-        if len(combo) == 3 and len(set(combo)) == 3 and value > 0 and math.isfinite(value):
+        if (len(combo) == 3 and len(set(combo)) == 3 and set(combo) <= runners
+                and value > 0 and math.isfinite(value)):
             table[combo] = value
-    return table
+        else:
+            invalid += 1
+    return table, invalid
 
 
-def market_block(race: dict[str, Any], post: datetime.datetime | None) -> dict[str, Any]:
-    """3連複オッズの時点・カバー率。確率はすべて approx。"""
+def trio_table(race: dict[str, Any]) -> dict[tuple[int, int, int], float]:
+    """収録されている有効な 3連複オッズ {(a,b,c): odds}。"""
+    return _trio_parse(race)[0]
+
+
+def odds_timing(source: datetime.datetime | None, observed: datetime.datetime | None,
+                post: datetime.datetime | None, committed: datetime.datetime | None) -> dict[str, Any]:
+    """オッズの時点の判定。三値（+異常）で返し、時刻が無いことを「発走前」と同一視しない。
+
+    - post_race_detected: source_time か observed_at が発走時刻以降
+    - unknown:            source_time・observed_at・発走時刻のどれかが無い（時点は未検証）
+    - inconsistent:       観測順序 source_time <= observed_at <= コミット時刻 が崩れている
+    - pre_race_verified:  上のどれでもなく、どちらも発走前
+    """
+    issues = []
+    if post is not None and any(x is not None and x >= post for x in (source, observed)):
+        status = "post_race_detected"
+    elif source is None or observed is None or post is None:
+        status = "unknown"
+    else:
+        if source > observed:
+            issues.append("source_after_observed")
+        if committed is not None and observed > committed:
+            issues.append("observed_after_commit")
+        status = "inconsistent" if issues else "pre_race_verified"
+    return {"odds_timing_status": status, "timing_issues": issues,
+            # 互換用。発走後を検出したときだけ true、検証済みの発走前だけ false、それ以外は null（未検証）
+            "post_race_odds": True if status == "post_race_detected" else
+            False if status == "pre_race_verified" else None}
+
+
+def market_block(race: dict[str, Any], post: datetime.datetime | None,
+                 committed: datetime.datetime | None = None) -> dict[str, Any]:
+    """3連複オッズの時点・カバー率。確率はすべて approx。committed は raw を固定したコミットの時刻。"""
     runners = [e.get("num") for e in race.get("entries") or [] if isinstance(e.get("num"), int)]
-    table = trio_table(race)
+    table, invalid = _trio_parse(race)
     meta = ((race.get("odds_market_meta") or {}).get("markets") or {}).get("sanrenpuku") or {}
     source = _source_dt(meta.get("source_time"))
     observed = common.parse_dt(meta.get("observed_at"))
     win_source = _source_dt(race.get("odds_updated_at"))
     inverse = sum(1.0 / v for v in table.values())
     total = math.comb(len(runners), 3) if len(runners) >= 3 else 0
-    late = [x for x in (source, observed) if x is not None and post is not None and x >= post]
     return {
         "runners": len(runners),
         "trio_combos_listed": len(table),
+        "trio_invalid_rows": invalid,
         "trio_combos_total": total,
         "trio_inverse_odds_sum": round(inverse, 4),
         "trio_mass_listed_approx": round(inverse * TRIO_PAYOUT, 4),
@@ -173,8 +214,7 @@ def market_block(race: dict[str, Any], post: datetime.datetime | None) -> dict[s
         "win_source_time": _iso(win_source),
         "minutes_before_post": (round((post - source).total_seconds() / 60, 1)
                                 if post is not None and source is not None else None),
-        "post_race_odds": bool(late),
-        "timing_known": source is not None and observed is not None,
+        **odds_timing(source, observed, post, committed),
         "approx": True,
     }
 
@@ -232,7 +272,8 @@ def ticket_audit(bets: list[dict[str, Any]], probs: dict[tuple[int, int, int], f
         "if_market_x_out": without(market_x),
         "trio_tickets": len(trio_rows),
         "trio_tickets_listed": len(listed),
-        # 3連複の別々の組は同時に当たらないので、和＝少なくとも1点当たる近似確率。
+        # 3連複の券だけの値（ワイド・馬連を含むカード全体の的中確率ではない）。
+        # 3連複の別々の組は同時に当たらないので、和＝3連複のどれか1点が当たる近似確率。
         # 未収録の組（1000倍超など）を含むときは和を出さない（0 とみなさない）
         "trio_hit_prob_approx": (round(sum(listed), 5)
                                  if trio_rows and len(listed) == len(trio_rows) else None),
@@ -250,6 +291,21 @@ def _scenario_records(race_id: str, repo: Path) -> list[tuple[str, dict[str, Any
         if isinstance(record, dict):
             rows.append((rel, record))
     return rows
+
+
+def _official_validity(rel: str, repo: Path) -> dict[str, Any]:
+    """正式な v1 記録としての有効性を research.chat_experiment.verify に任せて写す（文言は写さず件数だけ）。"""
+    path = repo / rel
+    if not path.exists():
+        return {"official_v1_valid": None, "official_validity": "not_in_working_tree"}
+    try:
+        from research import chat_experiment
+        result = chat_experiment.verify(path, repo=repo)
+    except Exception as exc:  # 検証できなければ有効扱いにしない
+        return {"official_v1_valid": False, "official_validity": f"verify_error:{type(exc).__name__}"}
+    ok = bool(result.get("prerace_verified"))
+    return {"official_v1_valid": ok,
+            "official_validity": "prerace_verified" if ok else f"invalid:{len(result.get('errors') or [])}_errors"}
 
 
 # ------------------------------------------------------------------ 1レース
@@ -276,7 +332,7 @@ def audit_race(race_id: str, repo: Path) -> dict[str, Any]:
     if race is None:
         out["status"] = "raw_missing_at_pinned_commit"
         return out
-    market = market_block(race, post)
+    market = market_block(race, post, final["committed_at"])
     probs = trio_probs(race)
     mass = top3_mass(probs)
     market_x = max(sorted(mass), key=lambda h: mass[h]) if mass else None
@@ -291,11 +347,13 @@ def audit_race(race_id: str, repo: Path) -> dict[str, Any]:
             head_race = next((r for r in head_raw.get("races") or [] if r.get("id") == race_id), None)
     if head_race is not None:
         head_market = market_block(head_race, post)
-        out["head_raw"] = {"post_race_odds": head_market["post_race_odds"],
+        out["head_raw"] = {"odds_timing_status": head_market["odds_timing_status"],
+                           "post_race_odds": head_market["post_race_odds"],
                            "trio_source_time": head_market["trio_source_time"],
                            "same_as_pinned": head_market["trio_source_time"] == market["trio_source_time"]}
     else:
-        out["head_raw"] = {"post_race_odds": None, "trio_source_time": None, "same_as_pinned": None}
+        out["head_raw"] = {"odds_timing_status": "unknown", "post_race_odds": None,
+                           "trio_source_time": None, "same_as_pinned": None}
 
     out["cards"] = {c.get("char"): ticket_audit(c.get("bets") or [], probs, market_x)
                     for c in snap.get("cards") or [] if c.get("char")}
@@ -307,7 +365,10 @@ def audit_race(race_id: str, repo: Path) -> dict[str, Any]:
     for rel, record in _scenario_records(race_id, repo):
         frozen = (record.get("snapshot_ref") or {}).get("frozen_at")
         version = by_frozen.get(frozen)
-        row: dict[str, Any] = {"record": rel, "snapshot_frozen_at": frozen, "action": record.get("action")}
+        # ここは市場の監査だけ。正式な v1 記録としての有効性（発走前のコミット・ルール不変など）の判定は
+        # research.chat_experiment（verify / settle）の担当で、その結果を official_v1_valid に写すだけにする
+        row: dict[str, Any] = {"record": rel, "snapshot_frozen_at": frozen, "action": record.get("action"),
+                               "audit_scope": "market_only", **_official_validity(rel, repo)}
         if version is None:
             row["status"] = "snapshot_version_not_found"
         else:
@@ -315,8 +376,9 @@ def audit_race(race_id: str, repo: Path) -> dict[str, Any]:
             v_probs = trio_probs(v_race) if v_race else {}
             v_mass = top3_mass(v_probs)
             v_x = max(sorted(v_mass), key=lambda h: v_mass[h]) if v_mass else None
-            row.update(status="audited", pinned_commit=version["sha"],
-                       market_post_race_odds=market_block(v_race, post)["post_race_odds"] if v_race else None,
+            v_market = market_block(v_race, post, version["committed_at"]) if v_race else None
+            row.update(status="audited_market_only", pinned_commit=version["sha"],
+                       market_odds_timing_status=v_market["odds_timing_status"] if v_market else "unknown",
                        **ticket_audit(record.get("bets") or [], v_probs, v_x))
         experiments.append(row)
     out["scenario_frame"] = experiments
@@ -350,6 +412,7 @@ def paired_win_logloss(repo: Path) -> dict[str, Any]:
             continue
         pc, pm = float(horse["p_champion"]), float(horse["p_q_market"])
         rows.append({"race_id": race_id, "frozen_at": rec.get("frozen_at"), "winner": winner,
+                     "evaluation_config_hash": rec.get("evaluation_config_hash"),
                      "p_champion": pc, "p_market": pm,
                      "logloss_champion": round(-math.log(pc), 6), "logloss_market": round(-math.log(pm), 6)})
     diffs = [r["logloss_champion"] - r["logloss_market"] for r in rows]
@@ -357,15 +420,20 @@ def paired_win_logloss(repo: Path) -> dict[str, Any]:
     return {
         "schema": LOGLOSS_SCHEMA,
         "source": RPS_RACES_DIR,
-        "evaluation_code": {"path": MODEL_EVAL_CODE,
-                            "commit": code.stdout.decode().strip() or None if code.returncode == 0 else None},
+        # 監査時点でのコードの最終コミット。各レースの出力を計算したときのコードとは限らない
+        # （各レースの評価設定は evaluation_config_hash で照合する）
+        "evaluation_code_last_commit_at_audit": {
+            "path": MODEL_EVAL_CODE,
+            "commit": (code.stdout.decode().strip() or None) if code.returncode == 0 else None},
         "timing": "p_champion・p_market とも snapshot（発走前の凍結）の marks から。p_market は単勝オッズの逆数を正規化",
         "races": rows,
         "excluded": excluded,
         "n": len(rows),
         "mean_diff_champion_minus_market": round(statistics.mean(diffs), 6) if diffs else None,
         "se_diff": (round(statistics.stdev(diffs) / math.sqrt(len(diffs)), 6) if len(diffs) >= 2 else None),
-        "note": "lower is better。正の値は市場の方が勝ち馬に高い確率を付けていたことを示す。少数標本で有意性は無い。",
+        "significance": "not_assessed",
+        "note": ("lower is better。正の値は市場の方が勝ち馬に高い確率を付けていたことを示す。"
+                 "有意性は未判定（事前登録した検定・区間推定と、同じ開催日のレースどうしの依存を検証するまで判断しない）。"),
     }
 
 
@@ -379,8 +447,11 @@ def _race_ids(repo: Path) -> list[str]:
 
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     audited = [r for r in rows if r.get("status") == "audited"]
-    pinned_late = [r["race_id"] for r in audited if r["market"]["post_race_odds"]]
-    head_late = [r["race_id"] for r in audited if r["head_raw"].get("post_race_odds")]
+    def by_status(key: str, value: str) -> list[str]:
+        return [r["race_id"] for r in audited if (r.get(key) or {}).get("odds_timing_status") == value]
+
+    pinned_late = by_status("market", "post_race_detected")
+    head_late = by_status("head_raw", "post_race_detected")
     masses = [r["market"]["trio_mass_listed_approx"] for r in audited if r["market"]["trio_combos_listed"]]
     no_trio = [r["race_id"] for r in audited if not r["market"]["trio_combos_listed"]]
 
@@ -388,7 +459,8 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         items = []
         for r in audited:
             if source == "scenario_frame":
-                items += [x for x in r.get("scenario_frame") or [] if x.get("status") == "audited"]
+                items += [x for x in r.get("scenario_frame") or []
+                          if x.get("status") == "audited_market_only" and x.get("official_v1_valid")]
             else:
                 items += [c for name, c in (r.get("cards") or {}).items() if name == source]
         shares = [x["max_exposure_share"] for x in items if x.get("max_exposure_share") is not None]
@@ -402,6 +474,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 "mean_max_exposure_share": round(statistics.mean(shares), 4) if shares else None,
                 "tickets_left_if_axis_out_counts": dict(sorted(left.items(), key=lambda kv: int(kv[0]))),
                 "trio_hit_prob_approx_n": len(hits),
+                "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
                 "mean_trio_hit_prob_approx": round(statistics.mean(hits), 4) if hits else None}
 
     return {
@@ -409,11 +482,14 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "audited": len(audited),
         "not_audited": [{"race_id": r["race_id"], "status": r.get("status")} for r in rows if r not in audited],
         "pinned_post_race_odds": pinned_late,
+        "pinned_odds_timing": {s: by_status("market", s) for s in
+                               ("pre_race_verified", "unknown", "inconsistent", "post_race_detected")},
         "head_raw_post_race_odds": head_late,
         "races_without_trio_odds": no_trio,
         "trio_mass_listed_approx": {"min": min(masses), "median": round(statistics.median(masses), 4),
                                     "max": max(masses)}
         if masses else None,
+        # scenario_frame は正式な v1 記録として有効（research.chat_experiment.verify が通る）ものだけ
         "concentration": {name: conc(name) for name in ("kei", "tetsu", "gen", "chappy", "scenario_frame")},
     }
 
