@@ -104,7 +104,7 @@ def _normalise(dist: dict[Trio, float]) -> dict[Trio, float]:
 # ------------------------------------------------------------------ 市場の3連複分布
 
 def market_trio(race: dict[str, Any], runners: list[int], payout: float,
-                shape: dict[Trio, float]) -> tuple[dict[Trio, float], dict[str, Any]]:
+                shape: dict[Trio, float], use_cap: bool = True) -> tuple[dict[Trio, float], dict[str, Any]]:
     """3連複オッズから、全組で合計 1 の分布を作る。
 
     収録組：p(t) = (1/odds)/Z、Z = 1/払戻率。
@@ -112,6 +112,9 @@ def market_trio(race: dict[str, Any], runners: list[int], payout: float,
     1組あたりの上限 u = 1/(最大オッズ×Z) を置き、R は [0, 未収録数×u] に丸める。
     R ≤ 0 のとき（払戻率の仮定より市場の合計が大きい）は、未収録組に shape の質量と上限の小さい方を割り当て、
     収録組をその分だけ縮める。どの経路を通ったかを記録する。
+
+    「未収録の組のオッズは収録の最大値以上」は収集仕様から証明されていない仮定。use_cap=False は
+    この上限を外した感度分析用（§ 感度分析）。
     """
     table, invalid = ma._trio_parse(race)
     allowed = set(runners)
@@ -132,12 +135,13 @@ def market_trio(race: dict[str, Any], runners: list[int], payout: float,
         info.update(method="complete_listed_renormalised", residual_mass=0.0)
         return _normalise(p_listed), info
     cap = max(listed.values())
-    u = 1.0 / (cap * z)
+    u = 1.0 / (cap * z) if use_cap else math.inf
     upper = len(unlisted) * u
     r = 1.0 - s
     shape_u = sum(shape.get(t, 0.0) for t in unlisted)
     if r <= 0:
-        r_eff = min(shape_u, upper)
+        # shape は合計 1 の分布なので shape_u ≤ 1。収録組の質量を残すため 1 未満に抑える
+        r_eff = min(shape_u, upper, 0.5)
         method = "residual_negative_used_shape_mass"
     elif r > upper:
         r_eff = upper
@@ -148,8 +152,10 @@ def market_trio(race: dict[str, Any], runners: list[int], payout: float,
     scale = (1.0 - r_eff) / s
     dist = {t: v * scale for t, v in p_listed.items()}
     dist.update(_capped_fill(unlisted, shape, r_eff, u))
-    info.update(method=method, residual_mass=round(r_eff, 5), unlisted_cap_per_trio=round(u, 7),
-                max_listed_odds=cap)
+    info.update(method=method, residual_mass=round(r_eff, 5),
+                unlisted_cap_per_trio=round(u, 7) if use_cap else None, max_listed_odds=cap,
+                cap_assumption="unlisted_odds_ge_max_listed (assumed, not guaranteed by collection spec)"
+                if use_cap else "off")
     return _normalise(dist), info
 
 
@@ -242,6 +248,11 @@ def baseline_race(race_id: str, result: dict[str, Any] | None, config: dict[str,
     entries = [e.get("num") for e in race.get("entries") or [] if isinstance(e.get("num"), int)]
     out["runners"] = {"with_win_odds": len(runners), "entries": len(entries),
                       "without_win_odds": sorted(set(entries) - set(runners))}
+    if out["runners"]["without_win_odds"]:
+        # オッズの無い馬を取消と確認できないまま外して正規化すると、無条件の予想と別物になる。
+        # 取消の確認データが無いので、レースごと除外する（PR #41 レビューの申し送り）
+        out.update(status="excluded", reason="runner_without_win_odds_unconfirmed")
+        return out
     if len(runners) < 3:
         out.update(status="excluded", reason="fewer_than_3_runners_with_odds")
         return out
@@ -267,7 +278,34 @@ def baseline_race(race_id: str, result: dict[str, Any] | None, config: dict[str,
     out["winner"] = int(finish[0])
     out["win_logloss_market"] = round(-math.log(max(p.get(int(finish[0]), 0.0), eps)), 6)
     out["models"] = {name: metrics(dists[name], top3, runners, eps) for name in MODELS}
+    out["sensitivity"] = sensitivity_race(race, runners, top3, p, dists, config)
     out["status"] = "evaluated"
+    return out
+
+
+SENSITIVITY_PAYOUTS = (0.725, 0.75, 0.775)
+SENSITIVITY_SHAPES = ("harville", "discounted_harville", "uniform")
+
+
+def variant_key(payout: float, shape: str, cap: bool) -> str:
+    return f"payout={payout}|shape={shape}|cap={'on' if cap else 'off'}"
+
+
+def sensitivity_race(race: dict[str, Any], runners: list[int], top3: Trio, p: dict[int, float],
+                     dists: dict[str, dict[Trio, float]], config: dict[str, Any]) -> dict[str, Any]:
+    """market_trio の未収録組の補い方（払戻率・配る形・1組の上限）を変えたときの指標。"""
+    eps = float(config["eps"])
+    trios = list(itertools.combinations(sorted(runners), 3))
+    uniform = {t: 1.0 / len(trios) for t in trios}   # shape は確率分布（合計 1）として渡す
+    shapes = {"harville": dists["harville"], "discounted_harville": dists["discounted_harville"], "uniform": uniform}
+    out = {}
+    for payout in SENSITIVITY_PAYOUTS:
+        for shape in SENSITIVITY_SHAPES:
+            for cap in (True, False):
+                dist, info = market_trio(race, runners, payout, shapes[shape], use_cap=cap)
+                m = metrics(dist, top3, runners, eps)
+                out[variant_key(payout, shape, cap)] = {"trio_logloss": m["trio_logloss"],
+                                                        "top3_brier": m["top3_brier"], "method": info["method"]}
     return out
 
 
@@ -309,6 +347,33 @@ def summarize(rows: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, A
         "paired_vs_market_trio": paired,
         "significance": "not_assessed",
         "market_trio_methods": sorted({r["market_trio"]["method"] for r in ev}),
+        "sensitivity": summarize_sensitivity(ev, config),
+    }
+
+
+def summarize_sensitivity(ev: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
+    """補い方の各組み合わせでの market_trio の平均指標と、Harville 系との大小が変わるか。"""
+    if not ev:
+        return {}
+    primary = variant_key(config["trio_payout"], "harville", True)
+    keys = list(ev[0].get("sensitivity") or {})
+    rows = {}
+    for k in keys:
+        ll = statistics.mean(r["sensitivity"][k]["trio_logloss"] for r in ev)
+        br = statistics.mean(r["sensitivity"][k]["top3_brier"] for r in ev)
+        rows[k] = {"mean_trio_logloss": round(ll, 6), "mean_top3_brier": round(br, 6),
+                   "better_than": {m: {"trio_logloss": ll < statistics.mean(r["models"][m]["trio_logloss"] for r in ev),
+                                       "top3_brier": br < statistics.mean(r["models"][m]["top3_brier"] for r in ev)}
+                                   for m in MODELS if m != BASE_MODEL}}
+    def stable(metric: str, model: str) -> bool:
+        return len({v["better_than"][model][metric] for v in rows.values()}) == 1
+    return {
+        "primary_variant": primary,
+        "variants": rows,
+        "ordering_stable_across_variants": {m: {"trio_logloss": stable("trio_logloss", m),
+                                                "top3_brier": stable("top3_brier", m)}
+                                            for m in MODELS if m != BASE_MODEL},
+        "note": "未収録組への補い方は仮定。大小が組み合わせで入れ替わるなら、market_trio の優劣は補い方に依存している",
     }
 
 

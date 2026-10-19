@@ -9,7 +9,7 @@ Issue #39 の PR-B。次の確率モデル（#39 案1：市場＋能力モデル
 
 - raw は「発走前に snapshot を最後に更新したコミット」の版（`research/market_audit.py` の固定をそのまま使う）。
 - 3連複・単勝ともオッズの時点が `pre_race_verified` のレースだけを使う。時点が `unknown` のレース（10/3・10/4 の4レース）や、発走前のコミットが無いレース（9月の9レース）は、発走前と読み替えずに除外し、理由を `summary.excluded` に残す。
-- 単勝オッズの無い馬（取消など）は分布から外し、`runners.without_win_odds` に残す。
+- 単勝オッズの無い出走馬が1頭でもいるレースは、取消と確認できない限りレースごと除外する（`runner_without_win_odds_unconfirmed`）。その馬を外して残りで正規化すると、無条件の予想と別物になるため（PR #41 レビューの申し送り）。
 
 ## 作る分布（どれも「どの3頭が3着以内に入るか」の分布。全組で合計 1）
 
@@ -28,6 +28,12 @@ Henery・Stern などの他の補正式は、モンテカルロの誤差の扱�
 - `win_logloss_market`：単勝オッズを正規化した勝率での、勝ち馬の −log（参考）。
 - `actual_trio_rank`・`top5_hit`：実際の組が確率の高い順で何番目か、上位5組に入っていたか（参考）。
 - `paired_vs_market_trio`：各分布と `market_trio` の差を同じレースで対にした平均と標準誤差。**有意性は判定しない**（`significance: not_assessed`）。
+
+## 未収録組の補い方への感度
+
+- `market_trio` の未収録組への補い方は仮定（特に「未収録の組のオッズは収録の最大値以上」は収集仕様で証明されていない）。
+- 各レースで、払戻率 0.725/0.75/0.775 × 配る形 harville/discounted_harville/uniform × 1組の上限あり/なし の 18 通りの `market_trio` を作り、指標を `sensitivity` に残す。主の補い方は 0.75・harville・上限あり。
+- `summary.sensitivity.ordering_stable_across_variants` は、Harville 系との大小が 18 通りで入れ替わらないかを示す。入れ替わるなら、`market_trio` の優劣は補い方に依存している。
 
 ## 近似の扱い
 

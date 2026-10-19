@@ -1,0 +1,123 @@
+{
+  "version": "market-mix-v1",
+  "spec": "docs/research/MARKET_MIX_PREREG_V1.md",
+  "note": "市場＋能力モデルの混合（#39 案1）の事前登録の固定値。登録後は1文字も変更しない（変えるなら v2 を別に登録する）。",
+  "registration": {
+    "commit": "main の first-parent 履歴で config/market_mix_v1.json が初めて現れたコミット",
+    "registered_at": "登録コミットの committer date",
+    "frozen_files": ["docs/research/MARKET_MIX_PREREG_V1.md", "config/market_mix_v1.json"],
+    "config_sha256": "登録コミットの config/market_mix_v1.json のバイト列の SHA-256",
+    "reference_code": ["research/market_baseline.py（win_probs・harville_trio・market_trio）",
+                       "research/market_audit.py（prerace_versions・odds_timing）"],
+    "reference_code_version": "登録コミットの版。以後の変更があっても v1 は登録コミットの版と同じ結果を出す",
+    "spec_check": "今のファイルが登録コミットとバイト単位で違えば評価を出さず spec_changed で止まる",
+    "derived_output": "data/research/market_mix/registration.json"
+  },
+  "inputs": {
+    "pin": "snapshot を発走前に最後に更新したコミットの raw（research/market_audit.py の prerace_versions と同じ規則）",
+    "require_odds_timing": {"win": "pre_race_verified", "trio": "pre_race_verified"},
+    "runner_without_win_odds": "exclude_race",
+    "min_runners_with_win_odds": 3,
+    "trio_payout": 0.75,
+    "trio_imputation_primary": {"payout": 0.75, "shape": "harville_trio(p_mkt)", "cap": "on"},
+    "result": {
+      "source": "data/race_results.json の finish（先頭が1着）",
+      "top3": "finish の先頭3頭",
+      "winner": "finish[0]（1着同着は判別できない）",
+      "exclude": ["dividends の 3連複が2件以上（dead_heat_top3）", "3着以内の馬に発走前の単勝オッズが無い（top3_horse_without_prerace_odds）"]
+    },
+    "race_day": "race_id の先頭8桁（JST の日付）。同じ日の別の競馬場も同じ開催日",
+    "post_at": "開催日＋post_time（JST）"
+  },
+  "p_model": {
+    "source": "data/shadow/model_evaluation/race-performance-v1/races/{race_id}.json",
+    "version_used": "計算時点の main の版。blob SHA を個票に残し、前回から変わったレースは p_model_source_changed に列挙",
+    "primary": {"name": "champion", "field": "p_champion"},
+    "secondary": {"name": "race-performance-v1", "field": "p_challenger"},
+    "require": ["status == evaluated", "phase == forward", "models.champion.capture.matched == true",
+                "models.champion.capture.fidelity == true", "単勝オッズのある全出走馬に p_model がある"],
+    "secondary_missing": "副の計算からだけ外す",
+    "normalise": "単勝オッズのある全出走馬に限って合計 1 に正規化し、max(p, eps) にしてから log",
+    "provenance_per_race": ["blob_sha", "frozen_at", "models.champion.model_id", "config_hash", "evaluation_config_hash",
+                            "models.champion.snapshot.sha256", "p_model のある馬の数"],
+    "champion_segment_key": ["models.champion.model_id", "config_hash"]
+  },
+  "numerics": {"precision": "float64（丸めは出力のときだけ）", "eps": 1e-12, "tie_tolerance": 1e-12,
+               "training_sum_order": "race_id の昇順"},
+  "win_mix": {
+    "form": "p_mix(i) = exp(a·log p_mkt(i) + b·log p_model(i)) / Σ_j exp(a·log p_mkt(j) + b·log p_model(j))",
+    "p_mkt": "単勝オッズの逆数を正規化（登録コミットの win_probs）",
+    "objective": "訓練レースの −log max(p_mix(勝ち馬), eps) の平均",
+    "a_grid": {"formula": "i/50", "i_min": 0, "i_max": 150},
+    "b_grid": {"formula": "j/50", "j_min": -100, "j_max": 100},
+    "ties": "L ≤ L* + tie_tolerance の格子点を同点とする",
+    "tie_break_order": ["|b| が小さい", "|a−1| が小さい", "a が小さい", "b が小さい"]
+  },
+  "trio": {
+    "market_trio": "登録コミットの market_trio。配る形は p_mkt だけから作る（p_mix・p_model は使わない）",
+    "T1": "harville_trio(p_mix)（素の Harville＝素の Plackett–Luce）",
+    "T2": "w·market_trio + (1−w)·T1",
+    "objective": "訓練レースの −log max(T2(実際の組), eps) の平均。T1 はその開催日のために当てはめた a・b で作り直す",
+    "w_grid": {"formula": "k/20", "k_min": 0, "k_max": 20},
+    "ties": "L ≤ L* + tie_tolerance の w を同点とする",
+    "w_tie_break": "w が大きい方（市場寄り）"
+  },
+  "walk_forward": {
+    "window": "expanding",
+    "refit_unit": "race_day",
+    "train_on": "その開催日より前の開催日の、契約を満たし結果のある全レース（登録前のレースを含む）",
+    "order": "a・b を当てはめてから w",
+    "min_train_races": 10,
+    "insufficient_training": "評価から外す（後の開催日の訓練には使う）",
+    "recompute": "毎回すべての開催日を最初から計算し直す"
+  },
+  "evaluation": {
+    "eligible": "発走時刻が registered_at より後で、契約を満たし、結果が確定し、評価する開催日のレース",
+    "primary": {"metric": "trio_logloss", "per_race": "D_r = trio_logloss(T2) − trio_logloss(market_trio)",
+                "estimate": "対象の全レースでの D_r の単純平均（レースに等しい重み）"},
+    "secondary": [
+      {"metric": "win_logloss", "compare": "p_mix − p_mkt"},
+      {"metric": "top3_brier", "compare": "T2 − market_trio（PR-B の top3_brier と同じ定義）"},
+      {"metric": "trio_logloss", "compare": "T1 − harville_trio(p_mkt)"},
+      {"metric": "trio_logloss", "compare": "副の p_model で同じ手順"}
+    ],
+    "decision_window": {
+      "count": "発走前の契約を満たし、発走時刻が registered_at より後で、評価する開催日のレースの累計（結果待ちを含む）",
+      "at": "その累計が初めて 100 以上になった開催日の終わり（開催日を途中で切らない）",
+      "deadline": "100 に届かないまま 2027-06-30 を過ぎたら、開催日が 2027-06-30 以前のレースすべて",
+      "evaluated": "区間のレースから、結果の契約で外れるものと、区間の最後の開催日から 14 日たっても結果が無いもの（result_unavailable）を除いた残り",
+      "compute": "14 日の後に1回だけ計算する"
+    },
+    "checkpoints": {"at_cumulative": [30, 60], "rule": "同じ累計が初めて到達した開催日の終わり。報告だけで採否は判断しない"},
+    "bootstrap": {
+      "cluster": "race_day",
+      "rng": "Python random.Random(20261019)",
+      "replicates": 10000,
+      "draw": "各回 rng.randrange(N_day) を N_day 回（開催日は昇順に並べる）。同じ開催日が2回出たら全レースを2回数える",
+      "statistic": "抽出した開催日の全レースの D_r の合計 ÷ そのレース数",
+      "interval": "percentile。昇順の 250 番目を下限、9750 番目を上限（1 から数える）"
+    },
+    "decision": {
+      "adopt_if": [
+        "主指標の点推定 < 0",
+        "bootstrap の上限 < 0",
+        "感度 18 通りすべてで主指標の点推定 < 0"
+      ],
+      "undecidable_if": "判定の区間の評価レースが 30 未満、または N_day が 10 未満（bootstrap の結果にかかわらず）",
+      "undecidable_means": "不採用と同じ扱い。v1 はそこで終わり、続けるなら v2 を登録する",
+      "adopt_means": "PR-D 以降の shadow とチャット参考券の確率エンジンとして使ってよい。アプリ・本番への反映は別途ユーザー承認",
+      "otherwise": "採用しない（市場だけの基準線を使い続ける）"
+    },
+    "no_early_stop": "害による打ち切りは無い（observe-only でお金を使わない）"
+  },
+  "sensitivity": {
+    "variants": {"payout": [0.725, 0.75, 0.775],
+                 "shape": ["harville_trio(p_mkt)", "harville_trio(p_mkt, (0.81, 0.65))", "uniform（全組に 1/組数）"],
+                 "cap": ["on", "off"]},
+    "procedure": "補い方 v ごとにパイプライン全体を作り直す。a・b・T1 は主と同じ。w_v は訓練も評価も market_trio_v で、同じ格子・同点の決め方で開催日ごとに当てはめ直す",
+    "per_race": "D_r^v = trio_logloss(w_v·market_trio_v + (1−w_v)·T1) − trio_logloss(market_trio_v)",
+    "races": "主の対象と同じ集合",
+    "estimate": "単純平均。bootstrap は主の補い方だけ",
+    "selection": "有利な補い方を選ばない。18 通りすべてで点推定 < 0 を求める"
+  }
+}
