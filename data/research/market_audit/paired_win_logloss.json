@@ -1,0 +1,120 @@
+{
+  "schema": "market-audit-paired-win-logloss-v1",
+  "source": "data/shadow/model_evaluation/race-performance-v1/races",
+  "evaluation_code": {
+    "path": "research/model_evaluation.py",
+    "commit": "e0a2ad46363a9d9974f99c9a96c9e58aa67465ec"
+  },
+  "timing": "p_champion・p_market とも snapshot（発走前の凍結）の marks から。p_market は単勝オッズの逆数を正規化",
+  "races": [
+    {
+      "race_id": "20261010-kyoto-11",
+      "frozen_at": "2026-10-10T13:19:54+09:00",
+      "winner": 11,
+      "p_champion": 0.094312,
+      "p_market": 0.096395,
+      "logloss_champion": 2.361147,
+      "logloss_market": 2.339301
+    },
+    {
+      "race_id": "20261010-tokyo-11",
+      "frozen_at": "2026-10-10T15:31:20+09:00",
+      "winner": 4,
+      "p_champion": 0.022928,
+      "p_market": 0.090413,
+      "logloss_champion": 3.775396,
+      "logloss_market": 2.403367
+    },
+    {
+      "race_id": "20261011-kyoto-11",
+      "frozen_at": "2026-10-11T12:58:05+09:00",
+      "winner": 3,
+      "p_champion": 0.059235,
+      "p_market": 0.050536,
+      "logloss_champion": 2.826243,
+      "logloss_market": 2.985069
+    },
+    {
+      "race_id": "20261011-tokyo-11",
+      "frozen_at": "2026-10-11T15:36:54+09:00",
+      "winner": 16,
+      "p_champion": 0.149956,
+      "p_market": 0.234258,
+      "logloss_champion": 1.897413,
+      "logloss_market": 1.451332
+    },
+    {
+      "race_id": "20261012-tokyo-11",
+      "frozen_at": "2026-10-12T08:36:02+09:00",
+      "winner": 2,
+      "p_champion": 0.214336,
+      "p_market": 0.209554,
+      "logloss_champion": 1.54021,
+      "logloss_market": 1.562774
+    },
+    {
+      "race_id": "20261017-kyoto-11",
+      "frozen_at": "2026-10-17T14:10:12+09:00",
+      "winner": 10,
+      "p_champion": 0.106624,
+      "p_market": 0.088159,
+      "logloss_champion": 2.238447,
+      "logloss_market": 2.428613
+    },
+    {
+      "race_id": "20261017-niigata-11",
+      "frozen_at": "2026-10-17T14:10:12+09:00",
+      "winner": 6,
+      "p_champion": 0.040759,
+      "p_market": 0.092616,
+      "logloss_champion": 3.200079,
+      "logloss_market": 2.379293
+    },
+    {
+      "race_id": "20261017-tokyo-11",
+      "frozen_at": "2026-10-17T14:10:12+09:00",
+      "winner": 13,
+      "p_champion": 0.018526,
+      "p_market": 0.017164,
+      "logloss_champion": 3.98858,
+      "logloss_market": 4.064941
+    },
+    {
+      "race_id": "20261018-kyoto-11",
+      "frozen_at": "2026-10-18T14:16:19+09:00",
+      "winner": 8,
+      "p_champion": 0.105136,
+      "p_market": 0.559489,
+      "logloss_champion": 2.252501,
+      "logloss_market": 0.580731
+    },
+    {
+      "race_id": "20261018-niigata-11",
+      "frozen_at": "2026-10-18T14:16:19+09:00",
+      "winner": 3,
+      "p_champion": 0.113023,
+      "p_market": 0.180389,
+      "logloss_champion": 2.180164,
+      "logloss_market": 1.71264
+    },
+    {
+      "race_id": "20261018-tokyo-11",
+      "frozen_at": "2026-10-18T14:16:19+09:00",
+      "winner": 9,
+      "p_champion": 0.105493,
+      "p_market": 0.162527,
+      "logloss_champion": 2.249111,
+      "logloss_market": 1.816911
+    }
+  ],
+  "excluded": [
+    {
+      "race_id": "20261012-kyoto-11",
+      "reason": "market_field_incomplete"
+    }
+  ],
+  "n": 11,
+  "mean_diff_champion_minus_market": 0.434938,
+  "se_diff": 0.189321,
+  "note": "lower is better。正の値は市場の方が勝ち馬に高い確率を付けていたことを示す。少数標本で有意性は無い。"
+}

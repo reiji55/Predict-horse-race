@@ -1,0 +1,116 @@
+{
+  "schema": "market-audit-summary-v1",
+  "generated_at": "2026-10-19T20:18:58+09:00",
+  "note": "発走前の市場オッズ監査（observe-only）。raw は snapshot を発走前に最後に更新したコミットに固定して読む。3連複の確率は 0.75/オッズ の近似（approx）で、未収録の組は不明として扱う。全組で正規化した分布ではないので、和や条件付きの値を精密な確率として扱わない。予想・正式成績・UI には使わない。",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "trio_payout_assumed": 0.75,
+  "races": 25,
+  "audited": 16,
+  "not_audited": [
+    {
+      "race_id": "20260919-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260919-nakayama-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260920-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260920-nakayama-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260921-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260926-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260926-nakayama-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260927-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20260927-nakayama-11",
+      "status": "no_prerace_commit"
+    }
+  ],
+  "pinned_post_race_odds": [],
+  "head_raw_post_race_odds": [
+    "20261010-kyoto-11",
+    "20261010-tokyo-11",
+    "20261011-kyoto-11",
+    "20261011-tokyo-11",
+    "20261012-kyoto-11",
+    "20261012-tokyo-11",
+    "20261017-kyoto-11",
+    "20261017-niigata-11",
+    "20261017-tokyo-11",
+    "20261018-kyoto-11",
+    "20261018-niigata-11",
+    "20261018-tokyo-11"
+  ],
+  "races_without_trio_odds": [],
+  "trio_mass_listed_approx": {
+    "min": 0.8441,
+    "median": 0.916,
+    "max": 0.9944
+  },
+  "concentration": {
+    "kei": {
+      "n": 16,
+      "mean_max_exposure_share": 0.75,
+      "tickets_left_if_axis_out_counts": {
+        "1": 16
+      },
+      "trio_hit_prob_approx_n": 0,
+      "mean_trio_hit_prob_approx": null
+    },
+    "tetsu": {
+      "n": 16,
+      "mean_max_exposure_share": 1.0,
+      "tickets_left_if_axis_out_counts": {
+        "0": 16
+      },
+      "trio_hit_prob_approx_n": 13,
+      "mean_trio_hit_prob_approx": 0.0088
+    },
+    "gen": {
+      "n": 16,
+      "mean_max_exposure_share": 1.0,
+      "tickets_left_if_axis_out_counts": {
+        "0": 16
+      },
+      "trio_hit_prob_approx_n": 2,
+      "mean_trio_hit_prob_approx": 0.0167
+    },
+    "chappy": {
+      "n": 15,
+      "mean_max_exposure_share": 0.7778,
+      "tickets_left_if_axis_out_counts": {
+        "2": 15
+      },
+      "trio_hit_prob_approx_n": 9,
+      "mean_trio_hit_prob_approx": 0.0492
+    },
+    "scenario_frame": {
+      "n": 5,
+      "mean_max_exposure_share": 0.8,
+      "tickets_left_if_axis_out_counts": {
+        "1": 5
+      },
+      "trio_hit_prob_approx_n": 4,
+      "mean_trio_hit_prob_approx": 0.0796
+    }
+  }
+}
