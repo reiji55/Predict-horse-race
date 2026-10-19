@@ -1,0 +1,83 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261018-tokyo-11",
+  "race_day": "20261018",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-18T15:20:00+09:00",
+  "pinned": {
+    "commit": "c4fc2d5e7975e27811f511b65e45ffc3144b6cab",
+    "frozen_at": "2026-10-18T14:16:19+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 13,
+    "entries": 13,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 208,
+    "unlisted": 78,
+    "residual_mass": 0.03549
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261018-tokyo-11.json",
+      "blob_sha": "518224250ceb711db739d09a6b56b14df4bcd60f",
+      "frozen_at": "2026-10-18T14:16:19+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "c66dba7608a92e5783ee920ce7c31d09cb4c42e8862840c52a488c7b05ec2ecc",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 13
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.04586,
+        "2": 0.072948,
+        "3": 0.071504,
+        "4": 0.049811,
+        "5": 0.024117,
+        "6": 0.303402,
+        "7": 0.057267,
+        "8": 0.023827,
+        "9": 0.105493,
+        "10": 0.099688,
+        "11": 0.059866,
+        "12": 0.02972,
+        "13": 0.056497
+      },
+      "p_challenger": {
+        "1": 0.045282,
+        "2": 0.083596,
+        "3": 0.076426,
+        "4": 0.05018,
+        "5": 0.024451,
+        "6": 0.300985,
+        "7": 0.063271,
+        "8": 0.018463,
+        "9": 0.112375,
+        "10": 0.074506,
+        "11": 0.065387,
+        "12": 0.032239,
+        "13": 0.052838
+      }
+    }
+  },
+  "top3": [
+    6,
+    9,
+    11
+  ],
+  "winner": 9,
+  "status": "training_only",
+  "role": "training_only"
+}

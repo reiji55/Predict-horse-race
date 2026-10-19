@@ -1,0 +1,86 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261012-kyoto-11",
+  "race_day": "20261012",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-12T15:45:00+09:00",
+  "pinned": {
+    "commit": "329216f5dc0807bcc725afe25e7c12334f4d6df0",
+    "frozen_at": "2026-10-12T08:36:02+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 18,
+    "entries": 18,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 286,
+    "unlisted": 530,
+    "residual_mass": 0.14106
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261012-kyoto-11.json",
+      "blob_sha": "2696e28c852ba8ab18da669a9336f5efc32af787",
+      "frozen_at": "2026-10-12T08:36:02+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "261c36c7afd92bf9bfbf9e50f8971558b86e0204496623035c77184bde4284b2",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 17
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.126621,
+        "2": 0.01605,
+        "3": 0.032418,
+        "4": 0.015831,
+        "5": 0.038503,
+        "6": 0.038281,
+        "8": 0.019202,
+        "9": 0.052358,
+        "10": 0.024524,
+        "11": 0.031549,
+        "12": 0.033577,
+        "13": 0.09129,
+        "14": 0.019619,
+        "15": 0.207649,
+        "16": 0.056082,
+        "17": 0.102761,
+        "18": 0.093684
+      },
+      "p_challenger": {
+        "1": 0.13481,
+        "2": 0.018131,
+        "3": 0.024993,
+        "4": 0.019739,
+        "5": 0.026657,
+        "6": 0.050646,
+        "8": 0.015949,
+        "9": 0.090205,
+        "10": 0.024201,
+        "11": 0.033063,
+        "12": 0.041149,
+        "13": 0.086604,
+        "14": 0.019758,
+        "15": 0.168734,
+        "16": 0.04526,
+        "17": 0.099979,
+        "18": 0.100122
+      }
+    }
+  },
+  "status": "excluded",
+  "reason": "p_model_missing_runner",
+  "role": "training_only"
+}

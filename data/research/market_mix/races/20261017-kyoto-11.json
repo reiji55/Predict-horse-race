@@ -1,0 +1,87 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261017-kyoto-11",
+  "race_day": "20261017",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-17T15:30:00+09:00",
+  "pinned": {
+    "commit": "1cb45f3964cdaeb067b031f91bb02171f3ab89c4",
+    "frozen_at": "2026-10-17T14:10:12+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 15,
+    "entries": 15,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 187,
+    "unlisted": 268,
+    "residual_mass": 0.07818
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261017-kyoto-11.json",
+      "blob_sha": "df834cda2862135b688c134dca8891a5daa8df74",
+      "frozen_at": "2026-10-17T14:10:12+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "39dfbfcb9c59c7225a81fb776cf100319472caae4fe72a0f4649df7a38bab988",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 15
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.069906,
+        "2": 0.048354,
+        "3": 0.016426,
+        "4": 0.009048,
+        "5": 0.120131,
+        "6": 0.113925,
+        "7": 0.11442,
+        "8": 0.036443,
+        "9": 0.110357,
+        "10": 0.106624,
+        "11": 0.056092,
+        "12": 0.059722,
+        "13": 0.017987,
+        "14": 0.077505,
+        "15": 0.043059
+      },
+      "p_challenger": {
+        "1": 0.063258,
+        "2": 0.047945,
+        "3": 0.015831,
+        "4": 0.009526,
+        "5": 0.13097,
+        "6": 0.14259,
+        "7": 0.105326,
+        "8": 0.032805,
+        "9": 0.101558,
+        "10": 0.111308,
+        "11": 0.052888,
+        "12": 0.060241,
+        "13": 0.01985,
+        "14": 0.065537,
+        "15": 0.040366
+      }
+    }
+  },
+  "top3": [
+    5,
+    9,
+    10
+  ],
+  "winner": 10,
+  "status": "training_only",
+  "role": "training_only"
+}

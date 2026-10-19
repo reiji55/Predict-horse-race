@@ -1,0 +1,77 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261018-niigata-11",
+  "race_day": "20261018",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-18T15:10:00+09:00",
+  "pinned": {
+    "commit": "c4fc2d5e7975e27811f511b65e45ffc3144b6cab",
+    "frozen_at": "2026-10-18T14:16:19+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 10,
+    "entries": 10,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 108,
+    "unlisted": 12,
+    "residual_mass": 0.00564
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261018-niigata-11.json",
+      "blob_sha": "82a47fc681ee5c8c8c291031bd8cfaeb6b8538e4",
+      "frozen_at": "2026-10-18T14:16:19+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "5a1374c32de5948d00172dfafd323a5c0e3a8e4b116bbb48c2efbb7334f7d118",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 10
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.15934,
+        "2": 0.013151,
+        "3": 0.113023,
+        "4": 0.040976,
+        "5": 0.181783,
+        "6": 0.15401,
+        "7": 0.020784,
+        "8": 0.115185,
+        "9": 0.123803,
+        "10": 0.077945
+      },
+      "p_challenger": {
+        "1": 0.13903,
+        "2": 0.013886,
+        "3": 0.127093,
+        "4": 0.044844,
+        "5": 0.217658,
+        "6": 0.110379,
+        "7": 0.021076,
+        "8": 0.08031,
+        "9": 0.129477,
+        "10": 0.116248
+      }
+    }
+  },
+  "top3": [
+    1,
+    3,
+    5
+  ],
+  "winner": 3,
+  "status": "training_only",
+  "role": "training_only"
+}
