@@ -1,0 +1,61 @@
+{
+  "version": "market-mix-v1",
+  "spec": "docs/research/MARKET_MIX_PREREG_V1.md",
+  "note": "市場＋能力モデルの混合（#39 案1）の事前登録の固定値。登録後は変更しない（変えるなら v2 を別に登録する）。",
+  "inputs": {
+    "pin": "snapshot を発走前に最後に更新したコミットの raw（research/market_audit.py の prerace_versions と同じ規則）",
+    "require_odds_timing": {"win": "pre_race_verified", "trio": "pre_race_verified"},
+    "runner_without_win_odds": "exclude_race",
+    "trio_payout": 0.75,
+    "trio_imputation_primary": {"payout": 0.75, "shape": "harville", "cap": "on"}
+  },
+  "p_model": {
+    "source": "data/shadow/model_evaluation/race-performance-v1/races/{race_id}.json",
+    "primary": {"name": "champion", "field": "p_champion"},
+    "secondary": {"name": "race-performance-v1", "field": "p_challenger"},
+    "require": ["status == evaluated", "phase == forward", "models.champion.capture.matched", "models.champion.capture.fidelity",
+                "全出走馬（単勝オッズのある馬）に p_model がある"]
+  },
+  "win_mix": {
+    "form": "p_mix(i) ∝ exp(a·log p_mkt(i) + b·log p_model(i))",
+    "p_mkt": "単勝オッズの逆数を正規化",
+    "fit": "訓練レースの勝ち馬の平均 −log p_mix を最小にする格子探索",
+    "a_grid": {"min": 0.0, "max": 3.0, "step": 0.02},
+    "b_grid": {"min": -2.0, "max": 2.0, "step": 0.02},
+    "tie_break": ["|b| が小さい方", "|a−1| が小さい方"]
+  },
+  "trio": {
+    "T1": "harville(p_mix)（素の Harville＝素の Plackett–Luce）",
+    "T2": "w·market_trio + (1−w)·T1。w は訓練レースの平均 3連複 log loss を最小にする値",
+    "w_grid": {"min": 0.0, "max": 1.0, "step": 0.05},
+    "w_tie_break": "w が大きい方（市場寄り）"
+  },
+  "walk_forward": {
+    "window": "expanding",
+    "refit_unit": "race_day",
+    "train_on": "その開催日より前の、契約を満たす全レース（登録前のレースを含む）",
+    "min_train_races": 10
+  },
+  "evaluation": {
+    "eligible": "登録日時より後に発走し、契約を満たし、結果が確定したレース",
+    "primary": {"metric": "trio_logloss", "compare": "T2 − market_trio（同じレースで対にした差の平均）"},
+    "secondary": [
+      {"metric": "win_logloss", "compare": "p_mix − p_mkt"},
+      {"metric": "top3_brier", "compare": "T2 − market_trio"},
+      {"metric": "trio_logloss", "compare": "T1 − harville(p_mkt)"},
+      {"metric": "trio_logloss", "compare": "secondary p_model で同じ手順"}
+    ],
+    "checkpoints": [30, 60, 100],
+    "decision": {
+      "at": "評価レース 100、または 2027-06-30 の早い方",
+      "adopt_if": [
+        "主指標の差の平均 < 0",
+        "開催日単位の bootstrap（10000 回・seed 20261019）の 95% 区間の上限 < 0",
+        "未収録組の補い方の 18 通り（payout 0.725/0.75/0.775 × shape harville/discounted_harville/uniform × cap on/off）すべてで差の平均 < 0"
+      ],
+      "adopt_means": "PR-D 以降の shadow とチャット参考券の確率エンジンとして使ってよい。アプリ・本番への反映は別途ユーザー承認",
+      "otherwise": "採用しない（市場だけの基準線を使い続ける）"
+    },
+    "checkpoints_before_decision": "30・60 では報告だけで、採否は判断しない。害による打ち切りは無い（observe-only でお金を使わない）"
+  }
+}

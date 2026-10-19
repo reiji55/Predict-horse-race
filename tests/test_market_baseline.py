@@ -146,3 +146,34 @@ def test_race_without_result_is_pending(tmp_path: Path) -> None:
     _commit_race(tmp_path, _race(WIN, TRIO), None)
     summary = mb.run(tmp_path, tmp_path / "out")
     assert summary["pending_result"] == [RACE]
+
+
+def test_sensitivity_covers_all_imputation_variants(tmp_path: Path) -> None:
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _commit_race(tmp_path, _race(WIN, TRIO), {RACE: {"finish": [2, 1, 4, 3, 5, 6]}})
+    summary = mb.run(tmp_path, tmp_path / "out")
+    row = json.loads((tmp_path / "out/races" / f"{RACE}.json").read_text(encoding="utf-8"))
+    assert len(row["sensitivity"]) == len(mb.SENSITIVITY_PAYOUTS) * len(mb.SENSITIVITY_SHAPES) * 2
+    primary = mb.variant_key(0.75, "harville", True)
+    assert row["sensitivity"][primary]["trio_logloss"] == row["models"]["market_trio"]["trio_logloss"]
+    # どの補い方でも Brier は 0〜1 の範囲（分布として壊れていない）
+    assert all(0 <= v["top3_brier"] <= 1 for v in row["sensitivity"].values())
+    assert summary["sensitivity"]["primary_variant"] == primary
+    assert set(summary["sensitivity"]["ordering_stable_across_variants"]) == {"harville", "discounted_harville"}
+
+
+def test_market_trio_without_cap_still_sums_to_one() -> None:
+    race = _race(WIN, {"1-2-3": 4.0, "1-2-4": 6.0})
+    p = mb.win_probs(race)
+    dist, info = mb.market_trio(race, sorted(p), 0.75, mb.harville_trio(p), use_cap=False)
+    assert sum(dist.values()) == pytest.approx(1.0)
+    assert info["cap_assumption"] == "off" and info["unlisted_cap_per_trio"] is None
+
+
+def test_race_with_runner_without_win_odds_is_excluded(tmp_path: Path) -> None:
+    """オッズの無い馬を取消と確認できないまま外して正規化しない（レースごと除外）。"""
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _commit_race(tmp_path, _race({**WIN, 7: None}, TRIO), {RACE: {"finish": [2, 1, 4]}})
+    summary = mb.run(tmp_path, tmp_path / "out")
+    assert summary["evaluated"] == 0
+    assert summary["excluded"] == {"runner_without_win_odds_unconfirmed": [RACE]}
