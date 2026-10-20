@@ -20,7 +20,8 @@
 1. **入力の契約**（§3）：レースごとに、発走前の固定、オッズの時点、オッズの無い馬、3連複オッズ、p_model の契約を確かめる。続けて、結果があれば同着と3着内の馬のオッズを確かめる。
    - p_model の契約（§3.5）は発走前の契約なので、結果の有無と切り離して確かめる（`eligibility`：`verified`・`failed`・`unverified`）。
    - p_model の個票は結果の取り込み後に作られるので、結果待ちで個票がまだ無いレースは `unverified`（数えない）。
-   - `unverified` のまま開催日から 14 日たったレースは、確かめられないものとして数えない（`eligibility_unverifiable`）。
+   - `unverified` のレースは、何日たっても除外しない（登録した仕様に打ち切りの規則が無いため。実装で規則を足さない）。確かめられるまで、その開催日から先の境界を決めないまま止まる。
+   - 開催日から 14 日たっても `unverified` のものは `eligibility_unverified_overdue` として警告に出す（報告だけで、数え方・境界は変えない）。仕様の不足の可能性として、人が確かめて v2 の登録を検討する。
 2. **当てはめ**（§4・§5）：登録後のレースのある開催日ごとに、その前の開催日の契約を満たすレース（登録前を含む）で a・b、続けて w を当てはめる。
    - 18 通りの補い方ごとに w を当てはめ直す（`w_variants`）。
    - 副の p_model（race-performance-v1）は主の補い方だけで同じ手順を回す。
@@ -35,6 +36,9 @@
      - 出力：判定と区間の全集計
      - それぞれの digest
    - 以後は毎回同じ記録を計算し直して digest を比べ、`decision_check` に出す（`matches`・`decision_input_changed`・`decision_output_changed`・`status_changed`・`changed_races`）。判定の状態が同じでも、平均・bootstrap・感度・評価レースの一覧のどれかが変われば不一致になる。
+5. **台帳**（`ledger.json`）：登録後の各レースの発走前の契約の確定状態（`verified`・`not_eligible`）と、30・60・100 の到達日を、最初に確定したときの値で残し、上書きしない。
+   - 計算は仕様（§3.5：計算時点の main の版）どおり今の入力で行う。台帳と違えば `events` に追記し（`eligibility_changed`・`boundary_changed`）、警告にする（`eligibility_changed_after_resolution`・`boundary_changed`）。
+   - 未確認のまま 14 日を過ぎてから確定したレースは `late_eligibility_resolution` として残す。
 
 ### 計算量の工夫
 
@@ -49,6 +53,7 @@
 | `days.json` | 開催日ごとの訓練レースの一覧、a・b・目的関数・同点の数、w と 18 通りの w（主・副） |
 | `summary.json` | 状態（`collecting`・`checkpoint_30`・`checkpoint_60`・`awaiting_results`・`awaiting_eligibility`・`adopted`・`not_adopted`・`undecidable`・`spec_changed`）、`warnings`、未確認のレース、除外の理由、区間ごとの集計と bootstrap、これまでの集計（報告だけ）、Champion の区間、`decision_check` |
 | `decision.json` | 確定した判定（入力・出力・digest。1回だけ書き、上書きしない） |
+| `ledger.json` | 発走前の契約の確定状態と区間の到達日の台帳（上書きしない）と、その後の変化・遅れた確定の events（追記だけ） |
 | `p_model_source_changes.json` | p_model の個票（blob）が前回の出力から変わったレースの記録（追記だけ）。変わった馬・差の最大値・今の capture の確認結果 |
 
 ## 実行
@@ -56,14 +61,18 @@
 ```
 python -m research.market_mix                      # data/research/market_mix/ に書く
 python -m research.market_mix --out DIR            # 別の場所に書く（確認用）
-python -m research.market_mix --as-of 2026-11-20   # 判定の日付だけを変えた計算（下記）
+python -m research.market_mix --as-of 2026-11-20 --out DIR   # 判定の日付だけを変えた計算（下記）
 ```
 
-- `--as-of` は、今の入力（HEAD の結果・p_model）のまま判定の日付だけを変えた計算（`as_of_mode: simulation_on_current_inputs`）。その日時点に存在した入力の再生ではない。`decision.json` と p_model の変化の記録は書かない。
+- `--as-of` は、今の入力（HEAD の結果・p_model）のまま判定の日付だけを変えた計算（`as_of_mode: simulation_on_current_inputs`）。その日時点に存在した入力の再生ではない。
+  - 本番の出力先（`data/research/market_mix/`）には書けず、`--out` で別の出力先が要る。
+  - `decision.json`・台帳・p_model の変化の記録は書かない。
 - 終了コードは次のどれかで 1 になる（`summary.warnings` に理由が出る）。
   - 登録の不一致（`spec_changed`・`registration_not_found`）
   - 確定した判定との不一致（`decision_recomputed_differs_from_fixed`）
   - 判定の区間内の p_model の変化（`p_model_source_changed_in_decision_window`）
+  - 台帳との違い（`eligibility_changed_after_resolution`・`boundary_changed`）
+  - 長い未確認（`eligibility_unverified_overdue`）
   - レースの失敗（`race_errors`）
 - `run_results.yml` では、その回の生成物（結果・p_model）をコミットした後に走らせる。結果・p_model をコミット済みの版から読むため。
   - 出力はコミットしてから終了コードを返す。失敗しても成績集計は止めない（continue-on-error）。

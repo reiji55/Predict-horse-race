@@ -64,6 +64,8 @@ CHECKPOINTS = (30, 60)
 DECISION_RACES = 100
 DEADLINE = datetime.date(2027, 6, 30)
 RESULT_WAIT_DAYS = 14
+# 発走前の契約が未確認のまま、開催日からこの日数たったレースを警告に出す（報告だけ。数え方・境界は変えない）
+ALERT_UNVERIFIED_DAYS = 14
 BOOT_SEED = 20261019
 BOOT_REPS = 10000
 BOOT_LOWER_RANK = 250          # 昇順で 1 から数える
@@ -633,12 +635,80 @@ def compare_decision(fixed: dict[str, Any] | None, current: dict[str, Any] | Non
             "changed_races": changed_races}
 
 
+def _eligibility_state(r: dict[str, Any]) -> dict[str, Any] | None:
+    """登録後のレースの発走前の契約の確定状態。未確認なら None。"""
+    if r.get("role") != "evaluation" or r.get("eligibility") == "unverified":
+        return None
+    if r.get("eligibility") == "verified":
+        return {"state": "verified"}
+    return {"state": "not_eligible", "reason": r.get("reason") or r.get("error_type") or r.get("status")}
+
+
+def update_ledger(rows: list[dict[str, Any]], state: dict[str, Any], out_dir: Path, as_of: datetime.date,
+                  write: bool = True) -> dict[str, Any]:
+    """発走前の契約の確定状態と、区間の到達日を、最初に確定したときの値で台帳（ledger.json）に残す。
+
+    台帳の値は上書きしない。今回の計算が台帳と違えば（確定した契約が後から変わった、一度決まった到達日が
+    動いた）、変化を追記の events に残して警告にする。計算そのものは、仕様（§3.5：計算時点の main の版）どおり
+    今の入力で行う。未確認のまま長くたってから確定したレースは late_eligibility_resolution として残す。
+    """
+    path = out_dir / "ledger.json"
+    ledger = common.read_json(path) or {}
+    ledger.setdefault("eligibility", {})
+    ledger.setdefault("boundaries", {})
+    ledger.setdefault("events", [])
+    ledger["note"] = ("発走前の契約の確定状態と区間の到達日を、最初に確定したときの値で残す台帳。値は上書きせず、"
+                      "後からの変化は events に追記する。計算は今の入力で行う（§3.5）。")
+    seen = {json.dumps({k: e.get(k) for k in ("type", "race_id", "target", "current")}, sort_keys=True)
+            for e in ledger["events"]}
+    today = as_of.isoformat()
+    changed_races, changed_targets = [], []
+
+    def add(event: dict[str, Any]) -> None:
+        key = json.dumps({k: event.get(k) for k in ("type", "race_id", "target", "current")}, sort_keys=True)
+        if key not in seen:
+            seen.add(key)
+            ledger["events"].append({**event, "detected_on": today})
+
+    for r in rows:
+        cur = _eligibility_state(r)
+        if cur is None:
+            continue
+        old = ledger["eligibility"].get(r["race_id"])
+        if old is None:
+            late = (as_of - _date(r["race_day"])).days > ALERT_UNVERIFIED_DAYS
+            ledger["eligibility"][r["race_id"]] = {**cur, "first_resolved_on": today, "late": late}
+            if late:
+                add({"type": "late_eligibility_resolution", "race_id": r["race_id"], "race_day": r["race_day"],
+                     "current": cur, "days_after_race": (as_of - _date(r["race_day"])).days})
+        elif {k: old.get(k) for k in cur} != cur:
+            changed_races.append(r["race_id"])
+            add({"type": "eligibility_changed", "race_id": r["race_id"],
+                 "ledger": {k: old.get(k) for k in ("state", "reason") if k in old}, "current": cur})
+    for target, day in sorted(state["reached"].items()):
+        old = ledger["boundaries"].get(str(target))
+        if old is None:
+            ledger["boundaries"][str(target)] = {"end_day": day, "first_seen_on": today}
+        elif old["end_day"] != day:
+            changed_targets.append(target)
+            add({"type": "boundary_changed", "target": target, "ledger": old["end_day"], "current": day})
+    for target, old in ledger["boundaries"].items():
+        if int(target) not in state["reached"]:
+            changed_targets.append(int(target))
+            add({"type": "boundary_changed", "target": int(target), "ledger": old["end_day"], "current": None})
+    if write:
+        common.write_json(path, ledger)
+    return {"eligibility_changed": sorted(changed_races), "boundary_changed": sorted(set(changed_targets))}
+
+
 def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.date | None = None,
         reference: tuple[types.ModuleType, types.ModuleType] | None = None, simulate: bool = False) -> dict[str, Any]:
     """simulate=True は、今の入力のまま判定の日付だけを変えた計算（その日時点の入力の再生ではない）。
-    decision.json と p_model の変化の記録は書かない。"""
+    本番の出力先には書けず、decision.json・台帳・p_model の変化の記録は書かない。"""
     repo = repo or common.ROOT
     out_dir = out_dir or OUT_DIR
+    if simulate and out_dir.resolve() == OUT_DIR.resolve():
+        raise ValueError("simulation は本番の出力先に書かない（--out で別の場所を指定する）")
     as_of = as_of or datetime.datetime.now(common.JST).date()
     reg = registration(repo)
     common.write_json(out_dir / "registration.json", reg)
@@ -672,10 +742,8 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
             ready.append(data)
     by_id = {r["race_id"]: r for r in rows}
 
-    # 発走前の契約が未確認のまま開催日から RESULT_WAIT_DAYS 日たったレースは、確かめられないものとして数えない
-    for r in rows:
-        if r.get("eligibility") == "unverified" and as_of >= _date(r["race_day"]) + datetime.timedelta(days=RESULT_WAIT_DAYS):
-            r.update(status="excluded", reason="eligibility_unverifiable", eligibility="unverifiable")
+    # 発走前の契約が未確認のレースは、何日たっても除外しない（登録した仕様に打ち切りの規則が無いため）。
+    # 確かめられるまで、その開催日から先の境界は決めない（decision_state）。長く未確認のものは警告に出す
 
     # 評価する開催日：登録後に発走し、発走前の契約を満たす（または確認待ちの）レースのある開催日（§5・§6.2）
     eval_days = sorted({r["race_day"] for r in rows if r["role"] == "evaluation"
@@ -731,6 +799,9 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
     window_races = set((fixed or current or {}).get("races") or [])
     changed_in_window = sorted(c["race_id"] for c in changes if c["race_id"] in window_races)
     errors = sorted(r["race_id"] for r in rows if r["status"] == "error")
+    overdue = sorted(r["race_id"] for r in rows if r.get("_unresolved")
+                     and as_of >= _date(r["race_day"]) + datetime.timedelta(days=ALERT_UNVERIFIED_DAYS))
+    ledger_check = update_ledger(rows, state, out_dir, as_of, write=not simulate)
     warnings = []
     if check is not None and not check["matches"]:
         warnings.append("decision_recomputed_differs_from_fixed")
@@ -738,6 +809,12 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         warnings.append("p_model_source_changed_in_decision_window")
     if errors:
         warnings.append("race_errors")
+    if overdue:
+        warnings.append("eligibility_unverified_overdue")
+    if ledger_check["eligibility_changed"]:
+        warnings.append("eligibility_changed_after_resolution")
+    if ledger_check["boundary_changed"]:
+        warnings.append("boundary_changed")
 
     for r in rows:
         r.pop("_counted", None)
@@ -759,6 +836,8 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         "evaluated": len(evaluated),
         "pending_result": [r["race_id"] for r in rows if r["status"] == "pending_result"],
         "eligibility_unverified": state["unresolved"],
+        "eligibility_unverified_overdue": overdue,
+        "ledger_check": ledger_check,
         "excluded": excluded,
         "evaluation_days": eval_days,
         "decision": _round(state),
@@ -771,6 +850,11 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         "note": ("market-mix-v1 の前向き評価（observe-only）。採否は §6 の判定の時点でだけ決め、途中の数値は報告だけ。"
                  "market_trio の未収録組は推定で補った近似で、市場の真の確率ではない。モデルの優位性や回収率はここから主張しない。"),
     }
+    if overdue:
+        summary["overdue_note"] = (
+            f"発走前の契約（p_model の個票）を開催日から {ALERT_UNVERIFIED_DAYS} 日以上確かめられないレースがある。"
+            "登録した仕様に打ち切りの規則が無いので、除外せず、その開催日から先の境界を決めないまま止まる。"
+            "仕様の不足として、人が確かめて v2 の登録を検討する（§冒頭）。")
     if simulate:
         summary["simulation_note"] = ("今の入力（HEAD の結果・p_model）のまま判定の日付だけを変えた計算。"
                                       "その日時点に存在した入力の再生ではない。decision.json は書かない。")
@@ -783,13 +867,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--as-of", type=datetime.date.fromisoformat, default=None,
-                        help="判定の日付（JST）。指定すると、今の入力のまま日付だけを変えた計算になり、decision.json を書かない")
+                        help="判定の日付（JST）。指定すると、今の入力のまま日付だけを変えた計算になる。"
+                             "--out で本番と別の出力先が要り、decision.json・台帳は書かない")
     args = parser.parse_args(argv)
+    if args.as_of is not None and (args.out is None or args.out.resolve() == OUT_DIR.resolve()):
+        parser.error("--as-of は本番の出力先に書かないよう、--out で別の出力先を指定する")
     logging.basicConfig(level=logging.INFO)
     summary = run(args.repo, args.out, args.as_of, simulate=args.as_of is not None)
     print(json.dumps({k: summary.get(k) for k in ("status", "warnings", "races", "training_pool", "evaluated", "excluded")},
                      ensure_ascii=False))
-    # 失敗を成功と見誤らないよう、登録の不一致・判定の不一致・レースの失敗は終了コード 1 にする
+    # 失敗を成功と見誤らないよう、登録の不一致・判定の不一致・台帳との不一致・長い未確認・レースの失敗は終了コード 1
     if summary["status"] in ("spec_changed", "registration_not_found") or summary.get("warnings"):
         for w in summary.get("warnings") or [summary["status"]]:
             logger.warning("market-mix-v1: %s", w)

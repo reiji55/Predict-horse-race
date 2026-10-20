@@ -415,11 +415,75 @@ def test_pending_races_are_counted_only_after_p_model_contract(tmp_path: Path) -
     assert after["evaluated"] == 2
 
 
-def test_unverified_race_times_out_after_the_wait(mixed_repo: Path) -> None:
-    summary = mm.run(mixed_repo, mixed_repo / "out", datetime.date(2026, 11, 28), reference=REF)
-    assert summary["eligibility_unverified"] == []
-    assert summary["excluded"]["eligibility_unverifiable"] == ["20261114-kyoto-11"]
-    assert summary["decision"]["resolved_through"] == "20261115"
+def _resolve_kyoto(repo: Path, date: str) -> None:
+    """mixed_repo の結果待ち（個票なし）の 20261114 京都に、結果と個票を後から入れる。"""
+    results = json.loads((repo / mm.RESULTS_REL).read_text(encoding="utf-8"))
+    results["20261114-kyoto-11"] = _finish(21)
+    _write(repo, mm.RESULTS_REL, results)
+    _write_p_model(repo, "20261114-kyoto-11", 21)
+    _commit(repo, "late result and p_model", date)
+
+
+def test_unverified_race_is_never_dropped_and_late_arrival_is_logged(mixed_repo: Path) -> None:
+    """PR #43 再レビュー：未確認のレースを日数で打ち切らない（仕様に無い規則を足さない）。
+
+    D+14 の実行でも除外せず、境界は D の手前で止めたまま警告を出す。D+20 に結果と個票が届いたら
+    同じ出力先で計算し直し、そのレースを数える。一度決めた境界は無いので動かず、遅れて確定したことは台帳に残る。
+    """
+    out = mixed_repo / "out"
+    d14 = mm.run(mixed_repo, out, datetime.date(2026, 11, 28), reference=REF)
+    assert d14["eligibility_unverified"] == ["20261114-kyoto-11"]
+    assert d14["eligibility_unverified_overdue"] == ["20261114-kyoto-11"]
+    assert "eligibility_unverifiable" not in d14["excluded"] and "overdue_note" in d14
+    assert d14["decision"]["resolved_through"] is None and d14["decision"]["counted_races"] == 2
+    assert d14["warnings"] == ["eligibility_unverified_overdue"]
+
+    _resolve_kyoto(mixed_repo, "2026-12-04T10:00:00+09:00")
+    d20 = mm.run(mixed_repo, out, datetime.date(2026, 12, 4), reference=REF)
+    assert d20["eligibility_unverified"] == [] and d20["warnings"] == []
+    assert d20["decision"]["counted_races"] == 3 and d20["decision"]["resolved_through"] == "20261115"
+    row = json.loads((out / "races/20261114-kyoto-11.json").read_text(encoding="utf-8"))
+    assert row["status"] == "evaluated" and row["eligibility"] == "verified"
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert ledger["eligibility"]["20261114-kyoto-11"]["late"] is True
+    assert [e["type"] for e in ledger["events"]] == ["late_eligibility_resolution"]
+    # 同じ入力で計算し直しても、集合・境界・台帳は変わらない
+    again = mm.run(mixed_repo, out, datetime.date(2026, 12, 5), reference=REF)
+    assert again["decision"]["counted_races"] == 3 and again["warnings"] == []
+    assert json.loads((out / "ledger.json").read_text(encoding="utf-8"))["events"] == ledger["events"]
+
+
+def test_resolved_eligibility_and_boundary_changes_are_flagged(mixed_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mm, "CHECKPOINTS", (2,))
+    out = mixed_repo / "out"
+    _resolve_kyoto(mixed_repo, "2026-11-15T10:00:00+09:00")
+    first = mm.run(mixed_repo, out, datetime.date(2026, 11, 16), reference=REF)
+    assert first["decision"]["reached"] == {2: "20261114"} and first["warnings"] == []
+
+    # 確定した契約が後から変わる（capture 不一致に書き換わる）：計算は今の入力で行い、台帳との違いを警告にする
+    rel = f"{mm.RPS_RACES_DIR}/20261114-tokyo-11.json"
+    doc = json.loads((mixed_repo / rel).read_text(encoding="utf-8"))
+    doc["models"]["champion"]["capture"]["matched"] = False
+    _write(mixed_repo, rel, doc)
+    _commit(mixed_repo, "capture changed", "2026-11-17T10:00:00+09:00")
+    second = mm.run(mixed_repo, out, datetime.date(2026, 11, 17), reference=REF)
+    assert second["ledger_check"]["eligibility_changed"] == ["20261114-tokyo-11"]
+    assert second["ledger_check"]["boundary_changed"] == [2]
+    assert {"eligibility_changed_after_resolution", "boundary_changed"} <= set(second["warnings"])
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    assert ledger["eligibility"]["20261114-tokyo-11"]["state"] == "verified"     # 台帳は上書きしない
+    assert ledger["boundaries"]["2"]["end_day"] == "20261114"
+    types_ = [e["type"] for e in ledger["events"]]
+    assert types_.count("eligibility_changed") == 1 and types_.count("boundary_changed") == 1
+    mm.run(mixed_repo, out, datetime.date(2026, 11, 18), reference=REF)
+    assert json.loads((out / "ledger.json").read_text(encoding="utf-8"))["events"] == ledger["events"]
+
+
+def test_simulation_cannot_write_to_the_live_output() -> None:
+    with pytest.raises(ValueError):
+        mm.run(ROOT, mm.OUT_DIR, datetime.date(2027, 1, 1), reference=REF, simulate=True)
+    with pytest.raises(SystemExit):
+        mm.main(["--as-of", "2027-01-01"])
 
 
 def test_boundary_does_not_depend_on_arrival_order() -> None:
@@ -486,12 +550,14 @@ def test_fixed_decision_is_not_overwritten(mixed_repo: Path, monkeypatch: pytest
     monkeypatch.setattr(mm, "MIN_DECISION_DAYS", 1)
     out = mixed_repo / "out"
     as_of = datetime.date(2026, 12, 31)
+    _resolve_kyoto(mixed_repo, "2026-11-15T10:00:00+09:00")
     sim = mm.run(mixed_repo, out, as_of, reference=REF, simulate=True)
     assert sim["as_of_mode"] == "simulation_on_current_inputs" and not (out / "decision.json").exists()
     first = mm.run(mixed_repo, out, as_of, reference=REF)
     fixed_text = (out / "decision.json").read_text(encoding="utf-8")
     fixed = json.loads(fixed_text)
-    assert fixed["races"] == ["20261114-tokyo-11", "20261115-tokyo-11"] and first["warnings"] == []
+    assert fixed["races"] == ["20261114-kyoto-11", "20261114-tokyo-11"] and first["warnings"] == []
+    assert (out / "ledger.json").exists() and sim["warnings"] == []
     assert first["decision_check"]["matches"] is True
 
     rel = f"{mm.RPS_RACES_DIR}/20261114-tokyo-11.json"
