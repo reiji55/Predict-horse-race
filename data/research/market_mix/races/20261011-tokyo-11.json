@@ -1,0 +1,99 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261011-tokyo-11",
+  "race_day": "20261011",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-10-11T15:45:00+09:00",
+  "pinned": {
+    "commit": "fc70a8326ffa2efec27f8da4b4966cd3ff882cbb",
+    "frozen_at": "2026-10-11T15:36:54+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 16,
+    "entries": 16,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 215,
+    "unlisted": 345,
+    "residual_mass": 0.08621
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261011-tokyo-11.json",
+      "blob_sha": "475f26705c0beb6d3a958fe8945f6721d065c96d",
+      "frozen_at": "2026-10-11T15:36:54+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "77fe0fc526476c85ce0e99f202b2899573b2f10bbc2ac3f760baa8bd908f4de9",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 16
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.0425,
+        "2": 0.033439,
+        "3": 0.05567,
+        "4": 0.036504,
+        "5": 0.073215,
+        "6": 0.002869,
+        "7": 0.030527,
+        "8": 0.061668,
+        "9": 0.043979,
+        "10": 0.032791,
+        "11": 0.04929,
+        "12": 0.047178,
+        "13": 0.028117,
+        "14": 0.023692,
+        "15": 0.288606,
+        "16": 0.149956
+      },
+      "p_challenger": {
+        "1": 0.040595,
+        "2": 0.036001,
+        "3": 0.080017,
+        "4": 0.03489,
+        "5": 0.07545,
+        "6": 0.002976,
+        "7": 0.026051,
+        "8": 0.047632,
+        "9": 0.041034,
+        "10": 0.040431,
+        "11": 0.059332,
+        "12": 0.042324,
+        "13": 0.019743,
+        "14": 0.025238,
+        "15": 0.26031,
+        "16": 0.167974
+      }
+    }
+  },
+  "eligibility": "verified",
+  "result_used": {
+    "top3": [
+      11,
+      15,
+      16
+    ],
+    "winner": 16,
+    "trio_dividends": 1
+  },
+  "top3": [
+    11,
+    15,
+    16
+  ],
+  "winner": 16,
+  "status": "training_only",
+  "role": "training_only"
+}

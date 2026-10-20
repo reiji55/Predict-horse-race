@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py -q
 
       - name: 対象の週を決める
         id: target
@@ -189,3 +189,37 @@ jobs:
             git pull --rebase origin "${GITHUB_REF_NAME}"
           done
           exit 1
+
+      - name: 市場＋能力モデルの混合 market-mix-v1 の評価（observe-only）
+        id: market_mix
+        # 事前登録（docs/research/MARKET_MIX_PREREG_V1.md）どおりに、開催日ごとの walk-forward で a・b・w を当てはめ、
+        # 登録後のレースで 3連複 log loss を市場と比べる（Issue #39 PR-C2）。結果・p_model はコミット済みの版を読むので、
+        # 今回の生成物をコミットした後に走らせる。data/research/market_mix/ にだけ書く。予想・正式成績・UI には使わない。
+        # 仕様の不一致・確定した判定との不一致・レースの失敗は終了コード 1（出力はコミットしてから失敗にする）。
+        # 失敗しても成績集計は止めないが、次のステップで警告を出す。
+        continue-on-error: true
+        run: |
+          set +e
+          python -m research.market_mix
+          rc=$?
+          set -e
+          git add data/research/market_mix/
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: ${{ steps.target.outputs.week }} market-mix-v1 評価"
+            pushed=0
+            for i in 1 2 3 4; do
+              if git push; then pushed=1; break; fi
+              sleep $((i * 5))
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+            done
+            [ "$pushed" = 1 ] || exit 1
+          fi
+          exit $rc
+
+      - name: market-mix-v1 の失敗を知らせる
+        # continue-on-error のステップは失敗してもジョブが緑になるので、失敗を成功と見誤らないよう警告に出す
+        if: steps.market_mix.outcome == 'failure'
+        run: |
+          echo "::warning title=market-mix-v1::評価が失敗、または警告で終了しました（data/research/market_mix/summary.json の status・warnings を確認）"
+          echo "### ⚠️ market-mix-v1 の評価が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
+          echo "data/research/market_mix/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,81 @@
+{
+  "schema": "market-mix-summary-v1",
+  "version": "market-mix-v1",
+  "generated_at": "2026-10-20T22:36:09+09:00",
+  "as_of": "2026-10-20",
+  "as_of_mode": "live",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "registration": {
+    "status": "ok",
+    "commit": "30ad25b4fd06eb1da7d3978aa2e217f3305d6e44",
+    "registered_at": "2026-10-19T23:29:43+09:00",
+    "config_sha256": "58ea479b5e4a69f3bac6a33d4f17d6e8c0ea6cfab4e20f0d99be88f64d0f0212"
+  },
+  "status": "collecting",
+  "warnings": [],
+  "races": 25,
+  "training_pool": 11,
+  "evaluated": 0,
+  "pending_result": [],
+  "eligibility_unverified": [],
+  "eligibility_unverified_overdue": [],
+  "ledger_check": {
+    "eligibility_changed": [],
+    "boundary_changed": []
+  },
+  "excluded": {
+    "no_prerace_commit": [
+      "20260919-hanshin-11",
+      "20260919-nakayama-11",
+      "20260920-hanshin-11",
+      "20260920-nakayama-11",
+      "20260921-hanshin-11",
+      "20260926-hanshin-11",
+      "20260926-nakayama-11",
+      "20260927-hanshin-11",
+      "20260927-nakayama-11"
+    ],
+    "odds_timing_not_pre_race_verified": [
+      "20261003-kyoto-11",
+      "20261003-tokyo-11",
+      "20261004-kyoto-11",
+      "20261004-tokyo-11"
+    ],
+    "p_model_missing_runner": [
+      "20261012-kyoto-11"
+    ]
+  },
+  "evaluation_days": [],
+  "decision": {
+    "counted_races": 0,
+    "reached": {},
+    "checkpoints": {},
+    "resolved_through": null,
+    "unresolved": [],
+    "status": "collecting"
+  },
+  "decision_fixed": null,
+  "decision_check": null,
+  "to_date": {
+    "races_in_window": 0,
+    "evaluated": 0,
+    "n_day": 0,
+    "pending_result": [],
+    "excluded_by_result_contract": [],
+    "primary_mean_D": null,
+    "variants_mean_D": {},
+    "secondary": {
+      "win_logloss": null,
+      "top3_brier": null,
+      "T1_vs_harville_mkt": null
+    },
+    "secondary_p_model_mean_D": null,
+    "secondary_p_model_n": 0,
+    "champion_segments": []
+  },
+  "p_model_source_changed": [],
+  "p_model_source_changed_in_decision_window": [],
+  "significance": "decided_only_at_registered_window",
+  "note": "market-mix-v1 の前向き評価（observe-only）。採否は §6 の判定の時点でだけ決め、途中の数値は報告だけ。market_trio の未収録組は推定で補った近似で、市場の真の確率ではない。モデルの優位性や回収率はここから主張しない。"
+}
