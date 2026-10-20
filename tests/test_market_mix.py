@@ -42,7 +42,7 @@ def _write(repo: Path, rel: str, payload) -> None:
 
 def _commit(repo: Path, msg: str, date: str) -> str:
     _git(repo, "add", "-A")
-    _git(repo, "commit", "-q", "-m", msg, date=date)
+    _git(repo, "commit", "-q", "--allow-empty", "-m", msg, date=date)
     return _git(repo, "rev-parse", "HEAD")
 
 
@@ -316,8 +316,11 @@ def test_end_to_end_walk_forward_and_contract(mixed_repo: Path) -> None:
     assert summary["pending_result"] == ["20261114-kyoto-11"]
     assert summary["excluded"] == {"p_model_file_missing": ["20261114-niigata-11"],
                                    "dead_heat_top3": ["20261115-tokyo-11"]}
-    # 区間の数え方：評価・結果待ち・結果の契約で外れたものは数え、p_model の欠けは数えない
-    assert summary["decision"]["counted_races"] == 3
+    # 区間の数え方：発走前の契約を確かめたもの（評価・結果の契約で外れたもの）だけを数える。
+    # 結果待ちで p_model の個票がまだ無いレースは未確認として数えず、その開催日から先の境界を決めない
+    assert summary["decision"]["counted_races"] == 2
+    assert summary["eligibility_unverified"] == ["20261114-kyoto-11"]
+    assert summary["decision"]["resolved_through"] is None
     days = json.loads((out / "days.json").read_text(encoding="utf-8"))
     assert days["primary"]["20261114"]["n_train"] == 12 and days["primary"]["20261115"]["n_train"] == 13
     assert "20261114-tokyo-11" not in days["primary"]["20261114"]["train_races"]
@@ -361,3 +364,145 @@ def test_p_model_source_change_is_logged(mixed_repo: Path) -> None:
     log = json.loads((out / "p_model_source_changes.json").read_text(encoding="utf-8"))
     assert log[-1]["values"]["p_champion"]["changed_horses"] == ["1"]
     assert log[-1]["capture_now"] == {"matched": True, "fidelity": True}
+
+
+# ------------------------------------------------------------------ PR #43 レビュー P0-1：結果待ちでも p_model の契約を確かめる
+
+def _write_p_model(repo: Path, race_id: str, seed: int, **change) -> None:
+    doc = _p_model_doc(race_id, seed)
+    if change.get("matched") is False:
+        doc["models"]["champion"]["capture"]["matched"] = False
+    if change.get("drop_horse"):
+        doc["probability"]["horses"] = doc["probability"]["horses"][:-1]
+    _write(repo, f"{mm.RPS_RACES_DIR}/{race_id}.json", doc)
+
+
+def test_pending_races_are_counted_only_after_p_model_contract(tmp_path: Path) -> None:
+    _git(tmp_path, "init", "-q", "-b", "main")
+    results: dict = {}
+    seed = 0
+    for day in ("20261101", "20261102", "20261107", "20261108"):
+        races = []
+        for v in ("tokyo", "kyoto", "niigata"):
+            seed += 1
+            races.append((v, seed, _finish(seed), True))
+        _race_day(tmp_path, day, races, results)
+    _register(tmp_path, "2026-11-10T12:00:00+09:00")
+    venues = ("tokyo", "kyoto", "niigata", "hanshin")
+    _race_day(tmp_path, "20261114", [(v, 30 + k, None, False) for k, v in enumerate(venues)], results)
+    # 結果より前に個票がある場合：契約に合う・capture 不一致・馬の欠け。hanshin は個票がまだ無い
+    _write_p_model(tmp_path, "20261114-tokyo-11", 30)
+    _write_p_model(tmp_path, "20261114-kyoto-11", 31, matched=False)
+    _write_p_model(tmp_path, "20261114-niigata-11", 32, drop_horse=True)
+    _commit(tmp_path, "p_model before results", "2026-11-14T18:00:00+09:00")
+    before = mm.run(tmp_path, tmp_path / "out", datetime.date(2026, 11, 15), reference=REF)
+    assert before["pending_result"] == ["20261114-hanshin-11", "20261114-tokyo-11"]
+    assert before["eligibility_unverified"] == ["20261114-hanshin-11"]
+    assert before["excluded"] == {"p_model_capture_not_verified": ["20261114-kyoto-11"],
+                                  "p_model_missing_runner": ["20261114-niigata-11"]}
+    assert before["decision"]["counted_races"] == 1 and before["decision"]["resolved_through"] is None
+
+    # 結果と残りの個票が入った後：数え方は発走前の条件と同じで、結果の中身で増減しない
+    for k, v in enumerate(venues):
+        results[f"20261114-{v}-11"] = _finish(30 + k)
+    _write(tmp_path, mm.RESULTS_REL, results)
+    _write_p_model(tmp_path, "20261114-hanshin-11", 33)
+    _commit(tmp_path, "results", "2026-11-14T19:00:00+09:00")
+    after = mm.run(tmp_path, tmp_path / "out", datetime.date(2026, 11, 15), reference=REF)
+    assert after["eligibility_unverified"] == []
+    assert after["excluded"] == before["excluded"]
+    assert after["decision"]["counted_races"] == 2 and after["decision"]["resolved_through"] == "20261114"
+    assert after["evaluated"] == 2
+
+
+def test_unverified_race_times_out_after_the_wait(mixed_repo: Path) -> None:
+    summary = mm.run(mixed_repo, mixed_repo / "out", datetime.date(2026, 11, 28), reference=REF)
+    assert summary["eligibility_unverified"] == []
+    assert summary["excluded"]["eligibility_unverifiable"] == ["20261114-kyoto-11"]
+    assert summary["decision"]["resolved_through"] == "20261115"
+
+
+def test_boundary_does_not_depend_on_arrival_order() -> None:
+    days = _days(4)
+    base = _rows(days[:1], 10) + _rows(days[1:2], 9) + _rows(days[2:], 10)
+    late = {"race_id": f"{days[1]}-late", "race_day": days[1], "status": "pending_result"}
+
+    waiting = mm.decision_state([*map(dict, base), {**late, "_unresolved": True}], days, datetime.date(2026, 11, 30))
+    assert waiting["reached"] == {} and waiting["resolved_through"] == days[0]
+    # 確かめられた後の境界：数えるなら 3 日目、数えないなら 4 日目。未確認の間に 3 日目と決めてしまわない
+    counted = mm.decision_state([*map(dict, base), {**_rows(days[1:2], 1)[0], "race_id": late["race_id"]}],
+                                days, datetime.date(2026, 11, 30))
+    assert counted["reached"][30] == days[2]
+    failed = mm.decision_state([*map(dict, base), {**late, "status": "excluded"}], days, datetime.date(2026, 11, 30))
+    assert failed["reached"][30] == days[3]
+
+
+def test_deadline_waits_for_unresolved_days() -> None:
+    days = _days(12, start=datetime.date(2027, 4, 1))
+    rows = _rows(days, 3) + [{"race_id": f"{days[-1]}-late", "race_day": days[-1], "status": "pending_result",
+                              "_unresolved": True}]
+    state = mm.decision_state(rows, days, datetime.date(2027, 7, 2))
+    assert state["status"] == "awaiting_eligibility"
+
+
+# ------------------------------------------------------------------ PR #43 レビュー P0-2：確定した判定の不変性
+
+REG = {"commit": "c" * 40, "config_sha256": "s" * 64}
+
+
+def _final_state(rows):
+    days = sorted({r["race_day"] for r in rows})
+    return mm.decision_state(rows, days, datetime.date(2027, 6, 1))
+
+
+def test_decision_check_detects_output_change_with_same_status() -> None:
+    days = _days(12)
+    rows = _rows(days, 9, d=0.1, variant_d=0.1)
+    for k, r in enumerate(rows):
+        r["p_model"]["source"]["blob_sha"] = f"blob{k}"
+        r["pinned"] = {"commit": "p"}
+    state = _final_state(rows)
+    assert state["status"] == "not_adopted"
+    fixed = mm.decision_record(state, rows, REG)
+    assert mm.compare_decision(fixed, mm.decision_record(_final_state(rows), rows, REG))["matches"] is True
+
+    changed = [{**r, "evaluation": {**r["evaluation"], "D": 0.2}} if r["race_id"] == rows[0]["race_id"] else r
+               for r in rows]
+    state2 = _final_state(changed)
+    assert state2["status"] == "not_adopted"
+    check = mm.compare_decision(fixed, mm.decision_record(state2, changed, REG))
+    assert check["matches"] is False and check["decision_output_changed"] is True
+    assert check["status_changed"] is False and check["decision_input_changed"] is False
+
+    blob = [{**r, "p_model": {"source": {**r["p_model"]["source"], "blob_sha": "other"}}}
+            if r["race_id"] == rows[1]["race_id"] else r for r in rows]
+    check = mm.compare_decision(fixed, mm.decision_record(_final_state(blob), blob, REG))
+    assert check["matches"] is False and check["changed_races"] == [rows[1]["race_id"]]
+
+
+def test_fixed_decision_is_not_overwritten(mixed_repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mm, "DECISION_RACES", 2)
+    monkeypatch.setattr(mm, "MIN_DECISION_RACES", 1)
+    monkeypatch.setattr(mm, "MIN_DECISION_DAYS", 1)
+    out = mixed_repo / "out"
+    as_of = datetime.date(2026, 12, 31)
+    sim = mm.run(mixed_repo, out, as_of, reference=REF, simulate=True)
+    assert sim["as_of_mode"] == "simulation_on_current_inputs" and not (out / "decision.json").exists()
+    first = mm.run(mixed_repo, out, as_of, reference=REF)
+    fixed_text = (out / "decision.json").read_text(encoding="utf-8")
+    fixed = json.loads(fixed_text)
+    assert fixed["races"] == ["20261114-tokyo-11", "20261115-tokyo-11"] and first["warnings"] == []
+    assert first["decision_check"]["matches"] is True
+
+    rel = f"{mm.RPS_RACES_DIR}/20261114-tokyo-11.json"
+    doc = json.loads((mixed_repo / rel).read_text(encoding="utf-8"))
+    doc["probability"]["horses"][0]["p_champion"] *= 1.5
+    _write(mixed_repo, rel, doc)
+    _commit(mixed_repo, "rewrite p_model in window", "2027-01-02T10:00:00+09:00")
+    again = mm.run(mixed_repo, out, as_of, reference=REF)
+    assert (out / "decision.json").read_text(encoding="utf-8") == fixed_text
+    assert again["decision_check"]["matches"] is False and again["decision_check"]["decision_input_changed"] is True
+    assert again["p_model_source_changed_in_decision_window"] == ["20261114-tokyo-11"]
+    assert set(again["warnings"]) == {"decision_recomputed_differs_from_fixed", "p_model_source_changed_in_decision_window"}
+    monkeypatch.setattr(mm, "load_reference", lambda repo, commit: REF)
+    assert mm.main(["--repo", str(mixed_repo), "--out", str(out)]) == 1

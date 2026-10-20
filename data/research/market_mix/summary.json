@@ -1,8 +1,9 @@
 {
   "schema": "market-mix-summary-v1",
   "version": "market-mix-v1",
-  "generated_at": "2026-10-20T00:07:05+09:00",
+  "generated_at": "2026-10-20T21:53:36+09:00",
   "as_of": "2026-10-20",
+  "as_of_mode": "live",
   "used_for_prediction": false,
   "official_results_untouched": true,
   "registration": {
@@ -12,10 +13,12 @@
     "config_sha256": "58ea479b5e4a69f3bac6a33d4f17d6e8c0ea6cfab4e20f0d99be88f64d0f0212"
   },
   "status": "collecting",
+  "warnings": [],
   "races": 25,
   "training_pool": 11,
   "evaluated": 0,
   "pending_result": [],
+  "eligibility_unverified": [],
   "excluded": {
     "no_prerace_commit": [
       "20260919-hanshin-11",
@@ -43,10 +46,12 @@
     "counted_races": 0,
     "reached": {},
     "checkpoints": {},
+    "resolved_through": null,
+    "unresolved": [],
     "status": "collecting"
   },
   "decision_fixed": null,
-  "decision_recomputed_matches_fixed": null,
+  "decision_check": null,
   "to_date": {
     "races_in_window": 0,
     "evaluated": 0,
@@ -65,6 +70,7 @@
     "champion_segments": []
   },
   "p_model_source_changed": [],
+  "p_model_source_changed_in_decision_window": [],
   "significance": "decided_only_at_registered_window",
   "note": "market-mix-v1 の前向き評価（observe-only）。採否は §6 の判定の時点でだけ決め、途中の数値は報告だけ。market_trio の未収録組は推定で補った近似で、市場の真の確率ではない。モデルの優位性や回収率はここから主張しない。"
 }

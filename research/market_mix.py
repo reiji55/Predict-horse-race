@@ -265,15 +265,23 @@ def prepare_race(race_id: str, result: dict[str, Any] | None, repo: Path,
         return {**row, "status": "excluded", "reason": "no_trio_odds"}, None
     row["market_trio"] = {k: infos[PRIMARY_VARIANT].get(k) for k in ("method", "listed", "unlisted", "residual_mass")}
 
+    # §3.5 の p_model は発走前の契約なので、結果の有無と切り離して確かめる。p_model の個票は結果の取り込み後に
+    # 作られるので、結果待ちで個票がまだ無いレースは「未確認」（数えない。区間の境界はその日の手前で止める）
     finish = (result or {}).get("finish") or []
-    if len(finish) < 3:
-        return {**row, "status": "pending_result"}, None
+    has_result = len(finish) >= 3
     pm = _p_model(race_id, runners, repo)
     row["p_model"] = {"source": pm["source"],
                       "values": {f: {str(n): v for n, v in pm.get("raw", {}).get(f, {}).items()} for f in P_MODELS.values()}}
+    if pm.get("reason") == "p_model_file_missing" and not has_result:
+        return {**row, "status": "pending_result", "eligibility": "unverified"}, None
     if pm.get("reason"):
-        return {**row, "status": "excluded", "reason": pm["reason"]}, None
-    if len(((result or {}).get("dividends") or {}).get("3連複") or []) >= 2:
+        return {**row, "status": "excluded", "reason": pm["reason"], "eligibility": "failed"}, None
+    row["eligibility"] = "verified"
+    if not has_result:
+        return {**row, "status": "pending_result"}, None
+    row["result_used"] = {"top3": sorted(int(x) for x in finish[:3]), "winner": int(finish[0]),
+                          "trio_dividends": len(((result or {}).get("dividends") or {}).get("3連複") or [])}
+    if row["result_used"]["trio_dividends"] >= 2:
         return {**row, "status": "excluded", "reason": "dead_heat_top3"}, None
     top3 = tuple(sorted(int(x) for x in finish[:3]))
     if not set(top3) <= set(runners):
@@ -488,18 +496,29 @@ def decide(report: dict[str, Any]) -> str:
 
 
 def decision_state(rows: list[dict[str, Any]], counted_days: list[str], as_of: datetime.date) -> dict[str, Any]:
-    """§6.2：区間を開催日単位で切り、チェックポイントと判定の状態を決める。"""
+    """§6.2：区間を開催日単位で切り、チェックポイントと判定の状態を決める。
+
+    数えるのは発走前の契約を確かめたレース（`_counted`）だけ。契約がまだ確かめられないレース（`_unresolved`）の
+    ある開催日から先では、区間の境界を決めない。こうすると、境界は個票や結果の届く順番によらず、
+    すべてが確かめられたときと同じ開催日になる（PR #43 レビュー P0-1）。
+    """
     counted = [r for r in rows if r.get("_counted")]
+    unresolved_days = sorted({r["race_day"] for r in rows if r.get("_unresolved")})
     per_day: dict[str, int] = {}
     for r in counted:
         per_day[r["race_day"]] = per_day.get(r["race_day"], 0) + 1
-    cum, reached = 0, {}
+    cum, reached, resolved_through = 0, {}, None
     for day in counted_days:
+        if unresolved_days and day >= unresolved_days[0]:
+            break
+        resolved_through = day
         cum += per_day.get(day, 0)
         for target in (*CHECKPOINTS, DECISION_RACES):
             if cum >= target and target not in reached and _date(day) <= DEADLINE:
                 reached[target] = day
-    state: dict[str, Any] = {"counted_races": sum(per_day.values()), "reached": reached, "checkpoints": {}}
+    state: dict[str, Any] = {"counted_races": sum(per_day.values()), "reached": reached, "checkpoints": {},
+                             "resolved_through": resolved_through,
+                             "unresolved": sorted(r["race_id"] for r in rows if r.get("_unresolved"))}
     for target in CHECKPOINTS:
         if target in reached:
             window = [r for r in counted if r["race_day"] <= reached[target]]
@@ -507,6 +526,9 @@ def decision_state(rows: list[dict[str, Any]], counted_days: list[str], as_of: d
                                                  **window_report(window)}
     end_day = reached.get(DECISION_RACES)
     if end_day is None and as_of > DEADLINE:
+        if any(_date(d) <= DEADLINE for d in unresolved_days):
+            state["status"] = "awaiting_eligibility"
+            return state
         days = [d for d in counted_days if _date(d) <= DEADLINE]
         end_day = days[-1] if days else None
         if end_day is None:
@@ -569,8 +591,52 @@ def _round(obj: Any) -> Any:
     return obj
 
 
+def _canonical_digest(obj: Any) -> str:
+    return common.sha256_bytes(json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+
+
+def decision_record(state: dict[str, Any], rows: list[dict[str, Any]], reg: dict[str, Any]) -> dict[str, Any]:
+    """確定した判定の記録。入力（区間のレースと各レースの入力の版）と出力（判定と区間の全集計）の digest を付ける。
+
+    次回以降は同じ記録を計算し直して digest を比べる。判定の状態だけでなく、平均・bootstrap・感度・
+    評価レースの一覧のどれかが変われば不一致になる（PR #43 レビュー P0-2）。
+    """
+    window = state["window"]
+    end_day = window["end_day"]
+    inputs = {}
+    for r in sorted(rows, key=lambda r: r["race_id"]):
+        if not r.get("_counted") or r["race_day"] > end_day:
+            continue
+        src = (r.get("p_model") or {}).get("source") or {}
+        inputs[r["race_id"]] = {"status": r["status"], "reason": r.get("reason"),
+                                "pinned_commit": (r.get("pinned") or {}).get("commit"),
+                                "p_model_blob": src.get("blob_sha"), "result_used": r.get("result_used")}
+    outputs = _round({"status": state["status"], "window": window})
+    return {"registration_commit": reg["commit"], "config_sha256": reg["config_sha256"],
+            "end_day": end_day, "races": list(inputs), "inputs": inputs, "outputs": outputs,
+            "inputs_digest": _canonical_digest(inputs), "outputs_digest": _canonical_digest(outputs),
+            "digest": _canonical_digest({"registration_commit": reg["commit"], "inputs": inputs, "outputs": outputs})}
+
+
+def compare_decision(fixed: dict[str, Any] | None, current: dict[str, Any] | None) -> dict[str, Any] | None:
+    """固定した判定と、今回の計算し直しを比べる。fixed は上書きしない。"""
+    if not fixed:
+        return None
+    if current is None:
+        return {"matches": False, "reason": "recomputed_not_final"}
+    changed_races = sorted(k for k in set(fixed.get("inputs", {})) | set(current["inputs"])
+                           if fixed.get("inputs", {}).get(k) != current["inputs"].get(k))
+    return {"matches": fixed.get("digest") == current["digest"],
+            "decision_input_changed": fixed.get("inputs_digest") != current["inputs_digest"],
+            "decision_output_changed": fixed.get("outputs_digest") != current["outputs_digest"],
+            "status_changed": (fixed.get("outputs") or {}).get("status") != current["outputs"]["status"],
+            "changed_races": changed_races}
+
+
 def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.date | None = None,
-        reference: tuple[types.ModuleType, types.ModuleType] | None = None) -> dict[str, Any]:
+        reference: tuple[types.ModuleType, types.ModuleType] | None = None, simulate: bool = False) -> dict[str, Any]:
+    """simulate=True は、今の入力のまま判定の日付だけを変えた計算（その日時点の入力の再生ではない）。
+    decision.json と p_model の変化の記録は書かない。"""
     repo = repo or common.ROOT
     out_dir = out_dir or OUT_DIR
     as_of = as_of or datetime.datetime.now(common.JST).date()
@@ -578,10 +644,12 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
     common.write_json(out_dir / "registration.json", reg)
     base = {"schema": SUMMARY_SCHEMA, "version": VERSION,
             "generated_at": datetime.datetime.now(common.JST).isoformat(timespec="seconds"),
-            "as_of": as_of.isoformat(), "used_for_prediction": False, "official_results_untouched": True,
+            "as_of": as_of.isoformat(),
+            "as_of_mode": "simulation_on_current_inputs" if simulate else "live",
+            "used_for_prediction": False, "official_results_untouched": True,
             "registration": {k: reg.get(k) for k in ("status", "commit", "registered_at", "config_sha256")}}
     if reg["status"] != "ok":
-        summary = {**base, "status": reg["status"],
+        summary = {**base, "status": reg["status"], "warnings": [reg["status"]],
                    "note": "登録の導出に失敗したか、凍結した仕様が登録コミットと違うため、評価を出さない（§1）。"}
         common.write_json(out_dir / "summary.json", summary)
         return summary
@@ -604,10 +672,14 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
             ready.append(data)
     by_id = {r["race_id"]: r for r in rows}
 
-    # 評価する開催日：登録後に発走し、発走前の契約を満たすレースのある開催日（§5・§6.2）
-    def prerace_ok(r: dict[str, Any]) -> bool:
-        return r["status"] in ("ready", "pending_result") or r.get("reason") in RESULT_CONTRACT_REASONS
-    eval_days = sorted({r["race_day"] for r in rows if r["role"] == "evaluation" and prerace_ok(r)})
+    # 発走前の契約が未確認のまま開催日から RESULT_WAIT_DAYS 日たったレースは、確かめられないものとして数えない
+    for r in rows:
+        if r.get("eligibility") == "unverified" and as_of >= _date(r["race_day"]) + datetime.timedelta(days=RESULT_WAIT_DAYS):
+            r.update(status="excluded", reason="eligibility_unverifiable", eligibility="unverifiable")
+
+    # 評価する開催日：登録後に発走し、発走前の契約を満たす（または確認待ちの）レースのある開催日（§5・§6.2）
+    eval_days = sorted({r["race_day"] for r in rows if r["role"] == "evaluation"
+                        and r.get("eligibility") in ("verified", "unverified")})
     fits = walk_forward(ready, eval_days, "primary", mb, variants=True)
     fits_secondary = walk_forward(ready, eval_days, "secondary", mb, variants=False)
 
@@ -617,12 +689,15 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
                 r["status"] = "training_only"
             continue
         fit = fits.get(r["race_day"])
-        if fit is None or not prerace_ok(r):
+        if fit is None or r.get("eligibility") not in ("verified", "unverified"):
             continue
         if fit["status"] != "fitted":
             r["status"], r["reason"] = "not_evaluated", "insufficient_training"
             continue
-        r["_counted"] = True
+        if r["eligibility"] == "verified":
+            r["_counted"] = True
+        else:
+            r["_unresolved"] = True
     for data in ready:
         r = by_id[data["race_id"]]
         if r["status"] != "ready":
@@ -633,25 +708,40 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
             r["secondary_evaluation"] = evaluate_race(data, fit2, "secondary", mb, variants=False)
         r["status"] = "evaluated"
 
+    # p_model の個票の変化は、判定の前に調べる（判定の区間に入るレースの変化を警告にする）
+    changes = _p_model_changes(rows, out_dir)
     counted_days = [d for d in eval_days if fits[d]["status"] == "fitted"]
     state = decision_state(rows, counted_days, as_of)
-    # §6.2：判定は1回だけ。最初に確定した判定を decision.json に固定し、以後は再計算と比べるだけ
+    # §6.2：判定は1回だけ。最初に確定した判定を decision.json に固定し、以後は計算し直した記録と digest で比べる。
+    # fixed は上書きしない
     final = state["status"] in ("adopted", "not_adopted", "undecidable") and state.get("window") is not None
+    current = decision_record(state, rows, reg) if final else None
     decision_path = out_dir / "decision.json"
     fixed = common.read_json(decision_path)
-    if final and not fixed:
-        fixed = _round({"status": state["status"], "decided_on": as_of.isoformat(), "window": state["window"],
-                        "registration_commit": reg["commit"]})
+    if current is not None and not fixed and not simulate:
+        fixed = {**current, "decided_on": as_of.isoformat()}
         common.write_json(decision_path, fixed)
-    changes = _p_model_changes(rows, out_dir)
-    if changes:
+    check = compare_decision(fixed, current)
+    if changes and not simulate:
         log_path = out_dir / "p_model_source_changes.json"
         history = common.read_json(log_path) or []
         stamp = datetime.datetime.now(common.JST).isoformat(timespec="seconds")
         common.write_json(log_path, history + [{"detected_at": stamp, **c} for c in changes])
 
+    window_races = set((fixed or current or {}).get("races") or [])
+    changed_in_window = sorted(c["race_id"] for c in changes if c["race_id"] in window_races)
+    errors = sorted(r["race_id"] for r in rows if r["status"] == "error")
+    warnings = []
+    if check is not None and not check["matches"]:
+        warnings.append("decision_recomputed_differs_from_fixed")
+    if changed_in_window:
+        warnings.append("p_model_source_changed_in_decision_window")
+    if errors:
+        warnings.append("race_errors")
+
     for r in rows:
         r.pop("_counted", None)
+        r.pop("_unresolved", None)
         common.write_json(out_dir / "races" / f"{r['race_id']}.json", _round(r))
     common.write_json(out_dir / "days.json", _round({"primary": fits, "secondary": fits_secondary}))
 
@@ -663,21 +753,27 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
     summary = {
         **base,
         "status": state["status"],
+        "warnings": warnings,
         "races": len(rows),
         "training_pool": sum(1 for d in ready),
         "evaluated": len(evaluated),
         "pending_result": [r["race_id"] for r in rows if r["status"] == "pending_result"],
+        "eligibility_unverified": state["unresolved"],
         "excluded": excluded,
         "evaluation_days": eval_days,
         "decision": _round(state),
         "decision_fixed": fixed,
-        "decision_recomputed_matches_fixed": None if not fixed else fixed.get("status") == state["status"],
+        "decision_check": check,
         "to_date": _round(window_report(evaluated, with_bootstrap=False)),
         "p_model_source_changed": [c["race_id"] for c in changes],
+        "p_model_source_changed_in_decision_window": changed_in_window,
         "significance": "decided_only_at_registered_window",
         "note": ("market-mix-v1 の前向き評価（observe-only）。採否は §6 の判定の時点でだけ決め、途中の数値は報告だけ。"
                  "market_trio の未収録組は推定で補った近似で、市場の真の確率ではない。モデルの優位性や回収率はここから主張しない。"),
     }
+    if simulate:
+        summary["simulation_note"] = ("今の入力（HEAD の結果・p_model）のまま判定の日付だけを変えた計算。"
+                                      "その日時点に存在した入力の再生ではない。decision.json は書かない。")
     common.write_json(out_dir / "summary.json", summary)
     return summary
 
@@ -686,12 +782,18 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="market-mix-v1 の当てはめと評価（observe-only）")
     parser.add_argument("--repo", type=Path, default=None)
     parser.add_argument("--out", type=Path, default=None)
-    parser.add_argument("--as-of", type=datetime.date.fromisoformat, default=None, help="判定の日付（JST、既定は今日）")
+    parser.add_argument("--as-of", type=datetime.date.fromisoformat, default=None,
+                        help="判定の日付（JST）。指定すると、今の入力のまま日付だけを変えた計算になり、decision.json を書かない")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
-    summary = run(args.repo, args.out, args.as_of)
-    print(json.dumps({k: summary.get(k) for k in ("status", "races", "training_pool", "evaluated", "excluded")},
+    summary = run(args.repo, args.out, args.as_of, simulate=args.as_of is not None)
+    print(json.dumps({k: summary.get(k) for k in ("status", "warnings", "races", "training_pool", "evaluated", "excluded")},
                      ensure_ascii=False))
+    # 失敗を成功と見誤らないよう、登録の不一致・判定の不一致・レースの失敗は終了コード 1 にする
+    if summary["status"] in ("spec_changed", "registration_not_found") or summary.get("warnings"):
+        for w in summary.get("warnings") or [summary["status"]]:
+            logger.warning("market-mix-v1: %s", w)
+        return 1
     return 0
 
 
