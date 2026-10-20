@@ -65,7 +65,9 @@ def test_infeasible_when_field_too_small() -> None:
 
 def test_node_limit_reports_not_proven() -> None:
     got = pf.choose(_dist(12, 3), 1, 5, 2, 2, node_limit=3)
-    assert got["proven_optimal"] is False
+    assert got["proven_optimal"] is False and got["status"] == "search_incomplete"
+    some = pf.choose(_dist(8, 0), 1, 5, 2, 3, node_limit=6)
+    assert some["status"] == "chosen" and some["proven_optimal"] is False
 
 
 def test_exposure_cap_3_implies_two_without_x() -> None:
@@ -177,3 +179,59 @@ def test_unknown_timing_and_missing_odds_are_excluded(tmp_path: Path) -> None:
     _commit(tmp_path, race, None)
     summary = pf.run(tmp_path, tmp_path / "out")
     assert summary["excluded"] == {"runner_without_win_odds_unconfirmed": [RACE]}
+
+
+# ------------------------------------------------------------------ PR #44 レビュー：失敗の見え方
+
+RACE2 = "20991011-kyoto-11"
+
+
+def _two_races(repo: Path) -> None:
+    races = [_race(TRIO), {**_race(TRIO), "id": RACE2}]
+    (repo / "raw").mkdir(exist_ok=True)
+    (repo / "data/snapshots").mkdir(parents=True, exist_ok=True)
+    (repo / f"raw/{WEEK}.json").write_text(json.dumps({"races": races}), encoding="utf-8")
+    for rid in (RACE, RACE2):
+        (repo / f"data/snapshots/{rid}.json").write_text(json.dumps({
+            "race_id": rid, "week_id": WEEK, "frozen_at": "2099-10-11T14:10:00+09:00", "pre_race": True,
+            "post_time": "15:45", "marks": [], "cards": []}), encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "pre", date="2099-10-11T14:10:30+09:00")
+
+
+def test_race_error_is_reported_and_exit_code_is_nonzero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _two_races(tmp_path)
+    real = pf.ma.prerace_versions
+
+    def broken(race_id, repo):
+        if race_id == RACE2:
+            raise RuntimeError("boom")
+        return real(race_id, repo)
+
+    monkeypatch.setattr(pf.ma, "prerace_versions", broken)
+    out = tmp_path / "out"
+    assert pf.main(["--repo", str(tmp_path), "--out", str(out)]) == 1
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["errors"] == [{"race_id": RACE2, "error_type": "RuntimeError"}]
+    assert summary["used"] == 1 and summary["excluded"] == {"RuntimeError": [RACE2]}
+    row = json.loads((out / "races" / f"{RACE2}.json").read_text(encoding="utf-8"))
+    assert row["status"] == "error" and "boom" not in json.dumps(row)
+    # 書くのは出力先だけ（予想・snapshot・Champion などリポジトリの中身は変えない）
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, check=True)
+    assert all(line[3:].startswith("out/") for line in status.stdout.decode().splitlines())
+
+    monkeypatch.setattr(pf.ma, "prerace_versions", real)
+    assert pf.main(["--repo", str(tmp_path), "--out", str(out)]) == 0
+
+
+def test_not_proven_optimal_is_kept_out_of_comparisons(tmp_path: Path) -> None:
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _commit(tmp_path, _race(TRIO), None)
+    config = pf.load_config()
+    config["search"]["node_limit"] = 3
+    summary = pf.run(tmp_path, tmp_path / "out", config=config)
+    assert summary["not_proven_optimal"] == [RACE]
+    assert all(v == [] for v in summary["infeasible"].values())     # 打ち切りは「満たせない」ではない
+    assert all(block["races"] == 0 for block in summary["strategies"].values())
+    assert all(c["races"] == 0 for c in summary["constraint_cost_vs_top_prob"].values())

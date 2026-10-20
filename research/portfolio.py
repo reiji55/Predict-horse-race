@@ -97,7 +97,9 @@ def choose(dist: dict[Trio, float], x: int, n: int, max_exposure: int | None, mi
 
     complete = dfs(0, [], 0.0, 0)
     if best["picks"] is None:
-        return {"status": "infeasible", "proven_optimal": complete, "nodes": nodes, "tickets": []}
+        # 探索を終えて解が無ければ制約を満たせない。上限で打ち切って解が無いだけなら、満たせないとは言えない
+        return {"status": "infeasible" if complete else "search_incomplete", "proven_optimal": complete,
+                "nodes": nodes, "tickets": []}
     return {"status": "chosen", "proven_optimal": complete, "nodes": nodes,
             "tickets": [list(trios[i]) for i in best["picks"]]}
 
@@ -210,7 +212,9 @@ def portfolio_race(race_id: str, result: dict[str, Any] | None, config: dict[str
         strategies[name] = {"status": picked["status"], "proven_optimal": picked["proven_optimal"],
                             "search_nodes": picked["nodes"],
                             **(evaluate(picked["tickets"], dist, x, odds, variants, result, unit)
-                               if picked["tickets"] else {"reason": "constraints_not_satisfiable"})}
+                               if picked["tickets"] else
+                               {"reason": "constraints_not_satisfiable" if picked["status"] == "infeasible"
+                                else "search_node_limit"})}
     out["strategies"] = strategies
     out["scenario_frame_v1"] = [{**{k: v for k, v in rec.items() if k != "tickets"},
                                  **evaluate(rec["tickets"], dist, x, odds, variants, result, unit)}
@@ -244,13 +248,17 @@ def _block(items: list[dict[str, Any]]) -> dict[str, Any]:
 
 def summarize(rows: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, Any]:
     used = [r for r in rows if r.get("status") in ("evaluated", "pending_result")]
+
+    def ok(s: dict[str, Any]) -> bool:
+        # 探索の上限で最適と示せなかった組は、組み方どうしの比較に混ぜない（not_proven_optimal に別に残す）
+        return s["status"] == "chosen" and s["proven_optimal"]
+
     per_strategy, infeasible = {}, {}
     for name in config["strategies"]:
-        chosen = [r["strategies"][name] for r in used if r["strategies"][name]["status"] == "chosen"]
-        per_strategy[name] = _block(chosen)
-        infeasible[name] = [r["race_id"] for r in used if r["strategies"][name]["status"] != "chosen"]
+        per_strategy[name] = _block([r["strategies"][name] for r in used if ok(r["strategies"][name])])
+        infeasible[name] = [r["race_id"] for r in used if r["strategies"][name]["status"] == "infeasible"]
     base = "top_prob"
-    both = [r for r in used if all(r["strategies"][s]["status"] == "chosen" for s in config["strategies"])]
+    both = [r for r in used if all(ok(r["strategies"][s]) for s in config["strategies"])]
     cost = {name: {"races": len(both),
                    "mean_delta_p_hit": _mean([r["strategies"][name]["p_hit"] - r["strategies"][base]["p_hit"]
                                               for r in both]),
@@ -262,16 +270,18 @@ def summarize(rows: list[dict[str, Any]], config: dict[str, Any]) -> dict[str, A
     for r in rows:
         if r.get("status") in ("excluded", "error"):
             excluded.setdefault(r.get("reason") or r.get("error_type") or r["status"], []).append(r["race_id"])
+    errors = [{"race_id": r["race_id"], "error_type": r.get("error_type")} for r in rows if r.get("status") == "error"]
     return {
         "races": len(rows),
         "used": len(used),
+        "errors": errors,
         "pending_result": [r["race_id"] for r in used if r["status"] == "pending_result"],
         "excluded": excluded,
         "strategies": per_strategy,
         "infeasible": infeasible,
         "constraint_cost_vs_top_prob": cost,
         "not_proven_optimal": sorted({r["race_id"] for r in used for s in r["strategies"].values()
-                                      if s["status"] == "chosen" and not s["proven_optimal"]}),
+                                      if not s["proven_optimal"]}),
         "scenario_frame_v1": {"all_records": _block(v1),
                               "official_v1_valid_records": _block([rec for rec in v1 if rec.get("official_v1_valid")])},
     }
@@ -319,7 +329,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO)
     summary = run(args.repo, args.out)
-    print(json.dumps({k: summary[k] for k in ("races", "used", "excluded")}, ensure_ascii=False))
+    print(json.dumps({k: summary[k] for k in ("races", "used", "excluded", "errors")}, ensure_ascii=False))
+    # 1レースでも計算に失敗したら、出力を書き終えた後に終了コード 1 にする（失敗を成功と見誤らない）。
+    # 契約による除外（excluded）や、制約を満たせない組み方（infeasible）は失敗ではない
+    if summary["errors"]:
+        logger.warning("portfolio: %d レースの計算に失敗: %s", len(summary["errors"]),
+                       ", ".join(e["race_id"] for e in summary["errors"]))
+        return 1
     return 0
 
 

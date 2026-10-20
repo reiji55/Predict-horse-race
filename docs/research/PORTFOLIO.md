@@ -17,7 +17,8 @@ Issue #39 の PR-D（#38 の「軸不在の代替展開」と「5点の集合確
 
 - **X**：engine の3着内周辺確率が最大の馬（同点は馬番の小さい方）。
 - **選び方**：制約を満たす5組のうち、確率の和が最大のもの。全組からの深さ優先探索で、確率の和の上界で枝刈りする（上界は制約を無視した値なので、最適解は落とさない）。探索の上限（200万ノード）に達したら `proven_optimal: false` を残す。
-- 5組を選べなければ、無理に埋めずに `infeasible`（`constraints_not_satisfiable`）とする。
+- 5組を選べなければ、無理に埋めずに `infeasible`（`constraints_not_satisfiable`）とする。探索の上限で打ち切って解が無いだけなら `search_incomplete`（満たせないとは言わない）。
+- `x_out_2` は X 以外の別の馬への集中は防がない（例：10/17 京都は6番が5点すべてに入る）。集中そのものを避けるかどうかは `exposure_cap_3` との比較で見る。
 - **比較**：scenario-frame/v1 の記録の券も、同じ確率で同じ値を測る。記録は読むだけで、正式な有効性は `research.chat_experiment` の判定（`official_v1_valid`）を写す。
   - v1 の記録は 12:30 前後の版のオッズで作られている。ここでは、どの組み方も発走前に固定した最終版の確率で測る（同じ確率で比べるため）。
 
@@ -53,7 +54,8 @@ Issue #39 の PR-D（#38 の「軸不在の代替展開」と「5点の集合確
 - `strategies`：組み方ごとの平均（`p_hit`・条件付き的中確率・X 抜きの数・露出・期待回収）と、反実仮想の的中・払戻。
 - `constraint_cost_vs_top_prob`：制約で `p_hit` がどれだけ下がり、`p_hit_given_x_out` がどれだけ上がるか（同じレースで対にした平均）。
 - `scenario_frame_v1`：全記録と、正式に有効な記録だけの、同じ値。
-- `infeasible`・`not_proven_optimal`・`excluded`。
+- `infeasible`・`not_proven_optimal`・`excluded`・`errors`。
+- 最適と示せなかった組（`proven_optimal: false`）は、組み方どうしの平均と比較に混ぜない（`not_proven_optimal` に別に残す）。
 
 ## 実行
 
@@ -62,7 +64,10 @@ python -m research.portfolio              # data/research/portfolio/ に書く
 python -m research.portfolio --out DIR    # 別の場所に書く（確認用）
 ```
 
-`run_results.yml` の成績集計の後に、observe-only のステップとして毎週実行する（失敗しても止めない）。
+`run_results.yml` の成績集計の後に、observe-only のステップとして毎週実行する。
+
+- 1レースでも計算に失敗したら、出力を書き終えた後に終了コード 1 にし、`summary.errors` に race_id と例外の型名を残す。契約による除外や、制約を満たせない組み方は失敗ではない。
+- 成績集計は止めない（continue-on-error）。その代わり、失敗したら次のステップが警告（annotation とジョブの summary）を出し、成功と見誤らないようにする。
 
 ## 次（PR-E）への申し送り
 
