@@ -19,6 +19,7 @@ import argparse
 import datetime
 import json
 import logging
+import math
 import random
 import statistics
 import subprocess
@@ -34,8 +35,21 @@ logger = logging.getLogger("research.portfolio_shadow")
 OUT_DIR = common.ROOT / "data" / "research" / "portfolio_shadow"
 SPEC_REL = "docs/research/PORTFOLIO_SHADOW_PREREG_V1.md"
 CONFIG_REL = "config/portfolio_shadow_v1.json"
-REFERENCE_CODE = {"ma": "research/market_audit.py", "mb": "research/market_baseline.py", "pf": "research/portfolio.py"}
+# 登録コミットの版を実行するモジュール（依存の順）。組と確率・発走前の固定・発走時刻に関わるものを、
+# 推移的な依存まで含めて固定する（PR #45 レビュー：直接の3ファイルだけでは足りない）
+FROZEN_MODULES = (
+    ("logic.snapshots", "logic/snapshots.py"),
+    ("research.rank_gap", "research/rank_gap.py"),
+    ("research.common", "research/common.py"),
+    ("research.decision_log", "research/decision_log.py"),
+    ("research.market_audit", "research/market_audit.py"),
+    ("research.market_baseline", "research/market_baseline.py"),
+    ("research.portfolio", "research/portfolio.py"),
+)
 REFERENCE_CONFIG = {"portfolio": "config/portfolio_v1.json", "baseline": "config/market_baseline_v1.json"}
+# 今の版のまま使う依存。scenario-frame/v1 の正式な有効性は v1 自身の判定器に任せる（副指標の対比だけに使う）。
+# 登録コミットから変わったら live_dependency_changed として警告する
+LIVE_DEPENDENCIES = ("research/chat_experiment.py",)
 RESULTS_REL = "data/race_results.json"
 RACE_SCHEMA = "portfolio-shadow-race-v1"
 SUMMARY_SCHEMA = "portfolio-shadow-summary-v1"
@@ -56,7 +70,9 @@ BOOT_LOWER_RANK = 250
 BOOT_UPPER_RANK = 9750
 MIN_DECISION_RACES = 30
 MIN_DECISION_DAYS = 10
-CALIBRATION_TOLERANCE = 0.05
+EQUIVALENCE_MARGIN = 0.05
+RELIABILITY_BINS = ((0.0, 0.1), (0.1, 0.2), (0.2, 0.3), (0.3, 1.0000001))
+EPS = 1e-12
 TRIO = "3連複"
 
 
@@ -113,11 +129,13 @@ def registration(repo: Path) -> dict[str, Any]:
         frozen[rel] = {"registered_sha256": common.sha256_bytes(reg) if reg is not None else None,
                        "current_sha256": common.sha256_bytes(cur) if cur is not None else None,
                        "identical": reg is not None and cur == reg}
-    reference = {}
-    for rel in (*REFERENCE_CODE.values(), *REFERENCE_CONFIG.values()):
+    dependencies = {}
+    for rel, mode in ([(rel, "frozen") for _, rel in FROZEN_MODULES] + [(rel, "frozen") for rel in REFERENCE_CONFIG.values()]
+                      + [(rel, "live") for rel in LIVE_DEPENDENCIES]):
         reg_blob, cur_blob = _blob(commit, rel, repo), _blob("HEAD", rel, repo)
-        reference[rel] = {"registered_blob": reg_blob, "current_blob": cur_blob,
-                          "identical": reg_blob is not None and reg_blob == cur_blob}
+        # 今の版のまま使う依存は、登録コミットにも今にも無ければ「変わっていない」とする
+        dependencies[rel] = {"mode": mode, "registered_blob": reg_blob, "current_blob": cur_blob,
+                             "identical": reg_blob == cur_blob and (reg_blob is not None or mode == "live")}
     return {
         "status": "ok" if all(f["identical"] for f in frozen.values()) else "spec_changed",
         "ref": ref, "commit": commit,
@@ -125,35 +143,59 @@ def registration(repo: Path) -> dict[str, Any]:
         "config_sha256": frozen[CONFIG_REL]["registered_sha256"],
         "spec_sha256": frozen[SPEC_REL]["registered_sha256"],
         "frozen_files": frozen,
-        "reference_files": reference,
-        "reference_used": "registered_commit",
+        "dependencies": dependencies,
+        "live_dependency_changed": sorted(rel for rel, d in dependencies.items()
+                                          if d["mode"] == "live" and not d["identical"]),
         "note": "Git から導出した記録（出力であって仕様ではない）。仕様の本体は登録コミットの文書と設定。",
     }
 
 
 def load_reference(repo: Path, commit: str) -> dict[str, Any]:
-    """登録コミットの参照コード（market_audit・market_baseline・portfolio）と設定を読み込む（§1）。"""
-    mods: dict[str, types.ModuleType] = {}
-    for name, rel in REFERENCE_CODE.items():
-        src = _git_bytes(commit, rel, repo)
-        if src is None:
-            raise FileNotFoundError(f"{rel} が登録コミットに無い")
-        mod = types.ModuleType(f"research._registered_shadow_{Path(rel).stem}")
-        mod.__file__ = f"{commit}:{rel}"
-        # リポジトリ自身の、登録コミットに入っているコードだけを実行する
-        exec(compile(src, mod.__file__, "exec", dont_inherit=True), mod.__dict__)
-        mods[name] = mod
-    # 参照どうしの import も登録コミットの版に差し替える
-    mods["mb"].ma = mods["ma"]
-    mods["pf"].ma = mods["ma"]
-    mods["pf"].mb = mods["mb"]
+    """登録コミットの版のモジュール（FROZEN_MODULES）と設定を読み込む（§1）。
+
+    読み込みの間だけ、sys.modules の research・logic を空の入れ物に差し替え、各モジュールを依存の順に
+    登録コミットのソースから実行する。そのため、モジュールの中の import（research.common など）も
+    登録コミットの版を指す。読み込みが終わったら sys.modules は元に戻す（今の版のモジュールには触れない）。
+    関数の中で実行時に import するもの（LIVE_DEPENDENCIES）は今の版になる。
+    """
+    names = [name for name, _ in FROZEN_MODULES]
+    saved = {name: sys.modules.get(name) for name in ("research", "logic", *names)}
+    packages = {}
+    for pkg_name in ("research", "logic"):
+        pkg = types.ModuleType(pkg_name)
+        pkg.__path__ = []
+        packages[pkg_name] = pkg
+    loaded: dict[str, types.ModuleType] = {}
+    try:
+        sys.modules.update(packages)
+        for name, rel in FROZEN_MODULES:
+            src = _git_bytes(commit, rel, repo)
+            if src is None:
+                raise FileNotFoundError(f"{rel} が登録コミットに無い")
+            pkg_name, _, short = name.rpartition(".")
+            mod = types.ModuleType(name)
+            mod.__file__ = str(repo / rel)          # ROOT などのパスはリポジトリに合わせる
+            mod.__package__ = pkg_name
+            mod.__registered_source__ = f"{commit}:{rel}"
+            sys.modules[name] = mod
+            setattr(packages[pkg_name], short, mod)
+            # リポジトリ自身の、登録コミットに入っているコードだけを実行する
+            exec(compile(src, f"{commit}:{rel}", "exec", dont_inherit=True), mod.__dict__)
+            loaded[name] = mod
+    finally:
+        for name, old in saved.items():
+            if old is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = old
     configs = {}
-    for name, rel in REFERENCE_CONFIG.items():
+    for key, rel in REFERENCE_CONFIG.items():
         data = _git_bytes(commit, rel, repo)
         if data is None:
             raise FileNotFoundError(f"{rel} が登録コミットに無い")
-        configs[name] = json.loads(data.decode("utf-8"))
-    return {"ma": mods["ma"], "mb": mods["mb"], "pf": mods["pf"], **configs}
+        configs[key] = json.loads(data.decode("utf-8"))
+    return {"ma": loaded["research.market_audit"], "mb": loaded["research.market_baseline"],
+            "pf": loaded["research.portfolio"], "modules": loaded, **configs}
 
 
 # ------------------------------------------------------------------ 1レース（§2・§3）
@@ -161,13 +203,15 @@ def load_reference(repo: Path, commit: str) -> dict[str, Any]:
 def shadow_race(race_id: str, result: dict[str, Any] | None, ref: dict[str, Any], repo: Path,
                 registered_at: datetime.datetime) -> dict[str, Any]:
     ma, mb, pf = ref["ma"], ref["mb"], ref["pf"]
-    base = pf.portfolio_race(race_id, result, ref["portfolio"], ref["baseline"], repo)
     found = ma.prerace_versions(race_id, repo)
     post = found["post"]
     row: dict[str, Any] = {"schema": RACE_SCHEMA, "race_id": race_id, "race_day": race_id[:8],
-                           "post_at": ma._iso(post), "used_for_prediction": False, "official_results_untouched": True,
-                           "role": "eligible" if post is not None and post > registered_at else "before_registration",
-                           "pinned": base.get("pinned"), "pace": base.get("pace")}
+                           "post_at": ma._iso(post), "used_for_prediction": False, "official_results_untouched": True}
+    if post is not None and post <= registered_at:
+        # 登録前に発走したレースは対象にしないので、組も計算しない（過去のレースの失敗で実行を止めない）
+        return {**row, "role": "before_registration", "status": "before_registration"}
+    base = pf.portfolio_race(race_id, result, ref["portfolio"], ref["baseline"], repo)
+    row.update(role="eligible" if post is not None else "unknown_post", pinned=base.get("pinned"), pace=base.get("pace"))
     if base.get("status") == "excluded":
         return {**row, "status": "excluded", "reason": base["reason"], "contract": "prerace"}
     row["x"] = base["x"]
@@ -234,16 +278,28 @@ def bootstrap(day_values: list[list[float]]) -> dict[str, Any]:
             "lower": stats[BOOT_LOWER_RANK - 1], "upper": stats[BOOT_UPPER_RANK - 1]}
 
 
+def _payout_known(s: dict[str, Any]) -> bool:
+    """払戻が確定しているか。外れなら 0 円で確定。的中なのに配当が無いときは未確定（0 円とみなさない）。"""
+    realized = s["realized"]
+    return (not realized["hit"]) or bool(realized.get("dividend_found"))
+
+
 def strategy_report(ev: list[dict[str, Any]], name: str) -> dict[str, Any]:
     rows = [r for r in ev if _usable(r, name)]
     excluded = {"not_proven_optimal": sorted(r["race_id"] for r in ev if not r["strategies"][name]["proven_optimal"]),
                 "infeasible": sorted(r["race_id"] for r in ev if r["strategies"][name]["status"] != "chosen")}
     hits = [int(r["strategies"][name]["realized"]["hit"]) for r in rows]
     ps = [r["strategies"][name]["p_hit"] for r in rows]
-    pays = [r["strategies"][name]["realized"]["payout"] for r in rows]
-    stake = sum(r["strategies"][name]["stake"] for r in rows)
+    known = [r for r in rows if _payout_known(r["strategies"][name])]
+    pays = [r["strategies"][name]["realized"]["payout"] for r in known]
+    stake = sum(r["strategies"][name]["stake"] for r in known)
     x_out = [r for r in rows if not r["x_in_top3"]]
     variants = [r["strategies"][name]["p_hit_variants"] for r in rows]
+    bins = []
+    for lo, hi in RELIABILITY_BINS:
+        idx = [i for i, p in enumerate(ps) if lo <= p < hi]
+        bins.append({"p_range": [lo, min(hi, 1.0)], "n": len(idx), "mean_p": _mean([ps[i] for i in idx]),
+                     "hit_rate": _mean([hits[i] for i in idx])})
     return {
         "races": len(rows),
         "excluded": excluded,
@@ -254,10 +310,20 @@ def strategy_report(ev: list[dict[str, Any]], name: str) -> dict[str, Any]:
         "hit_rate": _mean(hits),
         "hits": sum(hits),
         "mean_variant_width": _mean([(v["max"] - v["min"]) if v else None for v in variants]),
+        # 補助の診断（報告だけ）。C は平均の偏り（calibration-in-the-large）だけなので、帯ごとの当たり方と
+        # proper な得点も残す。100 レースでは帯ごとの数が少なく、目安にしかならない
+        "diagnostics": {
+            "brier": _mean([(h - p) ** 2 for h, p in zip(hits, ps)]),
+            "log_score": _mean([-(h * math.log(max(p, EPS)) + (1 - h) * math.log(max(1 - p, EPS)))
+                                for h, p in zip(hits, ps)]),
+            "reliability_bins": bins,
+        },
         "x_out": {"races": len(x_out),
                   "hit_rate": _mean([int(r["strategies"][name]["realized"]["hit"]) for r in x_out]),
                   "mean_p_hit_given_x_out": _mean([r["strategies"][name]["p_hit_given_x_out"] for r in x_out])},
-        "return": {"stake": stake, "payout": sum(pays), "roi": sum(pays) / stake if stake else None,
+        "return": {"races_payout_known": len(known),
+                   "races_payout_unknown": sorted(r["race_id"] for r in rows if not _payout_known(r["strategies"][name])),
+                   "stake": stake, "payout": sum(pays), "roi": sum(pays) / stake if stake else None,
                    "payout_sd": statistics.pstdev(pays) if len(pays) >= 2 else None},
     }
 
@@ -292,7 +358,12 @@ def window_report(rows: list[dict[str, Any]], with_bootstrap: bool = True) -> di
 
 
 def decide(report: dict[str, Any]) -> str:
-    """§5.3：判定不能 → over / under → calibrated → inconclusive の順。"""
+    """§5.3：undecidable → over / under → equivalent → no_bias_detected の順。
+
+    equivalent は「平均の偏りが ±EQUIVALENCE_MARGIN 以内と確かめられた」（区間全体がその中）という意味で、
+    個々のレースの確率が校正されていることの証明ではない。区間が 0 を含むだけなら no_bias_detected
+    （偏りを検出できなかった、であって合っていると確かめたのではない）。
+    """
     boot = report["bootstrap"]
     if report["primary_races"] < MIN_DECISION_RACES or boot["n_day"] < MIN_DECISION_DAYS:
         return "undecidable"
@@ -300,9 +371,9 @@ def decide(report: dict[str, Any]) -> str:
         return "over"
     if boot["lower"] > 0:
         return "under"
-    if abs(report["primary_C"]) <= CALIBRATION_TOLERANCE:
-        return "calibrated"
-    return "inconclusive"
+    if -EQUIVALENCE_MARGIN <= boot["lower"] and boot["upper"] <= EQUIVALENCE_MARGIN:
+        return "equivalent"
+    return "no_bias_detected"
 
 
 # ------------------------------------------------------------------ 区間（§5.1）
@@ -408,12 +479,111 @@ def compare_decision(fixed: dict[str, Any] | None, current: dict[str, Any] | Non
                                     if fixed.get("inputs", {}).get(k) != current["inputs"].get(k))}
 
 
-def update_ledger(state: dict[str, Any], out_dir: Path, as_of: datetime.date, write: bool) -> list[int]:
+# 台帳に固定するレースの記録と、後からの計算と比べる項目（scenario-frame/v1 の対比は副指標なので比べない）
+LEDGER_FIELDS = ("pinned", "x", "x_in_top3", "result_used", "strategies", "scenario_frame_v1")
+COMPARED_FIELDS = ("pinned", "x", "x_in_top3", "result_used", "strategies")
+ROW_BASE_FIELDS = ("schema", "race_id", "race_day", "post_at", "used_for_prediction", "official_results_untouched",
+                   "role", "pace")
+
+
+def load_ledger(out_dir: Path) -> dict[str, Any]:
+    ledger = common.read_json(out_dir / "ledger.json") or {}
+    for key in ("races", "boundaries"):
+        ledger.setdefault(key, {})
+    ledger.setdefault("events", [])
+    ledger["note"] = ("登録後の各レースの最初に確定した記録（評価・除外）と、区間の到達日を、最初の値で残す台帳。"
+                      "値は上書きせず、以後の計算は台帳の記録で行う。後からの変化は events に追記する（§6・§7）。")
+    return ledger
+
+
+def _add_event(ledger: dict[str, Any], event: dict[str, Any], as_of: datetime.date) -> None:
+    key = _digest({k: event.get(k) for k in ("type", "race_id", "target", "current")})
+    if all(e.get("key") != key for e in ledger["events"]):
+        ledger["events"].append({**event, "key": key, "detected_on": as_of.isoformat()})
+
+
+def _resolved(r: dict[str, Any]) -> dict[str, Any] | None:
+    """登録後のレースの確定した記録。結果待ち・失敗は未確定なので None（台帳に入れない）。"""
+    if r.get("role") != "eligible":
+        return None
+    if r["status"] == "evaluated":
+        return {"state": "evaluated", **{k: r.get(k) for k in LEDGER_FIELDS}}
+    if r["status"] == "excluded":
+        return {"state": "excluded", "reason": r["reason"], "contract": r.get("contract")}
+    return None
+
+
+def _core(rec: dict[str, Any] | None) -> dict[str, Any] | None:
+    if rec is None:
+        return None
+    return {k: rec.get(k) for k in ("state", "reason", "contract", *COMPARED_FIELDS)}
+
+
+def _brief(rec: dict[str, Any] | None) -> dict[str, Any] | None:
+    if rec is None:
+        return None
+    if rec["state"] == "excluded":
+        return {"state": "excluded", "reason": rec.get("reason")}
+    return {"state": "evaluated", "top3": (rec.get("result_used") or {}).get("top3"),
+            "hits": {n: ((s.get("realized") or {}).get("hit")) for n, s in (rec.get("strategies") or {}).items()}}
+
+
+def _fill_dividends(race_id: str, old: dict[str, Any], cur: dict[str, Any], ledger: dict[str, Any],
+                    as_of: datetime.date) -> None:
+    """配当が無かった記録に、後から配当が入ったときだけ埋める（3着内の組・的中・組は変えない）。"""
+    u_old, u_cur = old.get("result_used") or {}, cur.get("result_used") or {}
+    if u_old.get("top3") != u_cur.get("top3") or u_old.get("trio_dividends") != 0 or u_cur.get("trio_dividends") != 1:
+        return
+    for name, s_old in (old.get("strategies") or {}).items():
+        s_cur = (cur.get("strategies") or {}).get(name) or {}
+        r_old, r_cur = s_old.get("realized") or {}, s_cur.get("realized") or {}
+        if s_cur.get("tickets") != s_old.get("tickets") or r_old.get("hit") != r_cur.get("hit"):
+            return
+    old["result_used"] = dict(u_cur)
+    for name, s_old in old["strategies"].items():
+        r_cur = cur["strategies"][name].get("realized")
+        if r_cur is not None:
+            s_old["realized"] = dict(r_cur)
+            if r_cur.get("hit"):
+                _add_event(ledger, {"type": "dividend_filled", "race_id": race_id, "strategy": name,
+                                    "current": r_cur.get("payout")}, as_of)
+
+
+def apply_race_ledger(rows: list[dict[str, Any]], ledger: dict[str, Any], as_of: datetime.date) -> list[str]:
+    """最初に確定したレースの記録を台帳に固定し、以後はその記録で計算する（§6・§7）。
+
+    一度除外と確定したレースは、後から結果が直っても評価に戻さない。評価と確定したレースも、後からの入力の変化で
+    組・的中・除外に変えない。台帳と今の計算が違えば late_correction として events に残し、違ったレースを返す。
+    ただし、的中したのに配当が無かった（払戻が未確定）組に後から配当が入ったときは、払戻だけを埋める（的中は変えない）。
+    """
+    changed = []
+    for i, r in enumerate(rows):
+        if r.get("role") != "eligible":
+            continue
+        cur = _resolved(r)
+        old = ledger["races"].get(r["race_id"])
+        if old is None:
+            if cur is not None:
+                ledger["races"][r["race_id"]] = {**cur, "first_resolved_on": as_of.isoformat()}
+            continue
+        if cur is not None and old["state"] == cur["state"] == "evaluated":
+            _fill_dividends(r["race_id"], old, cur, ledger, as_of)
+        if _core(old) != _core(cur):
+            changed.append(r["race_id"])
+            _add_event(ledger, {"type": "late_correction", "race_id": r["race_id"], "ledger": _brief(old),
+                                "current": _brief(cur) if cur is not None else {"state": r["status"]}}, as_of)
+        base = {k: r[k] for k in ROW_BASE_FIELDS if k in r}
+        if old["state"] == "excluded":
+            rows[i] = {**base, "status": "excluded", "reason": old["reason"], "contract": old.get("contract"),
+                       "from_ledger": old["first_resolved_on"]}
+        else:
+            rows[i] = {**base, "status": "evaluated", **{k: old.get(k) for k in LEDGER_FIELDS},
+                       "from_ledger": old["first_resolved_on"]}
+    return changed
+
+
+def update_boundaries(state: dict[str, Any], ledger: dict[str, Any], as_of: datetime.date) -> list[int]:
     """30・60・100 の到達日を最初の値で残す（上書きしない）。違えば events に追記し、違った target を返す。"""
-    path = out_dir / "ledger.json"
-    ledger = common.read_json(path) or {"boundaries": {}, "events": []}
-    ledger["note"] = "区間の到達日を最初に決まった値で残す台帳。値は上書きせず、後からの変化は events に追記する。"
-    seen = {json.dumps([e.get("target"), e.get("current")]) for e in ledger["events"]}
     changed = []
     for target, day in sorted(state["reached"].items()):
         old = ledger["boundaries"].get(str(target))
@@ -421,19 +591,13 @@ def update_ledger(state: dict[str, Any], out_dir: Path, as_of: datetime.date, wr
             ledger["boundaries"][str(target)] = {"end_day": day, "first_seen_on": as_of.isoformat()}
         elif old["end_day"] != day:
             changed.append(target)
-    for target, old in ledger["boundaries"].items():
+    for target in ledger["boundaries"]:
         if int(target) not in state["reached"]:
             changed.append(int(target))
     for target in sorted(set(changed)):
-        cur = state["reached"].get(target)
-        key = json.dumps([target, cur])
-        if key not in seen:
-            seen.add(key)
-            ledger["events"].append({"type": "boundary_changed", "target": target,
-                                     "ledger": ledger["boundaries"][str(target)]["end_day"], "current": cur,
-                                     "detected_on": as_of.isoformat()})
-    if write:
-        common.write_json(path, ledger)
+        _add_event(ledger, {"type": "boundary_changed", "target": target,
+                            "ledger": ledger["boundaries"][str(target)]["end_day"],
+                            "current": state["reached"].get(target)}, as_of)
     return sorted(set(changed))
 
 
@@ -441,7 +605,8 @@ def update_ledger(state: dict[str, Any], out_dir: Path, as_of: datetime.date, wr
 
 def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.date | None = None,
         reference: dict[str, Any] | None = None, simulate: bool = False) -> dict[str, Any]:
-    """simulate=True は今の入力のまま日付だけを変えた計算。本番の出力先には書けず、decision.json・台帳は書かない。"""
+    """simulate=True は今の入力のまま日付だけを変えた計算。本番の出力先には書けず、decision.json・台帳は書かない
+    （出力先にある台帳は読む）。"""
     repo = repo or common.ROOT
     out_dir = out_dir or OUT_DIR
     if simulate and out_dir.resolve() == OUT_DIR.resolve():
@@ -475,8 +640,11 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
                    else "before_registration"}
         rows.append(row)
 
+    errors = [{"race_id": r["race_id"], "error_type": r.get("error_type")} for r in rows if r["status"] == "error"]
+    ledger = load_ledger(out_dir)
+    late = apply_race_ledger(rows, ledger, as_of)
     state = decision_state(rows, as_of)
-    final = state["status"] in ("calibrated", "over", "under", "inconclusive", "undecidable") \
+    final = state["status"] in ("equivalent", "over", "under", "no_bias_detected", "undecidable") \
         and state.get("window") is not None
     current = decision_record(state, rows, reg) if final else None
     decision_path = out_dir / "decision.json"
@@ -485,8 +653,9 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         fixed = {**current, "decided_on": as_of.isoformat()}
         common.write_json(decision_path, fixed)
     check = compare_decision(fixed, current)
-    boundary_changed = update_ledger(state, out_dir, as_of, write=not simulate)
-    errors = [{"race_id": r["race_id"], "error_type": r.get("error_type")} for r in rows if r["status"] == "error"]
+    boundary_changed = update_boundaries(state, ledger, as_of)
+    if not simulate:
+        common.write_json(out_dir / "ledger.json", ledger)
     warnings = []
     if errors:
         warnings.append("race_errors")
@@ -494,6 +663,10 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         warnings.append("decision_recomputed_differs_from_fixed")
     if boundary_changed:
         warnings.append("boundary_changed")
+    if late:
+        warnings.append("late_correction")
+    if reg.get("live_dependency_changed"):
+        warnings.append("live_dependency_changed")
 
     for r in rows:
         common.write_json(out_dir / "races" / f"{r['race_id']}.json", _round(r))
@@ -516,6 +689,8 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         "decision_fixed": fixed,
         "decision_check": check,
         "boundary_changed": boundary_changed,
+        "late_correction": late,
+        "live_dependency_changed": reg.get("live_dependency_changed"),
         "to_date": _round(window_report(eligible, with_bootstrap=False)),
         "note": ("portfolio-shadow-v1 の前向き評価（observe-only）。判定は §5 の判定の時点でだけ決め、途中の数値は報告だけ。"
                  "engine は市場だけの確率で、期待回収で組み方の優劣は決まらない。的中・払戻は shadow で、正式成績・ROI には入れない。"),

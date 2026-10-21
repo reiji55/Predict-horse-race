@@ -6,9 +6,12 @@
     "commit": "main の first-parent 履歴で config/portfolio_shadow_v1.json が初めて現れたコミット",
     "registered_at": "登録コミットの committer date",
     "frozen_files": ["docs/research/PORTFOLIO_SHADOW_PREREG_V1.md", "config/portfolio_shadow_v1.json"],
-    "reference": ["research/portfolio.py", "research/market_baseline.py", "research/market_audit.py",
-                  "config/portfolio_v1.json", "config/market_baseline_v1.json"],
-    "reference_version": "登録コミットの版を Git から読み込む",
+    "frozen_modules": ["logic/snapshots.py", "research/rank_gap.py", "research/common.py", "research/decision_log.py",
+                       "research/market_audit.py", "research/market_baseline.py", "research/portfolio.py"],
+    "frozen_configs": ["config/portfolio_v1.json", "config/market_baseline_v1.json"],
+    "frozen_version": "登録コミットの版を Git から読み込んで実行する（モジュールどうしの import も登録コミットの版を指す）",
+    "live_dependencies": ["research/chat_experiment.py"],
+    "live_dependency_note": "scenario-frame/v1 の正式な有効性の判定（副指標の対比だけ）。登録コミットから変わったら live_dependency_changed で警告",
     "spec_check": "今の文書・設定が登録コミットとバイト単位で違えば spec_changed で止まる",
     "derived_output": "data/research/portfolio_shadow/registration.json"
   },
@@ -29,9 +32,18 @@
   },
   "metrics": {
     "primary": {"strategy": "top_prob", "C": "Σ(hit − p_hit) / n（レースに等しい重み）"},
+    "primary_meaning": "平均の偏り（calibration-in-the-large）だけ。個々のレースの確率の校正の証明ではない",
     "secondary": ["x_out_2・exposure_cap_3 の C", "X の校正 Σ(1[X が3着内] − P(X が3着内)) / n",
-                  "X が3着外のレースでの実際の的中率と p_hit_given_x_out の平均", "的中数・投じた額・払戻・回収率・払戻の標準偏差",
-                  "v1 の正式な記録との的中の対比", "p_hit_variants の幅の平均", "p_hit を18通りの最小・最大に置き換えた C"]
+                  "X が3着外のレースでの実際の的中率と p_hit_given_x_out の平均",
+                  "的中数・投じた額・払戻・回収率・払戻の標準偏差（払戻が確定したレースだけ。的中なのに配当が無いレースは未確定として別に数える）",
+                  "v1 の正式な記録との的中の対比", "p_hit_variants の幅の平均", "p_hit を18通りの最小・最大に置き換えた C"],
+    "diagnostics": {
+      "note": "報告だけ。判定には使わない。100 レースでは帯ごとの数が少なく目安にしかならない",
+      "brier": "Σ(hit − p)² / n",
+      "log_score": "−Σ(hit·log max(p, 1e-12) + (1 − hit)·log max(1 − p, 1e-12)) / n",
+      "reliability_bins": [[0.0, 0.1], [0.1, 0.2], [0.2, 0.3], [0.3, 1.0]],
+      "reliability_bins_rule": "下限以上・上限未満（最後の帯は 1.0 を含む）。帯ごとに件数・平均の p・的中率"
+    }
   },
   "window": {
     "count": "発走前の契約を満たす対象のレースの累計（結果待ちを含む）",
@@ -55,18 +67,21 @@
   },
   "decision": {
     "order": ["undecidable：評価レース 30 未満、または N_day 10 未満",
-              "over：上限 < 0", "under：下限 > 0",
-              "calibrated：区間が 0 を含み |C| ≤ 0.05",
-              "inconclusive：それ以外"],
+              "over：上限 < 0（予測が高すぎる偏りを検出）", "under：下限 > 0（予測が低すぎる偏りを検出）",
+              "equivalent：区間全体が [−0.05, +0.05] の中（平均の偏りが ±0.05 以内と確かめられた）",
+              "no_bias_detected：それ以外（偏りは検出できないが、±0.05 以内とも確かめられない）"],
     "min_races": 30,
     "min_days": 10,
-    "calibration_tolerance": 0.05,
-    "calibrated_means": "チャットの参考券で engine の的中確率を「市場の確率による目安」として区間とあわせて示してよい",
-    "otherwise_means": "参考券では的中確率を数値で示さず、市場の確率が実際と合っていることは未確認と書く",
+    "equivalence_margin": 0.05,
+    "equivalent_means": "チャットの参考券で engine の的中確率を「市場の確率による目安（平均の偏りだけを確かめたもの）」として区間とあわせて示してよい",
+    "otherwise_means": "参考券では的中確率を数値で示さず、市場の確率が実際と合っていることは確かめられていないと書く",
     "not_decided_here": "組み方の既定はユーザーが副指標の報告をもとに選ぶ。アプリ・本番への反映は別途ユーザー承認"
   },
   "records": {
     "decision": "decision.json に入力・出力・digest を1回だけ書き、上書きしない。毎回計算し直して比べる",
-    "ledger": "30・60・100 の到達日を最初の値で残し上書きしない。違えば events に追記して警告"
+    "race_ledger": "登録後の各レースの最初に確定した記録（評価なら組・確率・結果・的中・払戻、除外なら理由）を ledger.json に残し上書きしない。以後の計算は台帳の記録で行い、今の計算と違えば late_correction として events に追記して警告。結果待ち・失敗は確定ではないので台帳に入れない",
+    "dividend_fill": "的中したのに配当が無かった組に後から配当が入ったときだけ、払戻を埋める（的中は変えない。dividend_filled として残す）",
+    "boundary_ledger": "30・60・100 の到達日を最初の値で残し上書きしない。違えば events に追記して警告",
+    "before_registration": "発走時刻が登録日時以前と分かるレースは、組を計算しない"
   }
 }
