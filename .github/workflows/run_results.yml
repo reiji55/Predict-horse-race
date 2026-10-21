@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py tests/test_portfolio_shadow.py -q
 
       - name: 対象の週を決める
         id: target
@@ -240,3 +240,35 @@ jobs:
           echo "::warning title=market-mix-v1::評価が失敗、または警告で終了しました（data/research/market_mix/summary.json の status・warnings を確認）"
           echo "### ⚠️ market-mix-v1 の評価が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
           echo "data/research/market_mix/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 3連複ポートフォリオの前向き shadow portfolio-shadow-v1（observe-only）
+        id: portfolio_shadow
+        # 事前登録（docs/research/PORTFOLIO_SHADOW_PREREG_V1.md）どおりに、登録後のレースで3連複5点の組み方の
+        # 的中確率と実際の的中を記録し、確率の校正を確かめる（Issue #39 PR-E）。結果をコミット済みの版から読むので、
+        # 成績集計の生成物をコミットした後に走らせる。data/research/portfolio_shadow/ にだけ書く。予想・正式成績・UI には使わない。
+        # 登録の不一致・レースの失敗・判定や台帳との不一致は終了コード 1（出力はコミットしてから失敗にする）。
+        continue-on-error: true
+        run: |
+          set +e
+          python -m research.portfolio_shadow
+          rc=$?
+          set -e
+          git add data/research/portfolio_shadow/
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: ${{ steps.target.outputs.week }} portfolio-shadow-v1 記録"
+            pushed=0
+            for i in 1 2 3 4; do
+              if git push; then pushed=1; break; fi
+              sleep $((i * 5))
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+            done
+            [ "$pushed" = 1 ] || exit 1
+          fi
+          exit $rc
+
+      - name: portfolio-shadow-v1 の失敗を知らせる
+        if: steps.portfolio_shadow.outcome == 'failure'
+        run: |
+          echo "::warning title=portfolio-shadow-v1::記録が失敗、または警告で終了しました（data/research/portfolio_shadow/summary.json の status・warnings を確認）"
+          echo "### ⚠️ portfolio-shadow-v1 の記録が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
+          echo "data/research/portfolio_shadow/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"
