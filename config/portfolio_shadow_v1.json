@@ -1,0 +1,72 @@
+{
+  "version": "portfolio-shadow-v1",
+  "spec": "docs/research/PORTFOLIO_SHADOW_PREREG_V1.md",
+  "note": "3連複ポートフォリオの前向き shadow（#39 PR-E）の事前登録の固定値。登録後は1文字も変更しない（変えるなら v2 を別に登録する）。",
+  "registration": {
+    "commit": "main の first-parent 履歴で config/portfolio_shadow_v1.json が初めて現れたコミット",
+    "registered_at": "登録コミットの committer date",
+    "frozen_files": ["docs/research/PORTFOLIO_SHADOW_PREREG_V1.md", "config/portfolio_shadow_v1.json"],
+    "reference": ["research/portfolio.py", "research/market_baseline.py", "research/market_audit.py",
+                  "config/portfolio_v1.json", "config/market_baseline_v1.json"],
+    "reference_version": "登録コミットの版を Git から読み込む",
+    "spec_check": "今の文書・設定が登録コミットとバイト単位で違えば spec_changed で止まる",
+    "derived_output": "data/research/portfolio_shadow/registration.json"
+  },
+  "strategies": {
+    "evaluated": ["top_prob", "x_out_2", "exposure_cap_3"],
+    "primary": "top_prob",
+    "recorded_only": ["cap3_x_out_2"],
+    "not_proven_optimal": "そのレースのその組み方の評価から外して理由を残す",
+    "infeasible": "そのレースのその組み方の評価から外して理由を残す"
+  },
+  "contract": {
+    "prerace": ["発走前に snapshot を最後に更新したコミットの raw", "単勝・3連複とも odds_timing_status = pre_race_verified",
+                "単勝オッズの無い出走馬がいない", "単勝オッズのある馬が3頭以上", "3連複オッズが1件以上"],
+    "result": ["finish の先頭3頭が3着以内の組", "3連複の配当が2件以上なら dead_heat_top3 で除外",
+               "3着以内の馬に発走前の単勝オッズが無ければ top3_horse_without_prerace_odds で除外"],
+    "race_day": "race_id の先頭8桁（JST）",
+    "eligible": "発走時刻が registered_at より後で、発走前の契約を満たすレース"
+  },
+  "metrics": {
+    "primary": {"strategy": "top_prob", "C": "Σ(hit − p_hit) / n（レースに等しい重み）"},
+    "secondary": ["x_out_2・exposure_cap_3 の C", "X の校正 Σ(1[X が3着内] − P(X が3着内)) / n",
+                  "X が3着外のレースでの実際の的中率と p_hit_given_x_out の平均", "的中数・投じた額・払戻・回収率・払戻の標準偏差",
+                  "v1 の正式な記録との的中の対比", "p_hit_variants の幅の平均", "p_hit を18通りの最小・最大に置き換えた C"]
+  },
+  "window": {
+    "count": "発走前の契約を満たす対象のレースの累計（結果待ちを含む）",
+    "checkpoints": [30, 60],
+    "decision_races": 100,
+    "deadline": "2027-06-30",
+    "result_wait_days": 14,
+    "evaluated": "区間のレースから、結果の契約で外れるものと 14 日たっても結果が無いもの（result_unavailable）を除いた残り",
+    "primary_races": "評価レースのうち top_prob が chosen かつ proven_optimal のもの"
+  },
+  "bootstrap": {
+    "cluster": "race_day",
+    "rng": "Python random.Random(20261021)",
+    "seed": 20261021,
+    "replicates": 10000,
+    "draw": "各回 rng.randrange(N_day) を N_day 回（開催日は昇順）",
+    "statistic": "抽出した開催日の全レースの (hit − p) の合計 ÷ そのレース数",
+    "interval": "percentile。昇順の 250 番目を下限、9750 番目を上限（1 から数える）",
+    "lower_rank": 250,
+    "upper_rank": 9750
+  },
+  "decision": {
+    "order": ["undecidable：評価レース 30 未満、または N_day 10 未満",
+              "over：上限 < 0", "under：下限 > 0",
+              "calibrated：区間が 0 を含み |C| ≤ 0.05",
+              "inconclusive：それ以外"],
+    "min_races": 30,
+    "min_days": 10,
+    "calibration_tolerance": 0.05,
+    "calibrated_means": "チャットの参考券で engine の的中確率を「市場の確率による目安」として区間とあわせて示してよい",
+    "otherwise_means": "参考券では的中確率を数値で示さず、市場の確率が実際と合っていることは未確認と書く",
+    "not_decided_here": "組み方の既定はユーザーが副指標の報告をもとに選ぶ。アプリ・本番への反映は別途ユーザー承認"
+  },
+  "records": {
+    "decision": "decision.json に入力・出力・digest を1回だけ書き、上書きしない。毎回計算し直して比べる",
+    "ledger": "30・60・100 の到達日を最初の値で残し上書きしない。違えば events に追記して警告"
+  }
+}
