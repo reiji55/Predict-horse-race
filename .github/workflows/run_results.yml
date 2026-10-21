@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py -q
 
       - name: 対象の週を決める
         id: target
@@ -136,6 +136,23 @@ jobs:
         # data/research/market_baseline/ にだけ書く。予想・正式成績・UI には使わない。失敗しても止めない。
         continue-on-error: true
         run: python -m research.market_baseline
+
+      - name: 3連複ポートフォリオ層（observe-only）
+        id: portfolio
+        # 同じ市場の確率の上で、3連複5点の組み方を制約（露出上限・軸 X 抜きの最低数）あり／なしで比べ、的中確率・
+        # X が外れたときの条件付き的中確率・露出を測る（Issue #39 PR-D）。scenario-frame/v1 の券も同じ確率で測る。
+        # data/research/portfolio/ にだけ書く。予想・正式成績・UI には使わない。
+        # 1レースでも計算に失敗したら終了コード 1（出力は書き終えてから）。成績集計は止めず、次のステップで警告を出す。
+        continue-on-error: true
+        run: python -m research.portfolio
+
+      - name: ポートフォリオ層の失敗を知らせる
+        # continue-on-error のステップは失敗してもジョブが緑になるので、失敗を成功と見誤らないよう警告に出す
+        if: steps.portfolio.outcome == 'failure'
+        run: |
+          echo "::warning title=portfolio-v1::計算に失敗したレースがあります（data/research/portfolio/summary.json の errors を確認）"
+          echo "### ⚠️ portfolio-v1 の計算に失敗したレースがあります" >> "$GITHUB_STEP_SUMMARY"
+          echo "data/research/portfolio/summary.json の errors を確認してください。" >> "$GITHUB_STEP_SUMMARY"
 
       - name: forward diagnostics（observe-only）
         # 失敗段階の監査（疑似コンセンサス・recall@4/@6・conversion loss・Chappy段階）。

@@ -1,0 +1,378 @@
+{
+  "schema": "portfolio-race-v1",
+  "race_id": "20261010-kyoto-11",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "pace": "pace_unknown",
+  "post_at": "2026-10-10T15:30:00+09:00",
+  "pinned": {
+    "commit": "1588ce1a04642f1dce5606c9364a08e81b3fc0d3",
+    "frozen_at": "2026-10-10T13:19:54+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "engine": {
+    "name": "market_trio",
+    "market_trio_method": "residual_clamped_to_cap",
+    "listed": 177,
+    "unlisted": 109
+  },
+  "x": {
+    "horse": 13,
+    "p_top3": 0.5528355627331363
+  },
+  "strategies": {
+    "top_prob": {
+      "status": "chosen",
+      "proven_optimal": true,
+      "search_nodes": 6,
+      "tickets": [
+        {
+          "horses": [
+            1,
+            5,
+            13
+          ],
+          "p": 0.05979381904596928,
+          "branch": "primary_X_in",
+          "odds": 12.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            3,
+            5,
+            13
+          ],
+          "p": 0.043091634954916413,
+          "branch": "primary_X_in",
+          "odds": 17.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            13
+          ],
+          "p": 0.041694068415838045,
+          "branch": "primary_X_in",
+          "odds": 18.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            5,
+            11,
+            13
+          ],
+          "p": 0.033830713407587885,
+          "branch": "primary_X_in",
+          "odds": 22.8,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            11,
+            13
+          ],
+          "p": 0.03200582015323668,
+          "branch": "primary_X_in",
+          "odds": 24.1,
+          "listed": true
+        }
+      ],
+      "n_tickets": 5,
+      "stake": 500,
+      "p_hit": 0.2104160559775483,
+      "p_hit_given_x_in": 0.3806123740254386,
+      "p_hit_given_x_out": 0.0,
+      "tickets_without_x": 0,
+      "max_exposure": {
+        "horse": 13,
+        "tickets": 5
+      },
+      "p_hit_variants": {
+        "min": 0.1977747660387776,
+        "max": 0.21141440507593534
+      },
+      "expected_return_market": 0.7713402656930038,
+      "realized": {
+        "top3": [
+          4,
+          10,
+          11
+        ],
+        "hit": false,
+        "payout": 0,
+        "dividend_found": true
+      }
+    },
+    "x_out_2": {
+      "status": "chosen",
+      "proven_optimal": true,
+      "search_nodes": 10,
+      "tickets": [
+        {
+          "horses": [
+            1,
+            5,
+            13
+          ],
+          "p": 0.05979381904596928,
+          "branch": "primary_X_in",
+          "odds": 12.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            3,
+            5,
+            13
+          ],
+          "p": 0.043091634954916413,
+          "branch": "primary_X_in",
+          "odds": 17.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            13
+          ],
+          "p": 0.041694068415838045,
+          "branch": "primary_X_in",
+          "odds": 18.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            5
+          ],
+          "p": 0.030248637870313875,
+          "branch": "alternate_X_out",
+          "odds": 25.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            5,
+            11
+          ],
+          "p": 0.018278205348175446,
+          "branch": "alternate_X_out",
+          "odds": 42.2,
+          "listed": true
+        }
+      ],
+      "n_tickets": 5,
+      "stake": 500,
+      "p_hit": 0.19310636563521305,
+      "p_hit_given_x_in": 0.2615235563029705,
+      "p_hit_given_x_out": 0.1085212489505934,
+      "tickets_without_x": 2,
+      "max_exposure": {
+        "horse": 1,
+        "tickets": 4
+      },
+      "p_hit_variants": {
+        "min": 0.1815050002086248,
+        "max": 0.19402258642990985
+      },
+      "expected_return_market": 0.7713402656930038,
+      "realized": {
+        "top3": [
+          4,
+          10,
+          11
+        ],
+        "hit": false,
+        "payout": 0,
+        "dividend_found": true
+      }
+    },
+    "exposure_cap_3": {
+      "status": "chosen",
+      "proven_optimal": true,
+      "search_nodes": 24,
+      "tickets": [
+        {
+          "horses": [
+            1,
+            5,
+            13
+          ],
+          "p": 0.05979381904596928,
+          "branch": "primary_X_in",
+          "odds": 12.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            3,
+            5,
+            13
+          ],
+          "p": 0.043091634954916413,
+          "branch": "primary_X_in",
+          "odds": 17.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            13
+          ],
+          "p": 0.041694068415838045,
+          "branch": "primary_X_in",
+          "odds": 18.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            5
+          ],
+          "p": 0.030248637870313875,
+          "branch": "alternate_X_out",
+          "odds": 25.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            6,
+            11,
+            12
+          ],
+          "p": 0.0027265474220325345,
+          "branch": "alternate_X_out",
+          "odds": 282.9,
+          "listed": true
+        }
+      ],
+      "n_tickets": 5,
+      "stake": 500,
+      "p_hit": 0.17755470770907014,
+      "p_hit_given_x_in": 0.2615235563029705,
+      "p_hit_given_x_out": 0.07374286178457237,
+      "tickets_without_x": 2,
+      "max_exposure": {
+        "horse": 1,
+        "tickets": 3
+      },
+      "p_hit_variants": {
+        "min": 0.16688764844062948,
+        "max": 0.1783971414365355
+      },
+      "expected_return_market": 0.7713402656930038,
+      "realized": {
+        "top3": [
+          4,
+          10,
+          11
+        ],
+        "hit": false,
+        "payout": 0,
+        "dividend_found": true
+      }
+    },
+    "cap3_x_out_2": {
+      "status": "chosen",
+      "proven_optimal": true,
+      "search_nodes": 24,
+      "tickets": [
+        {
+          "horses": [
+            1,
+            5,
+            13
+          ],
+          "p": 0.05979381904596928,
+          "branch": "primary_X_in",
+          "odds": 12.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            3,
+            5,
+            13
+          ],
+          "p": 0.043091634954916413,
+          "branch": "primary_X_in",
+          "odds": 17.9,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            13
+          ],
+          "p": 0.041694068415838045,
+          "branch": "primary_X_in",
+          "odds": 18.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            1,
+            3,
+            5
+          ],
+          "p": 0.030248637870313875,
+          "branch": "alternate_X_out",
+          "odds": 25.5,
+          "listed": true
+        },
+        {
+          "horses": [
+            6,
+            11,
+            12
+          ],
+          "p": 0.0027265474220325345,
+          "branch": "alternate_X_out",
+          "odds": 282.9,
+          "listed": true
+        }
+      ],
+      "n_tickets": 5,
+      "stake": 500,
+      "p_hit": 0.17755470770907014,
+      "p_hit_given_x_in": 0.2615235563029705,
+      "p_hit_given_x_out": 0.07374286178457237,
+      "tickets_without_x": 2,
+      "max_exposure": {
+        "horse": 1,
+        "tickets": 3
+      },
+      "p_hit_variants": {
+        "min": 0.16688764844062948,
+        "max": 0.1783971414365355
+      },
+      "expected_return_market": 0.7713402656930038,
+      "realized": {
+        "top3": [
+          4,
+          10,
+          11
+        ],
+        "hit": false,
+        "payout": 0,
+        "dividend_found": true
+      }
+    }
+  },
+  "scenario_frame_v1": [],
+  "status": "evaluated"
+}

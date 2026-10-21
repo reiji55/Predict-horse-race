@@ -1,0 +1,25 @@
+{
+  "version": "portfolio-v1",
+  "spec": "docs/research/PORTFOLIO.md",
+  "note": "3連複ポートフォリオ層（#39 PR-D、observe-only）。#38 で出た制約（露出上限・軸 X 抜きの券の最低数）を、制約あり／なしで比べる。事前登録ではない（前向きの採否は PR-E で登録する）。値は #38・#39 の提案のまま固定し、結果を見て動かさない。",
+  "engine": {
+    "name": "market_trio",
+    "source": "research/market_baseline.py の market_trio（払戻率 0.75・配る形 harville_trio(p_mkt)・1組の上限あり）",
+    "note": "市場だけの確率。モデルの優位性を含まないので、この確率で測った期待回収は構造上ほぼ払戻率になる"
+  },
+  "budget": {"unit_yen": 100, "max_tickets": 5},
+  "x_definition": "engine の3着内周辺確率が最大の馬（同点は馬番の小さい方）",
+  "strategies": {
+    "top_prob": {"max_exposure": null, "min_tickets_without_x": 0,
+                 "note": "制約なしで、確率の和が最大の5組（#39 のチャット参考券と同じ考え方）"},
+    "x_out_2": {"max_exposure": null, "min_tickets_without_x": 2,
+                "note": "X を含まない組を最低2点（#38 の候補ルール）"},
+    "exposure_cap_3": {"max_exposure": 3, "min_tickets_without_x": 0,
+                       "note": "1頭が入る組を最大3点（5点の60%。#38 の試験値で、利益の根拠ではない）"},
+    "cap3_x_out_2": {"max_exposure": 3, "min_tickets_without_x": 2,
+                     "note": "上の2つの制約を両方。5点のときは露出上限3で X を含む組が3点以下になり、X 抜きが必ず2点以上になるので、exposure_cap_3 と同じ組になる（#38 の提案どおりの組み合わせとして、確認のために残す）"}
+  },
+  "search": {"method": "全組からの深さ優先探索（確率の和の上界で枝刈り）", "node_limit": 2000000},
+  "pace": "pace_unknown",
+  "sensitivity": "選んだ組は主の補い方で固定し、未収録組の補い方 18 通りでの的中確率の幅を出す"
+}
