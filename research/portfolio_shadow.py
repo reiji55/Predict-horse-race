@@ -509,7 +509,7 @@ def _resolved(r: dict[str, Any]) -> dict[str, Any] | None:
     if r["status"] == "evaluated":
         return {"state": "evaluated", **{k: r.get(k) for k in LEDGER_FIELDS}}
     if r["status"] == "excluded":
-        return {"state": "excluded", "reason": r["reason"], "contract": r.get("contract")}
+        return {"state": "excluded", "reason": r["reason"], "contract": r.get("contract"), "pinned": r.get("pinned")}
     return None
 
 
@@ -568,18 +568,35 @@ def apply_race_ledger(rows: list[dict[str, Any]], ledger: dict[str, Any], as_of:
             continue
         if cur is not None and old["state"] == cur["state"] == "evaluated":
             _fill_dividends(r["race_id"], old, cur, ledger, as_of)
-        if _core(old) != _core(cur):
+        if old["state"] == "excluded" and old.get("reason") == "result_unavailable":
+            # §5.1 の 14 日を過ぎて結果が届いた：除外のまま（§7）。規則どおりの扱いなので、監査の記録だけ残す
+            if cur is not None:
+                _add_event(ledger, {"type": "late_result", "race_id": r["race_id"], "ledger": _brief(old),
+                                    "current": _brief(cur)}, as_of)
+        elif _core(old) != _core(cur):
             changed.append(r["race_id"])
             _add_event(ledger, {"type": "late_correction", "race_id": r["race_id"], "ledger": _brief(old),
                                 "current": _brief(cur) if cur is not None else {"state": r["status"]}}, as_of)
         base = {k: r[k] for k in ROW_BASE_FIELDS if k in r}
         if old["state"] == "excluded":
             rows[i] = {**base, "status": "excluded", "reason": old["reason"], "contract": old.get("contract"),
-                       "from_ledger": old["first_resolved_on"]}
+                       "pinned": old.get("pinned"), "from_ledger": old["first_resolved_on"]}
         else:
             rows[i] = {**base, "status": "evaluated", **{k: old.get(k) for k in LEDGER_FIELDS},
                        "from_ledger": old["first_resolved_on"]}
     return changed
+
+
+def record_result_unavailable(rows: list[dict[str, Any]], ledger: dict[str, Any], as_of: datetime.date) -> None:
+    """判定の区間で 14 日たっても結果が無く result_unavailable になったレースを、その時点で台帳に固定する（§5.1・§6）。
+
+    区間の外や 14 日の前の結果待ちは確定ではないので、台帳に入れない（decision_state がそれらを除外にしない）。
+    """
+    for r in rows:
+        if r.get("reason") == "result_unavailable" and r["race_id"] not in ledger["races"]:
+            ledger["races"][r["race_id"]] = {"state": "excluded", "reason": "result_unavailable", "contract": "result",
+                                             "pinned": r.get("pinned"), "first_resolved_on": as_of.isoformat()}
+            r["from_ledger"] = as_of.isoformat()
 
 
 def update_boundaries(state: dict[str, Any], ledger: dict[str, Any], as_of: datetime.date) -> list[int]:
@@ -644,6 +661,7 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
     ledger = load_ledger(out_dir)
     late = apply_race_ledger(rows, ledger, as_of)
     state = decision_state(rows, as_of)
+    record_result_unavailable(rows, ledger, as_of)
     final = state["status"] in ("equivalent", "over", "under", "no_bias_detected", "undecidable") \
         and state.get("window") is not None
     current = decision_record(state, rows, reg) if final else None

@@ -352,14 +352,64 @@ def test_fixed_decision_is_not_overwritten(repo: Path, monkeypatch: pytest.Monke
     assert first["warnings"] == [] and first["decision_check"]["matches"] is True
     assert set(fixed["inputs"]) == {"20261107-tokyo-11", "20261107-kyoto-11", "20261107-niigata-11", "20261107-hanshin-11"}
     assert fixed["inputs"]["20261107-niigata-11"]["reason"] == "result_unavailable"
-    # 結果が後から届いても decision.json は上書きせず、不一致を警告にする
-    results = json.loads((repo / ps.RESULTS_REL).read_text(encoding="utf-8"))
-    results["20261107-niigata-11"] = {"finish": [1, 2, 3, 4, 5, 6, 7]}
-    _write(repo, ps.RESULTS_REL, results)
-    _commit(repo, "late result", "2027-01-02T10:00:00+09:00")
+    # 台帳が書き換えられて計算し直しが変わっても、decision.json は上書きせず、不一致を警告にする
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    del ledger["races"]["20261107-tokyo-11"]
+    _write(out, "ledger.json", ledger)
+    _set_result(repo, "20261107-tokyo-11", {"finish": [5, 6, 7, 1, 2, 3, 4]}, "2027-01-02T10:00:00+09:00")
     again = ps.run(repo, out, as_of, reference=_ref())
     assert (out / "decision.json").read_text(encoding="utf-8") == text
     assert again["decision_check"]["matches"] is False and "decision_recomputed_differs_from_fixed" in again["warnings"]
+
+
+def test_result_unavailable_is_fixed_in_the_ledger(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """PR #45 再レビュー：14 日たっても結果が無く除外したレースは、後から結果が届いても評価に戻さない。"""
+    monkeypatch.setattr(ps, "DECISION_RACES", 4)
+    monkeypatch.setattr(ps, "MIN_DECISION_RACES", 1)
+    monkeypatch.setattr(ps, "MIN_DECISION_DAYS", 1)
+    out = repo / "out"
+    cutoff = datetime.date(2026, 11, 7)
+    # 14 日の前は結果待ちのまま（台帳に入れない）
+    early = ps.run(repo, out, cutoff + datetime.timedelta(days=13), reference=_ref())
+    assert early["status"] == "awaiting_results" and early["pending_result"] == ["20261107-niigata-11"]
+    assert "20261107-niigata-11" not in json.loads((out / "ledger.json").read_text(encoding="utf-8"))["races"]
+    # cutoff + 14 日の最初の判定で result_unavailable として除外し、台帳に固定する
+    final = ps.run(repo, out, cutoff + datetime.timedelta(days=14), reference=_ref())
+    assert final["warnings"] == [] and final["excluded"]["result_unavailable"] == ["20261107-niigata-11"]
+    ledger = json.loads((out / "ledger.json").read_text(encoding="utf-8"))
+    rec = ledger["races"]["20261107-niigata-11"]
+    assert {k: rec[k] for k in ("state", "reason", "contract", "first_resolved_on")} == \
+        {"state": "excluded", "reason": "result_unavailable", "contract": "result", "first_resolved_on": "2026-11-21"}
+    assert rec["pinned"]["commit"]
+    decision_text = (out / "decision.json").read_text(encoding="utf-8")
+    # cutoff + 20 日に結果が届く：除外のまま、判定は一致、増えるのは late_result の記録だけ
+    _set_result(repo, "20261107-niigata-11", {"finish": [1, 2, 3, 4, 5, 6, 7],
+                                              "dividends": {"3連複": [{"horses": [1, 2, 3], "pay": 480}]}},
+                "2026-11-27T10:00:00+09:00")
+    later = ps.run(repo, out, cutoff + datetime.timedelta(days=20), reference=_ref())
+    assert later["excluded"]["result_unavailable"] == ["20261107-niigata-11"] and later["evaluated"] == final["evaluated"]
+    assert later["decision_check"]["matches"] is True and later["warnings"] == []
+    assert later["to_date"] == final["to_date"]
+    row = json.loads((out / "races/20261107-niigata-11.json").read_text(encoding="utf-8"))
+    assert row["status"] == "excluded" and row["reason"] == "result_unavailable"
+    assert (out / "decision.json").read_text(encoding="utf-8") == decision_text
+    events = json.loads((out / "ledger.json").read_text(encoding="utf-8"))["events"]
+    assert [e["type"] for e in events] == ["late_result"]
+    ps.run(repo, out, cutoff + datetime.timedelta(days=21), reference=_ref())
+    assert len(json.loads((out / "ledger.json").read_text(encoding="utf-8"))["events"]) == 1
+    # simulation は台帳を書かない
+    sim_out = repo / "sim"
+    ps.run(repo, sim_out, cutoff + datetime.timedelta(days=14), reference=_ref(), simulate=True)
+    assert not (sim_out / "ledger.json").exists()
+
+
+def test_reliability_bins_include_p_equal_one() -> None:
+    rows = _rows(_days(1), 2)
+    for r in rows:
+        r["strategies"]["top_prob"]["p_hit"] = 1.0
+        r["strategies"]["top_prob"]["realized"] = {"hit": True, "payout": 100, "dividend_found": True}
+    bins = ps.window_report(rows, with_bootstrap=False)["strategies"]["top_prob"]["diagnostics"]["reliability_bins"]
+    assert bins[-1]["p_range"] == [0.3, 1.0] and bins[-1]["n"] == 2 and sum(b["n"] for b in bins) == 2
 
 
 # ------------------------------------------------------------------ PR #45 レビュー：レースの記録の固定
