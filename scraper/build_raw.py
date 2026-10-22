@@ -59,6 +59,7 @@ from scraper.fetchers import (
     c_horse_history,
     d_jockey_leading,
     e_trainer_leading,
+    pedigree,
 )
 
 logger = logging.getLogger("scraper.build_raw")
@@ -396,6 +397,12 @@ def main() -> None:
         json.dump(data, f, ensure_ascii=False, indent=2)
     logger.info("書き出し完了: %s（%d レース）", out_path, len(data["races"]))
     report_coverage(data["races"])
+    # 血統（父・母・母父）を data/pedigree/pedigree.csv に蓄積する。予想にはまだ使わない。
+    # 失敗しても raw の生成は済んでいるので、警告だけ残して続ける。
+    try:
+        pedigree.update_store_from_races(data["races"])
+    except (OSError, ValueError):
+        logger.exception("血統の保存に失敗しました（raw は書き出し済み）")
 
 
 def report_coverage(races: list[dict[str, Any]]) -> None:

@@ -29,6 +29,8 @@ C2ページ：出馬表「過去5走」（race.netkeiba.com/race/shutuba_past.ht
 
   td.Waku1 / td.Waku      枠番 / 馬番
   td.Horse_Info           馬名・血統・厩舎・脚質・オッズ
+                          （血統は .Horse01=父 / .Horse03=母 / .Horse04=(母父) と推定して読む。
+                            実サンプル未確認。pedigree.py 冒頭と docs/PEDIGREE.md）
       a[href*="/horse/"]  → horse_ref（B出馬表と同じ10桁）
       .Popular            → "40.5 (12人気)"  ＝ 単勝オッズと人気
   td.Jockey               性齢・騎手・斤量（今回のレースぶん。past_runsには使わない）
@@ -55,6 +57,7 @@ from bs4 import BeautifulSoup
 
 from scraper.common import constants
 from scraper.common.http import get as http_get
+from scraper.fetchers import pedigree
 
 logger = logging.getLogger("scraper.c2_shutuba_past")
 
@@ -195,6 +198,8 @@ def parse_shutuba_past_html(html: str, n_runs: int = 5) -> dict[str, dict[str, A
             "past_runs": runs,
             "win_odds": float(odds_m.group(1)) if odds_m else None,
             "popularity": int(odds_m.group(2)) if odds_m else None,
+            # 血統（父・母・母父）。並びは推定（pedigree.py 冒頭の【要確認】）。取れなければ None
+            "pedigree": pedigree.parse_horse_info_pedigree(row.select_one("td.Horse_Info")),
         }
     return result
 
@@ -226,6 +231,8 @@ def merge_into_race(race: dict[str, Any], by_horse: dict[str, dict[str, Any]]) -
         if found is None:
             continue
         entry["past_runs"] = found["past_runs"]
+        if found.get("pedigree") and not entry.get("pedigree"):
+            entry["pedigree"] = found["pedigree"]
         if entry.get("win_odds") is None and found.get("win_odds") is not None:
             entry["win_odds"] = found["win_odds"]
         if entry.get("popularity") is None and found.get("popularity") is not None:
