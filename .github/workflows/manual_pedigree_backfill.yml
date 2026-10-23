@@ -1,0 +1,64 @@
+name: 血統の取り込み（過去レース・手動）
+
+# 過去レースの出馬表「過去5走」ページ（race.netkeiba.com）から、出走馬の父・母・母父を集めて
+# data/pedigree/pedigree.csv に追記する。1回の実行で limit レースだけ取り、済んだレースは次回飛ばす。
+# 予想ロジックはまだ血統を使わない（蓄積だけ）。手順と注意は docs/PEDIGREE.md。
+# 先に「血統の並びの確認（手動）」で verified になっていないと、取り込みは何もせず止まる。
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '今回取りに行くレース数（1レース約4秒。200で約15分）'
+        required: true
+        default: '200'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pedigree-backfill-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 血統パーサーのテスト
+        run: python -m pytest -q tests/test_pedigree.py
+
+      - name: 血統の取り込み
+        env:
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          case "$LIMIT" in
+            ''|*[!0-9]*) echo "limit は数字で指定してください: $LIMIT"; exit 1 ;;
+          esac
+          python -m scripts.backfill_pedigree_races --race-ids data/pedigree/backfill_race_ids_11R.txt --limit "$LIMIT"
+
+      - name: 取り込んだ血統をコミット
+        if: always()
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/pedigree/
+          if git diff --cached --quiet; then
+            echo "新しい血統はありません"
+            exit 0
+          fi
+          git commit -m "data: 血統の取り込み（過去レース）"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1
