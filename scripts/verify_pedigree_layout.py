@@ -10,7 +10,7 @@ pedigree.c2_layout_verified() がこのファイルを読み、true のときだ
 HTMLそのものは保存しない（netkeibaの著作物。リポジトリは公開）。
 
 GitHub Actions の手動 workflow（.github/workflows/manual_pedigree_verify.yml）で動かす。
-アクセスは4ページ（約15秒）。
+アクセスは3ページ（約15秒）。
 
 使い方：
   python -m scripts.verify_pedigree_layout

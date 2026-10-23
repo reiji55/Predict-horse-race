@@ -283,6 +283,66 @@ def test_backfill_stops_on_a_streak_and_keeps_the_streak_retryable():
     print("test_backfill_stops_on_a_streak_and_keeps_the_streak_retryable: OK")
 
 
+def _race_html(n: int, bad_links: int = 0, duplicate: bool = False, header_row: bool = True) -> str:
+    """出走馬 n 頭の過去5走表（自作・馬名は架空）。最後の bad_links 頭は馬リンクの形が違う。"""
+    rows = ['<tr class="Header"><th>馬名</th></tr>'] if header_row else []
+    for i in range(1, n + 1):
+        hid = "2021100001" if (duplicate and i == n) else f"20211{i:05d}"
+        href = f"https://db.netkeiba.com/horse/{hid}" if i <= n - bad_links else f"https://db.netkeiba.com/horse_x/{hid}"
+        rows.append(f'<tr><td class="Horse_Info"><div class="Horse01">父{i}</div>'
+                    f'<div class="Horse02"><a href="{href}">馬{i}</a></div>'
+                    f'<div class="Horse03">母{i}</div><div class="Horse04">(母父{i})</div></td></tr>')
+    return f'<table class="Shutuba_Past5_Table"><tbody>{"".join(rows)}</tbody></table>'
+
+
+def test_runner_rows_are_counted_from_html_not_from_parsed_horses():
+    from scripts import backfill_pedigree_races as bf
+    ok = _race_html(16)
+    assert c2_shutuba_past.runner_row_stats(ok) == {"rows": 16, "with_id": 16, "id_missing": 0, "duplicates": 0}
+    by_horse = c2_shutuba_past.parse_shutuba_past_html(ok, read_pedigree=True)
+    assert bf.classify(by_horse, c2_shutuba_past.runner_row_stats(ok)) == ("done", 16, 16)
+
+    bad = _race_html(16, bad_links=2)                                            # 2頭は馬IDが読めず飛ばされる
+    by_horse = c2_shutuba_past.parse_shutuba_past_html(bad, read_pedigree=True)
+    stats = c2_shutuba_past.runner_row_stats(bad)
+    assert len(by_horse) == 14 and stats["rows"] == 16 and stats["id_missing"] == 2
+    assert bf.classify(by_horse, stats) == ("runner_id_missing", 16, 14)          # 残り14頭がそろっても done にしない
+
+    dup = _race_html(16, duplicate=True)                                         # 同じ馬IDが2行
+    by_horse = c2_shutuba_past.parse_shutuba_past_html(dup, read_pedigree=True)
+    assert bf.classify(by_horse, c2_shutuba_past.runner_row_stats(dup))[0] == "runner_id_missing"
+    print("test_runner_rows_are_counted_from_html_not_from_parsed_horses: OK")
+
+
+def test_backfill_with_skipped_rows_is_not_done():
+    """パーサーは本物のまま、取得だけ差し替えて回す。"""
+    from scripts import backfill_pedigree_races as bf
+    pages = {"r1": _race_html(16), "r2": _race_html(16, bad_links=2)}
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        (d / "ids.txt").write_text("r1\nr2", encoding="utf-8")
+        check = _write_verified(d / "check.json")
+        orig = c2_shutuba_past.fetch_shutuba_past_html
+        c2_shutuba_past.fetch_shutuba_past_html = lambda rid: pages[rid]
+        try:
+            for _ in range(3):
+                code = bf.main(["--race-ids", str(d / "ids.txt"), "--store", str(d / "p.csv"),
+                                "--status", str(d / "s.csv"), "--conflicts", str(d / "c.csv"),
+                                "--layout-check", str(check)])
+                assert code == 0
+                status = bf.load_status(d / "s.csv")
+                if status["r2"]["attempts"] == "1":
+                    assert status["r2"]["status"] == "retry"
+                    assert (status["r2"]["n_runners"], status["r2"]["n_complete"], status["r2"]["n_missing"]) == \
+                        ("16", "14", "2")
+                    assert status["r2"]["note"] == "runner_id_missing"
+        finally:
+            c2_shutuba_past.fetch_shutuba_past_html = orig
+        assert status["r1"]["status"] == "done"
+        assert status["r2"]["status"] == "partial_final"                           # 3回で終わるが done ではない
+    print("test_backfill_with_skipped_rows_is_not_done: OK")
+
+
 # --- 実ページでの確認（scripts/verify_pedigree_layout.py） ------------------------------
 
 def test_layout_check_passes_only_when_every_value_matches():

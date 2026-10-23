@@ -12,12 +12,14 @@ C2（出馬表の「過去5走」ページ）の `td.Horse_Info` の中で、父
 確かめ方：GitHub の Actions 画面で「**血統の並びの確認（手動）**」（`manual_pedigree_verify.yml`）を実行する。
 
 - 血統がよく知られた4頭（イクイノックス、エフフォーリア、ソングライン、タスティエーラ）が出たレースの
-  過去5走ページを取り（4ページ・約15秒）、読めた父・母・母父を正しい値と照らし合わせる
+  過去5走ページを取り（3ページ・約15秒）、読めた父・母・母父を正しい値と照らし合わせる
 - 4頭すべて3項目が一致したときだけ `data/pedigree/c2_layout_check.json` が `"verified": true` になり、コミットされる
 - 一致しなければ false のまま。同じファイルに Horse_Info の中身の並び（クラス名と文字）が残るので、
   それを見て `scraper/fetchers/pedigree.py` の `C2_SELECTORS` を直し、もう一度実行する
 - 結果の表は実行画面の Summary に出る
 - `C2_SELECTORS` を変えると、記録されたセレクタと合わなくなるので確認はやり直しになる
+- セレクタが同じでも、`parse_horse_info_pedigree` や `c2_shutuba_past.py` の読み方を変えたときは、
+  この確認をもう一度実行する（PR では自動で動く）
 
 この workflow は PR でも動く（`pedigree.py` などを変えたとき）。PR では結果を表示・保存するだけでコミットはしない。
 新しい workflow はマージ後でないと Actions 画面に出ないので、手動の実行はマージ後に1回行う。
@@ -64,11 +66,16 @@ C2 は毎週取っているので、同じHTMLから読むだけ。`build_raw` �
 | status | 意味 | 次回 |
 |---|---|---|
 | done | 出走馬全員の父・母・母父がそろった | 取りに行かない |
-| retry | 取得失敗・表が無い・1頭も取れない・一部欠け（`note` に理由、`attempts` に回数） | もう一度取りに行く |
+| retry | 取得失敗・表が無い・1頭も取れない・一部欠け・馬IDが読めない行がある（`note` に理由、`attempts` に回数） | もう一度取りに行く |
 | unavailable | 3回やっても表が無い／取得できない／1頭も取れない | 取りに行かない |
 | partial_final | 3回やっても一部の馬が欠けたまま（そろった馬は保存済み） | 取りに行かない |
 
 列：`race_id, status, n_runners, n_complete, n_missing, attempts, last_tried, note`
+
+- `n_runners` は、パーサーが読めた馬の数ではなく、**HTMLの馬の行（`td.Horse_Info` のある行）の数**。
+  馬IDが読めずに飛ばされた行や同じ馬IDの重複があれば、残りがそろっていても done にしない（`note` は `runner_id_missing`）
+- unavailable / partial_final は自動では取り直さない。原因を直したあと取り直したいときは、
+  `backfill_status.csv` からそのレースの行を消してから実行する
 
 止まる条件（そのレースの結果は記録しない＝あとで同じレースから取り直せる）：
 

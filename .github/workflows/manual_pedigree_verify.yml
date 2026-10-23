@@ -3,7 +3,7 @@ name: 血統の並びの確認（手動）
 # C2（過去5走ページ）の Horse_Info で父・母・母父がどこにあるかを、血統の分かっている馬で確かめる。
 # 全頭一致したときだけ data/pedigree/c2_layout_check.json が verified: true になり、
 # 毎週の血統保存と「血統の取り込み（過去レース・手動）」が動くようになる。
-# アクセスは4ページ（約15秒）。手順は docs/PEDIGREE.md。
+# アクセスは3ページ（約15秒）。手順は docs/PEDIGREE.md。
 # PR でも動かす（マージ前に実ページで確かめるため）。PR では結果を表示・保存するだけでコミットしない。
 on:
   workflow_dispatch:

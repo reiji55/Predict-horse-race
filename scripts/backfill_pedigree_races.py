@@ -11,9 +11,13 @@
 
   status        意味                                                       次回
   done          出走馬全員の父・母・母父がそろった                           取りに行かない
-  retry         取得失敗・表が無い・一部の馬が欠けた（attempts 回目）        もう一度取りに行く
+  retry         取得失敗・表が無い・一部の馬が欠けた・馬IDが読めない行がある（attempts 回目）  もう一度取りに行く
   unavailable   MAX_ATTEMPTS 回やっても表が無い／取得できない／1頭も取れない   取りに行かない
   partial_final MAX_ATTEMPTS 回やっても一部の馬が欠けたまま（そろった馬は保存済み）  取りに行かない
+
+出走馬数（n_runners）は、パーサーが読めた馬の数ではなく、HTMLの馬の行の数で数える
+（c2_shutuba_past.runner_row_stats）。馬IDが読めずに飛ばされた行があれば done にしない。
+unavailable / partial_final を取り直したいときは、backfill_status.csv からそのレースの行を消す。
 
 止まる条件（そのレースの結果は記録しない＝あとで取り直せる）：
 - 今回の最初の5レースで、そろった血統が1頭も無い
@@ -62,12 +66,21 @@ def save_status(status: dict[str, dict[str, str]], path: Path) -> None:
     tmp.replace(path)
 
 
-def classify(by_horse: dict[str, dict]) -> tuple[str, int, int]:
-    """1レースの取得結果を (outcome, 出走馬数, そろった頭数) にする。outcome は done/no_table/no_pedigree/partial。"""
-    n = len(by_horse)
+def classify(by_horse: dict[str, dict], rows: dict[str, int] | None = None) -> tuple[str, int, int]:
+    """
+    1レースの取得結果を (outcome, 出走馬数, そろった頭数) にする。
+    outcome は done / no_table / no_pedigree / partial / runner_id_missing。
+
+    出走馬数は、パーサーが読めた馬の数ではなく、HTMLの馬の行の数（c2_shutuba_past.runner_row_stats）。
+    馬IDが読めずに飛ばされた行や、同じ馬IDの重複があれば、残りがそろっていても done にしない。
+    """
     complete = sum(1 for v in by_horse.values() if pedigree.is_complete(v.get("pedigree")))
+    rows = rows or {"rows": len(by_horse), "id_missing": 0, "duplicates": 0}
+    n = max(rows["rows"], len(by_horse))
     if n == 0:
         return "no_table", 0, 0
+    if rows["id_missing"] or rows["duplicates"] or len(by_horse) < n:
+        return "runner_id_missing", n, complete
     if complete == n:
         return "done", n, complete
     if complete == 0:
@@ -75,12 +88,14 @@ def classify(by_horse: dict[str, dict]) -> tuple[str, int, int]:
     return "partial", n, complete
 
 
-def next_status(outcome: str, attempts: int) -> str:
+def next_status(outcome: str, attempts: int, complete: int = 0) -> str:
     if outcome == "done":
         return "done"
     if attempts < MAX_ATTEMPTS:
         return "retry"
-    return "partial_final" if outcome == "partial" else "unavailable"
+    if outcome in ("partial", "runner_id_missing") and complete > 0:
+        return "partial_final"
+    return "unavailable"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -124,14 +139,14 @@ def main(argv: list[str] | None = None) -> int:
         try:
             html = c2_shutuba_past.fetch_shutuba_past_html(race_id)
             by_horse = c2_shutuba_past.parse_shutuba_past_html(html, read_pedigree=True)
-            outcome, n_run, n_ok = classify(by_horse)
+            outcome, n_run, n_ok = classify(by_horse, c2_shutuba_past.runner_row_stats(html))
         except RuntimeError:
             by_horse, outcome, n_run, n_ok = {}, "fetch_error", 0, 0
         for ref, found in by_horse.items():
             rec_counts[pedigree.add_record(store, ref, found.get("pedigree"), "shutuba_past_backfill",
                                            conflicts_path)] += 1
         complete_total += n_ok
-        st = next_status(outcome, attempts)
+        st = next_status(outcome, attempts, n_ok)
         tally[st] += 1
         pending[race_id] = {"race_id": race_id, "status": st, "n_runners": n_run, "n_complete": n_ok,
                             "n_missing": n_run - n_ok, "attempts": attempts,

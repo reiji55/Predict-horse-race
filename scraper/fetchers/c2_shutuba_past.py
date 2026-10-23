@@ -211,6 +211,39 @@ def parse_shutuba_past_html(html: str, n_runs: int = 5,
     return result
 
 
+def runner_row_stats(html: str) -> dict[str, int]:
+    """
+    過去5走の表の「馬の行」を数える（parse_shutuba_past_html が黙って飛ばす行も含めて）。
+
+    馬の行＝td.Horse_Info を持つ tbody の行（見出し・空行は数えない）。
+      rows        馬の行の数（このレースの出走馬数の基準）
+      with_id     馬IDが読めた行の数
+      id_missing  馬IDが読めず、parse_shutuba_past_html が飛ばす行の数
+      duplicates  同じ馬IDが2回以上出た回数（辞書では1頭にまとまってしまう）
+    表が無ければ rows=0。
+    """
+    soup = BeautifulSoup(html, "lxml")
+    table = soup.select_one(PAST5_TABLE_SELECTOR)
+    stats = {"rows": 0, "with_id": 0, "id_missing": 0, "duplicates": 0}
+    if table is None:
+        return stats
+    seen: set[str] = set()
+    for row in table.select("tbody tr"):
+        if row.select_one("td.Horse_Info") is None:
+            continue
+        stats["rows"] += 1
+        link = row.select_one('td.Horse_Info a[href*="/horse/"]')
+        m = _HORSE_ID_RE.search(link.get("href", "")) if link is not None else None
+        if m is None:
+            stats["id_missing"] += 1
+            continue
+        stats["with_id"] += 1
+        if m.group(1) in seen:
+            stats["duplicates"] += 1
+        seen.add(m.group(1))
+    return stats
+
+
 def fetch_shutuba_past_html(race_source_ref: str) -> str:
     """1レース分の「過去5走」ページのHTMLを返す。取れなければ RuntimeError。"""
     url = SHUTUBA_PAST_URL_TMPL.format(race_id=race_source_ref)
