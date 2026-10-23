@@ -29,8 +29,8 @@ C2ページ：出馬表「過去5走」（race.netkeiba.com/race/shutuba_past.ht
 
   td.Waku1 / td.Waku      枠番 / 馬番
   td.Horse_Info           馬名・血統・厩舎・脚質・オッズ
-                          （血統は .Horse01=父 / .Horse03=母 / .Horse04=(母父) と推定して読む。
-                            実サンプル未確認。pedigree.py 冒頭と docs/PEDIGREE.md）
+                          （血統は .Horse01=父 / .Horse03=母 / .Horse04=(母父) と推定。
+                            実ページで確かめるまでは読まない。pedigree.py 冒頭と docs/PEDIGREE.md）
       a[href*="/horse/"]  → horse_ref（B出馬表と同じ10桁）
       .Popular            → "40.5 (12人気)"  ＝ 単勝オッズと人気
   td.Jockey               性齢・騎手・斤量（今回のレースぶん。past_runsには使わない）
@@ -163,13 +163,19 @@ def parse_past_cell(cell) -> dict[str, Any] | None:
     }
 
 
-def parse_shutuba_past_html(html: str, n_runs: int = 5) -> dict[str, dict[str, Any]]:
+def parse_shutuba_past_html(html: str, n_runs: int = 5,
+                            read_pedigree: bool | None = None) -> dict[str, dict[str, Any]]:
     """
     HTML文字列から {horse_ref: {"past_runs": [...], "win_odds": float|None,
-                               "popularity": int|None}} を組み立てる。
+                               "popularity": int|None, "pedigree": dict|None}} を組み立てる。
+
+    read_pedigree：血統を読むか。None なら pedigree.c2_layout_verified()（実ページで並びを
+    確かめ済みのときだけ読む）。確認前は pedigree は常に None で、raw にも入らない。
 
     テスト・オフライン解析用に公開している。
     """
+    if read_pedigree is None:
+        read_pedigree = pedigree.c2_layout_verified()
     soup = BeautifulSoup(html, "lxml")
     table = soup.select_one(PAST5_TABLE_SELECTOR)
     if table is None:
@@ -198,10 +204,21 @@ def parse_shutuba_past_html(html: str, n_runs: int = 5) -> dict[str, dict[str, A
             "past_runs": runs,
             "win_odds": float(odds_m.group(1)) if odds_m else None,
             "popularity": int(odds_m.group(2)) if odds_m else None,
-            # 血統（父・母・母父）。並びは推定（pedigree.py 冒頭の【要確認】）。取れなければ None
-            "pedigree": pedigree.parse_horse_info_pedigree(row.select_one("td.Horse_Info")),
+            # 血統（父・母・母父）。並びを実ページで確かめるまでは読まない（pedigree.py 冒頭）
+            "pedigree": (pedigree.parse_horse_info_pedigree(row.select_one("td.Horse_Info"))
+                         if read_pedigree else None),
         }
     return result
+
+
+def fetch_shutuba_past_html(race_source_ref: str) -> str:
+    """1レース分の「過去5走」ページのHTMLを返す。取れなければ RuntimeError。"""
+    url = SHUTUBA_PAST_URL_TMPL.format(race_id=race_source_ref)
+    resp = http_get(url)
+    if resp is None:
+        raise RuntimeError(f"過去5走ページの取得に失敗しました: {url}")
+    resp.encoding = resp.apparent_encoding
+    return resp.text
 
 
 def fetch_shutuba_past(race_source_ref: str, n_runs: int = 5) -> dict[str, dict[str, Any]]:
@@ -209,14 +226,9 @@ def fetch_shutuba_past(race_source_ref: str, n_runs: int = 5) -> dict[str, dict[
     1レース分の「過去5走」ページを取得する。
 
     race_source_ref: netkeibaのレースID（12桁、例 "202609040511"）
-    戻り値: {horse_ref: {"past_runs": [...], "win_odds": ..., "popularity": ...}}
+    戻り値: {horse_ref: {"past_runs": [...], "win_odds": ..., "popularity": ..., "pedigree": ...}}
     """
-    url = SHUTUBA_PAST_URL_TMPL.format(race_id=race_source_ref)
-    resp = http_get(url)
-    if resp is None:
-        raise RuntimeError(f"過去5走ページの取得に失敗しました: {url}")
-    resp.encoding = resp.apparent_encoding
-    return parse_shutuba_past_html(resp.text, n_runs=n_runs)
+    return parse_shutuba_past_html(fetch_shutuba_past_html(race_source_ref), n_runs=n_runs)
 
 
 def merge_into_race(race: dict[str, Any], by_horse: dict[str, dict[str, Any]]) -> None:
@@ -231,7 +243,7 @@ def merge_into_race(race: dict[str, Any], by_horse: dict[str, dict[str, Any]]) -
         if found is None:
             continue
         entry["past_runs"] = found["past_runs"]
-        if found.get("pedigree") and not entry.get("pedigree"):
+        if pedigree.is_complete(found.get("pedigree")) and not entry.get("pedigree"):
             entry["pedigree"] = found["pedigree"]
         if entry.get("win_odds") is None and found.get("win_odds") is not None:
             entry["win_odds"] = found["win_odds"]

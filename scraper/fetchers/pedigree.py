@@ -4,45 +4,49 @@
 出典：取得項目_共通内部フォーマット仕様_v1.1.md §1（血統はMVPスコープ外＝「将来」の項目）。
 ここで取得と蓄積だけを先に始める。**予想ロジック（logic/）はまだ血統を使わない**。
 
-経路は2つ。
+経路は3つ（docs/PEDIGREE.md）。
 
 1. **毎週の取得（追加アクセスなし）**
    C2（出馬表の「過去5走」ページ、`race.netkeiba.com/race/shutuba_past.html`）の
    `td.Horse_Info` に血統が載っている。C2は既に毎週取っているので、同じHTMLから読むだけ。
-   `c2_shutuba_past.parse_shutuba_past_html` が各馬の `pedigree` を返し、
-   `merge_into_race` が raw の entry に `pedigree` として入れる。
-   build_raw の最後に `update_store_from_races` で `data/pedigree/pedigree.csv` に追記する
-   （血統は変わらないので、一度入った馬は二度と書き換えない）。
+2. **過去のメインレース**（`scripts/backfill_pedigree_races.py`、手動 workflow）
+3. **馬ごとの5代血統表**（`scripts/backfill_pedigree.py`、手元のPCだけ）
 
-2. **過去の馬の一括取得（手元のPCで手動実行）**
-   `scripts/backfill_pedigree.py` が `db.netkeiba.com/horse/ped/{horse_id}/`（5代血統表）を取る。
-   `db.netkeiba.com/horse/` は GitHub Actions から叩くとbot判定される（c2_shutuba_past の冒頭参照）
-   ので、**GitHub Actions では動かさない**。間隔は scraper.common.http の3〜5秒をそのまま守る。
+--- 安全ゲート：C2の並びを実ページで確かめるまで、経路1・2は保存しない ---
 
---- 【要確認】C2の Horse_Info 内の並び（実サンプル未確認）---
+Horse_Info の中の並び（下の C2_SELECTORS）は推定。推定のまま保存すると、別の項目を
+「血統」として永久に残してしまう。そこで：
 
-netkeibaの馬柱は Horse_Info の中に1行ずつ div を並べている前提で読む：
-  .Horse01  父
-  .Horse02  馬名（a[href*="/horse/"]）
-  .Horse03  母
-  .Horse04  （母父）← 括弧つき
-  .Horse05  厩舎
-実サンプル（tests/samples/shutuba_past_hanshin11.html）で確かめるまでは推定。
-クラスが見つからないときは None を返し、その馬の pedigree は入れない（全体は止めない）。
-確かめ方は docs/PEDIGREE.md。
+- `scripts/verify_pedigree_layout.py`（手動 workflow `manual_pedigree_verify.yml`）が実ページを取り、
+  父・母・母父を知っている馬（イクイノックスなど）と突き合わせる。
+- 全頭一致したときだけ `data/pedigree/c2_layout_check.json` に `"verified": true` と
+  そのとき使ったセレクタを書く。
+- `c2_layout_verified()` はこのファイルが verified で、かつ記録されたセレクタが今のコードと
+  同じときだけ True。セレクタを変えたら確認はやり直しになる。
+- False の間は、C2 から血統を読まない（raw にも入れない）・pedigree.csv に書かない・
+  過去レースの取り込みは動かない。
 
---- 5代血統表（/horse/ped/）の読み方（実ページの構造で確認済み）---
+--- 保存の約束（data/pedigree/pedigree.csv）---
+
+- **父・母・母父の3つがそろった血統だけ**保存する。1つでも欠けたら保存せず、次の機会に取り直す
+  （欠けたまま「取得済み」にしない）。
+- 一度入った馬は書き換えない（血統は変わらない）。別の取得で違う値が来たら、黙って捨てずに
+  `data/pedigree/conflicts.csv` に両方を残す。
+
+--- 5代血統表（/horse/ped/）の読み方 ---
 
 `table.blood_table` の td は rowspan で世代が分かる。5代表なら 父・母 が rowspan=16、
-その次の世代（父父・父母・母父・母母）が rowspan=8。表の世代数が違っても崩れないよう、
-「いちばん大きい rowspan の2つ＝父・母」「その半分の4つ＝父父・父母・母父・母母」で読む。
+その次の世代（父父・父母・母父・母母）が rowspan=8。「いちばん大きい rowspan がちょうど2つ＝父・母」
+「その半分がちょうど4つ＝父父・父母・母父・母母」のときだけ読み、形が違えば None。
 """
 from __future__ import annotations
 
 import csv
 import datetime
+import json
 import logging
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -51,12 +55,34 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger("scraper.pedigree")
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-STORE_PATH = ROOT / "data" / "pedigree" / "pedigree.csv"
+PEDIGREE_DIR = ROOT / "data" / "pedigree"
+STORE_PATH = PEDIGREE_DIR / "pedigree.csv"
+CONFLICTS_PATH = PEDIGREE_DIR / "conflicts.csv"
+LAYOUT_CHECK_PATH = PEDIGREE_DIR / "c2_layout_check.json"
 PED_URL_TMPL = "https://db.netkeiba.com/horse/ped/{horse_id}/"
 FIELDS = ["horse_ref", "sire", "sire_ref", "dam", "dam_ref", "damsire", "damsire_ref", "source", "fetched_at"]
+NAME_FIELDS = ("sire", "dam", "damsire")
+CONFLICT_FIELDS = ["horse_ref", "field", "stored", "new", "stored_source", "new_source", "found_at"]
+
+# C2 の td.Horse_Info の中で、父・母・母父が入っている要素（推定。verify で確かめる）
+C2_SELECTORS = {"sire": ".Horse01", "dam": ".Horse03", "damsire": ".Horse04"}
 
 _HORSE_REF_RE = re.compile(r"/horse/(?:ped/)?([0-9a-zA-Z]+)")
 JST = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def _now() -> str:
+    return datetime.datetime.now(JST).isoformat(timespec="seconds")
+
+
+def normalize_name(name: str | None) -> str:
+    """比較用：全角半角をそろえ、空白を除く。"""
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", name or ""))
+
+
+def is_complete(ped: dict[str, Any] | None) -> bool:
+    """父・母・母父の3つとも名前があるか。"""
+    return bool(ped) and all((ped.get(k) or "").strip() for k in NAME_FIELDS)
 
 
 def _name_and_ref(node) -> tuple[str | None, str | None]:
@@ -74,28 +100,39 @@ def _name_and_ref(node) -> tuple[str | None, str | None]:
     return (text or None), ref
 
 
-# --- 経路1：C2（過去5走ページ）の Horse_Info ---------------------------------------
+# --- 安全ゲート ------------------------------------------------------------------
+
+def c2_layout_verified(path: Path | None = None) -> bool:
+    """C2 の並びを実ページで確かめ済みで、そのときのセレクタが今と同じなら True。"""
+    path = path or LAYOUT_CHECK_PATH
+    try:
+        rec = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return rec.get("verified") is True and rec.get("selectors") == C2_SELECTORS
+
+
+# --- 経路1・2：C2（過去5走ページ）の Horse_Info ---------------------------------------
 
 def parse_horse_info_pedigree(horse_info) -> dict[str, Any] | None:
     """
     C2 の td.Horse_Info から {sire, sire_ref, dam, dam_ref, damsire, damsire_ref} を読む。
-    3つとも取れなければ None（推定した並びと違う＝ページ構造が想定と違う）。
+    1つも取れなければ None。一部だけのときもそのまま返す（保存するかは is_complete で決める）。
     """
     if horse_info is None:
         return None
-    sire, sire_ref = _name_and_ref(horse_info.select_one(".Horse01"))
-    dam, dam_ref = _name_and_ref(horse_info.select_one(".Horse03"))
-    damsire, damsire_ref = _name_and_ref(horse_info.select_one(".Horse04"))
-    if not (sire or dam or damsire):
+    out: dict[str, Any] = {}
+    for field, selector in C2_SELECTORS.items():
+        out[field], out[f"{field}_ref"] = _name_and_ref(horse_info.select_one(selector))
+    if not any(out[k] for k in NAME_FIELDS):
         return None
-    return {"sire": sire, "sire_ref": sire_ref, "dam": dam, "dam_ref": dam_ref,
-            "damsire": damsire, "damsire_ref": damsire_ref}
+    return out
 
 
-# --- 経路2：5代血統表（/horse/ped/） ----------------------------------------------
+# --- 経路3：5代血統表（/horse/ped/） ----------------------------------------------
 
 def parse_ped_page_html(html: str) -> dict[str, Any] | None:
-    """`db.netkeiba.com/horse/ped/{id}/` のHTMLから 父・母・母父 を読む。表が無ければ None。"""
+    """`db.netkeiba.com/horse/ped/{id}/` のHTMLから 父・母・母父 を読む。表の形が想定と違えば None。"""
     soup = BeautifulSoup(html, "lxml")
     table = soup.select_one("table.blood_table")
     if table is None:
@@ -112,12 +149,13 @@ def parse_ped_page_html(html: str) -> dict[str, Any] | None:
     top = max((s for s, _ in cells), default=1)
     parents = [td for s, td in cells if s == top]
     grand = [td for s, td in cells if s == top // 2] if top >= 2 else []
-    if len(parents) < 2:
-        logger.warning("血統表の父・母を特定できません（最大rowspan=%d が %d 個）", top, len(parents))
+    if len(parents) != 2 or len(grand) != 4:
+        logger.warning("血統表の形が想定と違います（最大rowspan=%d が %d 個、その半分が %d 個）",
+                       top, len(parents), len(grand))
         return None
     sire, sire_ref = _name_and_ref(parents[0])
     dam, dam_ref = _name_and_ref(parents[1])
-    damsire, damsire_ref = _name_and_ref(grand[2]) if len(grand) >= 4 else (None, None)
+    damsire, damsire_ref = _name_and_ref(grand[2])
     return {"sire": sire, "sire_ref": sire_ref, "dam": dam, "dam_ref": dam_ref,
             "damsire": damsire, "damsire_ref": damsire_ref}
 
@@ -144,32 +182,72 @@ def load_store(path: Path = STORE_PATH) -> dict[str, dict[str, str]]:
 
 def save_store(store: dict[str, dict[str, str]], path: Path = STORE_PATH) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="") as f:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()
         for ref in sorted(store):
             w.writerow({k: store[ref].get(k) or "" for k in FIELDS})
+    tmp.replace(path)       # 途中で落ちても壊れたCSVを残さない
 
 
-def add_record(store: dict[str, dict[str, str]], horse_ref: str, ped: dict[str, Any], source: str) -> bool:
-    """未登録の馬だけ追加する（血統は変わらないので上書きしない）。追加したら True。"""
-    if not horse_ref or not ped or horse_ref in store:
-        return False
-    store[horse_ref] = {**{k: ped.get(k) for k in FIELDS if k in ped}, "horse_ref": horse_ref, "source": source,
-                        "fetched_at": datetime.datetime.now(JST).isoformat(timespec="seconds")}
-    return True
+def _log_conflicts(rows: list[dict[str, str]], path: Path) -> None:
+    new_file = not path.exists()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=CONFLICT_FIELDS)
+        if new_file:
+            w.writeheader()
+        w.writerows(rows)
 
 
-def update_store_from_races(races: list[dict[str, Any]], path: Path = STORE_PATH) -> int:
-    """raw の races[].entries[].pedigree を保存先に追記する。追加した頭数を返す。"""
+def add_record(store: dict[str, dict[str, str]], horse_ref: str, ped: dict[str, Any] | None, source: str,
+               conflicts_path: Path | None = None) -> str:
+    """
+    1頭分を保存先に入れる。戻り値：
+      "added"      … 新しく保存した（3つそろっているときだけ）
+      "incomplete" … 父・母・母父のどれかが欠けている。保存しない（次の機会に取り直す）
+      "same"       … もう保存済みで、値も同じ
+      "conflict"   … もう保存済みで、値が違う。上書きせず conflicts.csv に残す
+      "skipped"    … horse_ref が無い
+    """
+    if not horse_ref:
+        return "skipped"
+    if not is_complete(ped):
+        return "incomplete"
+    old = store.get(horse_ref)
+    if old is None:
+        store[horse_ref] = {**{k: ped.get(k) for k in FIELDS if k in ped}, "horse_ref": horse_ref,
+                            "source": source, "fetched_at": _now()}
+        return "added"
+    diffs = [k for k in NAME_FIELDS if normalize_name(old.get(k)) != normalize_name(ped.get(k))]
+    if not diffs:
+        return "same"
+    found_at = _now()
+    _log_conflicts([{"horse_ref": horse_ref, "field": k, "stored": old.get(k) or "", "new": ped.get(k) or "",
+                     "stored_source": old.get("source") or "", "new_source": source, "found_at": found_at}
+                    for k in diffs], conflicts_path or CONFLICTS_PATH)
+    logger.warning("血統の食い違い：%s の %s（保存済み %s / 今回 %s）。上書きせず conflicts.csv に記録",
+                   horse_ref, ",".join(diffs), [old.get(k) for k in diffs], [ped.get(k) for k in diffs])
+    return "conflict"
+
+
+def update_store_from_races(races: list[dict[str, Any]], path: Path = STORE_PATH,
+                            verified: bool | None = None, conflicts_path: Path | None = None) -> dict[str, int]:
+    """raw の races[].entries[].pedigree を保存先に入れる。結果の内訳（added / incomplete / ...）を返す。"""
+    verified = c2_layout_verified() if verified is None else verified
+    counts = {"added": 0, "incomplete": 0, "same": 0, "conflict": 0, "skipped": 0}
+    if not verified:
+        logger.info("血統：C2の並びが未確認のため保存しません（docs/PEDIGREE.md の確認手順）")
+        return counts
     store = load_store(path)
-    added = 0
     for race in races:
         for entry in race.get("entries", []):
+            if not entry.get("pedigree"):
+                continue
             ref = (entry.get("horse_ref") or {}).get("netkeiba")
-            if add_record(store, ref, entry.get("pedigree"), "shutuba_past"):
-                added += 1
-    if added:
+            counts[add_record(store, ref, entry.get("pedigree"), "shutuba_past", conflicts_path)] += 1
+    if counts["added"]:
         save_store(store, path)
-    logger.info("血統：%d 頭を追加（保存済み %d 頭）", added, len(store))
-    return added
+    logger.info("血統：%s（保存済み %d 頭）", counts, len(store))
+    return counts

@@ -1,0 +1,82 @@
+name: 血統の並びの確認（手動）
+
+# C2（過去5走ページ）の Horse_Info で父・母・母父がどこにあるかを、血統の分かっている馬で確かめる。
+# 全頭一致したときだけ data/pedigree/c2_layout_check.json が verified: true になり、
+# 毎週の血統保存と「血統の取り込み（過去レース・手動）」が動くようになる。
+# アクセスは4ページ（約15秒）。手順は docs/PEDIGREE.md。
+# PR でも動かす（マージ前に実ページで確かめるため）。PR では結果を表示・保存するだけでコミットしない。
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scraper/fetchers/pedigree.py'
+      - 'scraper/fetchers/c2_shutuba_past.py'
+      - 'scripts/verify_pedigree_layout.py'
+      - '.github/workflows/manual_pedigree_verify.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pedigree-backfill-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 実ページで確認
+        run: python -m scripts.verify_pedigree_layout
+
+      - name: 結果を表示
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          p = pathlib.Path("data/pedigree/c2_layout_check.json")
+          if not p.exists():
+              print("確認結果がありません"); raise SystemExit
+          r = json.loads(p.read_text(encoding="utf-8"))
+          print(f"### 血統の並び：{'確認できた' if r['verified'] else '確認できない'}（{r['n_ok']}/{r['n_horses']} 頭一致）\n")
+          print("| 馬 | 期待（父/母/母父） | 読めた値 | 結果 |\n|---|---|---|---|")
+          for h in r["horses"]:
+              exp = " / ".join(h["expected"].values())
+              got = " / ".join(str(v) for v in (h.get("got") or {}).values()) or "-"
+              print(f"| {h['name']} | {exp} | {got} | {h.get('problem', '一致')} |")
+          PY
+
+      - name: 確認結果を保存（PRで見る用）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c2_layout_check
+          path: data/pedigree/c2_layout_check.json
+          if-no-files-found: ignore
+
+      - name: 確認結果をコミット
+        if: always() && github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/pedigree/c2_layout_check.json || exit 0
+          if git diff --cached --quiet; then
+            echo "変更はありません"
+            exit 0
+          fi
+          git commit -m "data: 血統の並びの確認結果"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

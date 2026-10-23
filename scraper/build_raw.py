@@ -398,6 +398,7 @@ def main() -> None:
     logger.info("書き出し完了: %s（%d レース）", out_path, len(data["races"]))
     report_coverage(data["races"])
     # 血統（父・母・母父）を data/pedigree/pedigree.csv に蓄積する。予想にはまだ使わない。
+    # C2の並びを実ページで確かめるまでは何も書かない（pedigree.c2_layout_verified）。
     # 失敗しても raw の生成は済んでいるので、警告だけ残して続ける。
     try:
         pedigree.update_store_from_races(data["races"])

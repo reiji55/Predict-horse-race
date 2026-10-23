@@ -3,6 +3,7 @@ name: 血統の取り込み（過去レース・手動）
 # 過去レースの出馬表「過去5走」ページ（race.netkeiba.com）から、出走馬の父・母・母父を集めて
 # data/pedigree/pedigree.csv に追記する。1回の実行で limit レースだけ取り、済んだレースは次回飛ばす。
 # 予想ロジックはまだ血統を使わない（蓄積だけ）。手順と注意は docs/PEDIGREE.md。
+# 先に「血統の並びの確認（手動）」で verified になっていないと、取り込みは何もせず止まる。
 on:
   workflow_dispatch:
     inputs:

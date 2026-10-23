@@ -1,5 +1,6 @@
 <!-- 自作フィクスチャ：出馬表「過去5走」の Horse_Info に血統が並ぶ想定の「構造だけ」を再現（馬名は架空）。
-     Horse01=父 / Horse03=母 / Horse04=(母父) は推定。実サンプルでの確認方法は docs/PEDIGREE.md -->
+     Horse01=父 / Horse03=母 / Horse04=(母父) は推定。実ページでの確認は scripts/verify_pedigree_layout.py。
+     3頭目は父だけ載っている（一部欠け）ケース -->
 <html><head><title>テストレース 過去5走</title></head><body>
 <table class="Shutuba_Table Shutuba_Past5_Table tablesorter">
 <tbody>
@@ -19,6 +20,14 @@
   <td class="Horse_Info">
     <div class="Horse02"><a href="https://db.netkeiba.com/horse/2021100002" title="テスト馬ニ">テスト馬ニ</a></div>
     <div class="Popular"><span>3.4 (1人気)</span></div>
+  </td>
+</tr>
+<tr>
+  <td class="Waku3">3</td><td class="Waku">3</td>
+  <td class="Horse_Info">
+    <div class="Horse01 fc">テスト種牡馬C</div>
+    <div class="Horse02"><a href="https://db.netkeiba.com/horse/2021100003" title="テスト馬サン">テスト馬サン</a></div>
+    <div class="Popular"><span>8.8 (3人気)</span></div>
   </td>
 </tr>
 </tbody>

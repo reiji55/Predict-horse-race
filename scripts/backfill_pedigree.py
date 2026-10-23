@@ -8,6 +8,7 @@
   1,000頭で約70分、1万頭で約11時間。数日に分けて少しずつ回す前提。
 - 途中で止めても、保存済みの馬は飛ばして続きから再開する（50頭ごとに保存）。
 - 既に保存済みの馬は二度と取りに行かない（血統は変わらない）。
+- 父・母・母父がそろわない馬・表の形が想定と違う馬は保存しない（次回また取りに行く）。
 
 使い方：
   python -m scripts.backfill_pedigree --ids horse_ids.txt --limit 1000
@@ -40,19 +41,16 @@ def main() -> None:
     logger.info("対象 %d 頭のうち未取得 %d 頭、今回 %d 頭を取りに行きます（目安 %.0f 分）",
                 len(ids), len([i for i in ids if i not in store]), len(todo), len(todo) * 4 / 60)
 
-    added, failed, started = 0, 0, time.monotonic()
+    counts = {"added": 0, "incomplete": 0, "same": 0, "conflict": 0, "skipped": 0}
+    started = time.monotonic()
     for n, horse_id in enumerate(todo, 1):
-        ped = pedigree.fetch_ped_page(horse_id)
-        if pedigree.add_record(store, horse_id, ped, "ped_page"):
-            added += 1
-        else:
-            failed += 1
+        ped = pedigree.fetch_ped_page(horse_id)        # 表の形が想定と違えば None → incomplete（保存しない）
+        counts[pedigree.add_record(store, horse_id, ped, "ped_page")] += 1
         if n % 50 == 0:
             pedigree.save_store(store, store_path)
-            logger.info("%d/%d 頭（追加 %d、失敗 %d、経過 %.0f 分）", n, len(todo), added, failed,
-                        (time.monotonic() - started) / 60)
+            logger.info("%d/%d 頭 %s（経過 %.0f 分）", n, len(todo), counts, (time.monotonic() - started) / 60)
     pedigree.save_store(store, store_path)
-    logger.info("完了：追加 %d 頭、失敗 %d 頭（保存済み合計 %d 頭）", added, failed, len(store))
+    logger.info("完了：%s（保存済み合計 %d 頭）", counts, len(store))
 
 
 if __name__ == "__main__":
