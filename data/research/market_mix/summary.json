@@ -1,8 +1,8 @@
 {
   "schema": "market-mix-summary-v1",
   "version": "market-mix-v1",
-  "generated_at": "2026-10-20T22:36:09+09:00",
-  "as_of": "2026-10-20",
+  "generated_at": "2026-10-24T19:47:40+09:00",
+  "as_of": "2026-10-24",
   "as_of_mode": "live",
   "used_for_prediction": false,
   "official_results_untouched": true,
@@ -14,9 +14,9 @@
   },
   "status": "collecting",
   "warnings": [],
-  "races": 25,
-  "training_pool": 11,
-  "evaluated": 0,
+  "races": 28,
+  "training_pool": 14,
+  "evaluated": 3,
   "pending_result": [],
   "eligibility_unverified": [],
   "eligibility_unverified_overdue": [],
@@ -28,15 +28,15 @@
     "no_prerace_commit": [
       "20260919-hanshin-11",
       "20260919-nakayama-11",
+      "20260921-hanshin-11"
+    ],
+    "odds_timing_not_pre_race_verified": [
       "20260920-hanshin-11",
       "20260920-nakayama-11",
-      "20260921-hanshin-11",
       "20260926-hanshin-11",
       "20260926-nakayama-11",
       "20260927-hanshin-11",
-      "20260927-nakayama-11"
-    ],
-    "odds_timing_not_pre_race_verified": [
+      "20260927-nakayama-11",
       "20261003-kyoto-11",
       "20261003-tokyo-11",
       "20261004-kyoto-11",
@@ -46,33 +46,62 @@
       "20261012-kyoto-11"
     ]
   },
-  "evaluation_days": [],
+  "evaluation_days": [
+    "20261024"
+  ],
   "decision": {
-    "counted_races": 0,
+    "counted_races": 3,
     "reached": {},
     "checkpoints": {},
-    "resolved_through": null,
+    "resolved_through": "20261024",
     "unresolved": [],
     "status": "collecting"
   },
   "decision_fixed": null,
   "decision_check": null,
   "to_date": {
-    "races_in_window": 0,
-    "evaluated": 0,
-    "n_day": 0,
+    "races_in_window": 3,
+    "evaluated": 3,
+    "n_day": 1,
     "pending_result": [],
     "excluded_by_result_contract": [],
-    "primary_mean_D": null,
-    "variants_mean_D": {},
-    "secondary": {
-      "win_logloss": null,
-      "top3_brier": null,
-      "T1_vs_harville_mkt": null
+    "primary_mean_D": 0.0,
+    "variants_mean_D": {
+      "payout=0.725|shape=harville|cap=on": 0.0,
+      "payout=0.725|shape=harville|cap=off": 0.0,
+      "payout=0.725|shape=discounted_harville|cap=on": 0.0,
+      "payout=0.725|shape=discounted_harville|cap=off": 0.0,
+      "payout=0.725|shape=uniform|cap=on": 0.0,
+      "payout=0.725|shape=uniform|cap=off": 0.0,
+      "payout=0.75|shape=harville|cap=on": 0.0,
+      "payout=0.75|shape=harville|cap=off": 0.0,
+      "payout=0.75|shape=discounted_harville|cap=on": 0.0,
+      "payout=0.75|shape=discounted_harville|cap=off": 0.0,
+      "payout=0.75|shape=uniform|cap=on": 0.0,
+      "payout=0.75|shape=uniform|cap=off": 0.0,
+      "payout=0.775|shape=harville|cap=on": 0.0,
+      "payout=0.775|shape=harville|cap=off": 0.0,
+      "payout=0.775|shape=discounted_harville|cap=on": 0.0,
+      "payout=0.775|shape=discounted_harville|cap=off": 0.0,
+      "payout=0.775|shape=uniform|cap=on": 0.0,
+      "payout=0.775|shape=uniform|cap=off": 0.0
     },
-    "secondary_p_model_mean_D": null,
-    "secondary_p_model_n": 0,
-    "champion_segments": []
+    "secondary": {
+      "win_logloss": 0.249507,
+      "top3_brier": 0.0,
+      "T1_vs_harville_mkt": 0.329361
+    },
+    "secondary_p_model_mean_D": 0.0,
+    "secondary_p_model_n": 3,
+    "champion_segments": [
+      {
+        "model_id": "win-v1-speed-guard",
+        "config_hash": "097972c4afa00737",
+        "from_day": "20261024",
+        "n": 3,
+        "mean_D": 0.0
+      }
+    ]
   },
   "p_model_source_changed": [],
   "p_model_source_changed_in_decision_window": [],
