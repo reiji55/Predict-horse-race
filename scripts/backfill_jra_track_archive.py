@@ -122,7 +122,10 @@ def main(argv: list[str] | None = None) -> int:
         for year, url, ven, kai in checks:
             txt = pdf_text(url)
             rows = parse_pdf_text(txt or "", year, ven, kai, url)
-            report.append({"pdf": url, "text_chars": len(txt or ""), "rows": len(rows), "first_rows": rows[:3]})
+            rec = {"pdf": url, "text_chars": len(txt or ""), "rows": len(rows), "first_rows": rows[:2]}
+            if not rows:      # 読めなかったときは、並びを直すための手がかりとして先頭の文字列を出す（JRAの数値表）
+                rec["text_head"] = (txt or "")[:700]
+            report.append(rec)
         print(json.dumps(report, ensure_ascii=False, indent=1))
         first = report[0]["first_rows"][0] if report[0]["first_rows"] else {}
         # PDFの1行目（2025年1回中山 1月4日）：B 10:30 10.1 10:30 13.4 13.7 2.1 2.1
