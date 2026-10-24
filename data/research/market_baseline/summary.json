@@ -1,18 +1,14 @@
 {
   "schema": "market-baseline-summary-v1",
-  "generated_at": "2026-10-24T19:47:37+09:00",
+  "generated_at": "2026-10-24T23:02:15+09:00",
   "config_version": "market-baseline-v1",
   "config_hash": "8c1eb540296256767a9fca6b827835baf0cffb1171d90f9c80261655b500f24f",
   "used_for_prediction": false,
   "official_results_untouched": true,
   "note": "市場だけの基準線（モデル不使用）。すべて発走前に固定した版のオッズで、時点が pre_race_verified のレースだけ。3連複の未収録組には残りの質量を Harville の形で配っている（近似）。少数標本なので有意性は判定しない。",
   "races": 28,
-  "evaluated": 12,
-  "pending_result": [
-    "20261024-kyoto-11",
-    "20261024-niigata-11",
-    "20261024-tokyo-11"
-  ],
+  "evaluated": 15,
+  "pending_result": [],
   "excluded": {
     "no_prerace_commit": [
       "20260919-hanshin-11",
@@ -32,61 +28,61 @@
       "20261004-tokyo-11"
     ]
   },
-  "mean_win_logloss_market": 2.15815,
+  "mean_win_logloss_market": 2.17216,
   "models": {
     "market_trio": {
-      "races": 12,
-      "mean_trio_logloss": 4.747671,
-      "mean_top3_brier": 0.135542,
+      "races": 15,
+      "mean_trio_logloss": 4.871107,
+      "mean_top3_brier": 0.139884,
       "top5_hit_races": 3,
-      "median_actual_trio_rank": 17.5
+      "median_actual_trio_rank": 25
     },
     "harville": {
-      "races": 12,
-      "mean_trio_logloss": 4.790045,
-      "mean_top3_brier": 0.137528,
+      "races": 15,
+      "mean_trio_logloss": 4.867741,
+      "mean_top3_brier": 0.141517,
       "top5_hit_races": 2,
-      "median_actual_trio_rank": 14.5
+      "median_actual_trio_rank": 17
     },
     "discounted_harville": {
-      "races": 12,
-      "mean_trio_logloss": 4.871142,
-      "mean_top3_brier": 0.138258,
+      "races": 15,
+      "mean_trio_logloss": 4.924743,
+      "mean_top3_brier": 0.141916,
       "top5_hit_races": 2,
-      "median_actual_trio_rank": 14.5
+      "median_actual_trio_rank": 17
     }
   },
   "paired_vs_market_trio": {
     "harville": {
       "trio_logloss": {
-        "n": 12,
-        "mean_diff_vs_market_trio": 0.042374,
-        "se": 0.110825,
-        "model_better": 6,
-        "market_trio_better": 6
+        "n": 15,
+        "mean_diff_vs_market_trio": -0.003366,
+        "se": 0.098251,
+        "model_better": 8,
+        "market_trio_better": 7
       },
       "top3_brier": {
-        "n": 12,
-        "mean_diff_vs_market_trio": 0.001986,
-        "se": 0.002517,
-        "model_better": 5,
-        "market_trio_better": 7
+        "n": 15,
+        "mean_diff_vs_market_trio": 0.001633,
+        "se": 0.002015,
+        "model_better": 6,
+        "market_trio_better": 9
       }
     },
     "discounted_harville": {
       "trio_logloss": {
-        "n": 12,
-        "mean_diff_vs_market_trio": 0.123471,
-        "se": 0.1196,
-        "model_better": 5,
-        "market_trio_better": 7
+        "n": 15,
+        "mean_diff_vs_market_trio": 0.053637,
+        "se": 0.117333,
+        "model_better": 7,
+        "market_trio_better": 8
       },
       "top3_brier": {
-        "n": 12,
-        "mean_diff_vs_market_trio": 0.002716,
-        "se": 0.002584,
-        "model_better": 4,
-        "market_trio_better": 8
+        "n": 15,
+        "mean_diff_vs_market_trio": 0.002032,
+        "se": 0.002149,
+        "model_better": 6,
+        "market_trio_better": 9
       }
     }
   },
@@ -99,11 +95,11 @@
     "primary_variant": "payout=0.75|shape=harville|cap=on",
     "variants": {
       "payout=0.725|shape=harville|cap=on": {
-        "mean_trio_logloss": 4.775196,
-        "mean_top3_brier": 0.13577,
+        "mean_trio_logloss": 4.899224,
+        "mean_top3_brier": 0.139918,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -113,11 +109,11 @@
         }
       },
       "payout=0.725|shape=harville|cap=off": {
-        "mean_trio_logloss": 4.739811,
-        "mean_top3_brier": 0.135787,
+        "mean_trio_logloss": 4.871599,
+        "mean_top3_brier": 0.139888,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -127,11 +123,11 @@
         }
       },
       "payout=0.725|shape=discounted_harville|cap=on": {
-        "mean_trio_logloss": 4.775196,
-        "mean_top3_brier": 0.135787,
+        "mean_trio_logloss": 4.899224,
+        "mean_top3_brier": 0.139938,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -141,11 +137,11 @@
         }
       },
       "payout=0.725|shape=discounted_harville|cap=off": {
-        "mean_trio_logloss": 4.737464,
-        "mean_top3_brier": 0.135831,
+        "mean_trio_logloss": 4.869721,
+        "mean_top3_brier": 0.139926,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -155,11 +151,11 @@
         }
       },
       "payout=0.725|shape=uniform|cap=on": {
-        "mean_trio_logloss": 4.775196,
-        "mean_top3_brier": 0.136182,
+        "mean_trio_logloss": 4.899224,
+        "mean_top3_brier": 0.140306,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -169,11 +165,11 @@
         }
       },
       "payout=0.725|shape=uniform|cap=off": {
-        "mean_trio_logloss": 4.740426,
-        "mean_top3_brier": 0.136188,
+        "mean_trio_logloss": 4.872091,
+        "mean_top3_brier": 0.140241,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -183,11 +179,11 @@
         }
       },
       "payout=0.75|shape=harville|cap=on": {
-        "mean_trio_logloss": 4.747671,
-        "mean_top3_brier": 0.135542,
+        "mean_trio_logloss": 4.871107,
+        "mean_top3_brier": 0.139884,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -197,8 +193,8 @@
         }
       },
       "payout=0.75|shape=harville|cap=off": {
-        "mean_trio_logloss": 4.729133,
-        "mean_top3_brier": 0.135539,
+        "mean_trio_logloss": 4.856276,
+        "mean_top3_brier": 0.139894,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -211,11 +207,11 @@
         }
       },
       "payout=0.75|shape=discounted_harville|cap=on": {
-        "mean_trio_logloss": 4.747671,
-        "mean_top3_brier": 0.135572,
+        "mean_trio_logloss": 4.871107,
+        "mean_top3_brier": 0.139915,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -225,8 +221,8 @@
         }
       },
       "payout=0.75|shape=discounted_harville|cap=off": {
-        "mean_trio_logloss": 4.726787,
-        "mean_top3_brier": 0.135573,
+        "mean_trio_logloss": 4.854399,
+        "mean_top3_brier": 0.139922,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -239,11 +235,11 @@
         }
       },
       "payout=0.75|shape=uniform|cap=on": {
-        "mean_trio_logloss": 4.747671,
-        "mean_top3_brier": 0.135904,
+        "mean_trio_logloss": 4.871107,
+        "mean_top3_brier": 0.140207,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -253,8 +249,8 @@
         }
       },
       "payout=0.75|shape=uniform|cap=off": {
-        "mean_trio_logloss": 4.729748,
-        "mean_top3_brier": 0.135813,
+        "mean_trio_logloss": 4.856768,
+        "mean_top3_brier": 0.140135,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -267,8 +263,8 @@
         }
       },
       "payout=0.775|shape=harville|cap=on": {
-        "mean_trio_logloss": 4.720428,
-        "mean_top3_brier": 0.135553,
+        "mean_trio_logloss": 4.845536,
+        "mean_top3_brier": 0.139823,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -281,8 +277,8 @@
         }
       },
       "payout=0.775|shape=harville|cap=off": {
-        "mean_trio_logloss": 4.728889,
-        "mean_top3_brier": 0.135684,
+        "mean_trio_logloss": 4.852304,
+        "mean_top3_brier": 0.139915,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -295,8 +291,8 @@
         }
       },
       "payout=0.775|shape=discounted_harville|cap=on": {
-        "mean_trio_logloss": 4.72079,
-        "mean_top3_brier": 0.135604,
+        "mean_trio_logloss": 4.847065,
+        "mean_top3_brier": 0.139732,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -309,8 +305,8 @@
         }
       },
       "payout=0.775|shape=discounted_harville|cap=off": {
-        "mean_trio_logloss": 4.726956,
-        "mean_top3_brier": 0.135739,
+        "mean_trio_logloss": 4.852487,
+        "mean_top3_brier": 0.13978,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -323,8 +319,8 @@
         }
       },
       "payout=0.775|shape=uniform|cap=on": {
-        "mean_trio_logloss": 4.728078,
-        "mean_top3_brier": 0.135776,
+        "mean_trio_logloss": 4.852895,
+        "mean_top3_brier": 0.139887,
         "better_than": {
           "harville": {
             "trio_logloss": true,
@@ -337,11 +333,11 @@
         }
       },
       "payout=0.775|shape=uniform|cap=off": {
-        "mean_trio_logloss": 4.737802,
-        "mean_top3_brier": 0.136642,
+        "mean_trio_logloss": 4.881872,
+        "mean_top3_brier": 0.139202,
         "better_than": {
           "harville": {
-            "trio_logloss": true,
+            "trio_logloss": false,
             "top3_brier": true
           },
           "discounted_harville": {
@@ -353,7 +349,7 @@
     },
     "ordering_stable_across_variants": {
       "harville": {
-        "trio_logloss": true,
+        "trio_logloss": false,
         "top3_brier": true
       },
       "discounted_harville": {
