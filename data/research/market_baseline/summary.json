@@ -1,27 +1,31 @@
 {
   "schema": "market-baseline-summary-v1",
-  "generated_at": "2026-10-19T22:56:27+09:00",
+  "generated_at": "2026-10-24T19:47:37+09:00",
   "config_version": "market-baseline-v1",
   "config_hash": "8c1eb540296256767a9fca6b827835baf0cffb1171d90f9c80261655b500f24f",
   "used_for_prediction": false,
   "official_results_untouched": true,
   "note": "市場だけの基準線（モデル不使用）。すべて発走前に固定した版のオッズで、時点が pre_race_verified のレースだけ。3連複の未収録組には残りの質量を Harville の形で配っている（近似）。少数標本なので有意性は判定しない。",
-  "races": 25,
+  "races": 28,
   "evaluated": 12,
-  "pending_result": [],
+  "pending_result": [
+    "20261024-kyoto-11",
+    "20261024-niigata-11",
+    "20261024-tokyo-11"
+  ],
   "excluded": {
     "no_prerace_commit": [
       "20260919-hanshin-11",
       "20260919-nakayama-11",
+      "20260921-hanshin-11"
+    ],
+    "odds_timing_not_pre_race_verified": [
       "20260920-hanshin-11",
       "20260920-nakayama-11",
-      "20260921-hanshin-11",
       "20260926-hanshin-11",
       "20260926-nakayama-11",
       "20260927-hanshin-11",
-      "20260927-nakayama-11"
-    ],
-    "odds_timing_not_pre_race_verified": [
+      "20260927-nakayama-11",
       "20261003-kyoto-11",
       "20261003-tokyo-11",
       "20261004-kyoto-11",
