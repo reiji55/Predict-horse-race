@@ -1,0 +1,76 @@
+name: 調教評価の取り込み（過去レース・手動）
+
+# netkeibaの調教ページの、無料で見られる「調教評価」と記号を、過去のメインレースから集める。
+# data/training/training_eval.csv に保存。予想ロジックはまだ使わない。手順は docs/TRAINING_EVAL.md。
+# PRでは年ごとに1レースずつ取り、記号の内訳などをPRにコメントする（保存しない）。
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '今回取りに行くレース数（1レース約4秒。200で約15分）'
+        required: true
+        default: '200'
+  pull_request:
+    paths:
+      - 'scraper/fetchers/training.py'
+      - 'scripts/backfill_training_races.py'
+      - '.github/workflows/manual_training_backfill.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pedigree-backfill-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  training:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 年ごとの確認（PR）
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m scripts.backfill_training_races --sample 201406040811 201709050911 202006050811 202309050911 202609040811 > sample.json
+          { echo "### 調教評価：年ごとの確認"; echo; echo '```json'; cat sample.json; echo '```'; } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+
+      - name: 調教評価の取り込み
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          LIMIT: ${{ github.event.inputs.limit || '200' }}
+        run: |
+          case "$LIMIT" in
+            ''|*[!0-9]*) echo "limit は数字で指定してください: $LIMIT"; exit 1 ;;
+          esac
+          python -m scripts.backfill_training_races --race-ids data/pedigree/backfill_race_ids_11R.txt --limit "$LIMIT"
+
+      - name: 取り込んだ評価をコミット
+        if: always() && github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/training/ || exit 0
+          if git diff --cached --quiet; then
+            echo "新しい評価はありません"
+            exit 0
+          fi
+          git commit -m "data: 調教評価の取り込み（過去レース）"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

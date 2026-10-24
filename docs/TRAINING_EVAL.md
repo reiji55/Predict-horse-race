@@ -1,0 +1,25 @@
+# 調教評価（netkeibaの無料で見られる部分）
+
+予想ロジック（`logic/`）は**まだ使わない**。過去分をためて、オッズを使わない3着内確率の式に足して効くかを検証する。
+
+## 何が無料で見られるか（2026-10-24 確認、`manual_training_check`）
+
+調教ページ（`race.netkeiba.com/race/oikiri.html?race_id=…`）の表で、有料会員でなくても見られるのは：
+
+- `td.Training_Critic` … 短い調教評価（例「動き軽快」「動き上々」）
+- `td[class^=Rank_]` … その横の記号（評価のランクとみられる）
+
+調教タイムの数字は会員向けで見られない。
+
+## 保存先
+
+- `data/training/training_eval.csv` … race_id, horse_ref, grade（記号）, critic（評価）, fetched_at
+- `data/training/backfill_status.csv` … レースごとの結果（血統の取り込みと同じ決まり：全頭読めたレースだけ done、
+  表なし・読めない行・欠けは retry、3回で unavailable / partial_final）
+
+## 動かし方
+
+Actions 画面の「**調教評価の取り込み（過去レース・手動）**」を実行する（入力：`limit`＝レース数）。
+対象は血統と同じ過去のメインレース3,656件。1レース約4秒。
+PRでは年ごとに1レース（2014・2017・2020・2023・2026年）を取り、記号の内訳をPRにコメントする。
+古い年のページに評価が無ければ、その年は `unavailable` になる。
