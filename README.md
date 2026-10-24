@@ -85,6 +85,7 @@ v1〜v8。**最新はv8**（成果物の統合・logic実装完了）。各版�
 - `docs/ui/archive/` … 旧世代モック（キャラ・妙味メーター導入前）
 - `docs/OPEN_QUESTIONS.md` … 未確定・要確認事項の集約（着手前にここを見る）
 - `docs/PEDIGREE.md` … 血統（父・母・母父）の取得と蓄積（予想にはまだ使わない）
+- `docs/JRA_TRACK_ARCHIVE.md` … JRAの含水率・クッション値の過去分（予想にはまだ使わない）
 
 ## テストの実行
 

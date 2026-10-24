@@ -1,0 +1,47 @@
+name: 調教ページの確認（手動）
+
+# netkeibaの調教（追い切り）ページが、有料会員でなくてもどこまで見られるかを確かめる。
+# ページの中身は保存せず、列の見出し・数字の有無・会員向けの鍵の有無だけを出す。アクセスは2ページ。
+on:
+  workflow_dispatch:
+    inputs:
+      race_ids:
+        description: '確かめるレースID（空白区切り）'
+        required: false
+        default: '202605040811 202609040811'
+  pull_request:
+    paths:
+      - 'scripts/check_training_page.py'
+      - '.github/workflows/manual_training_check.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 調教ページを確かめる
+        env:
+          IDS: ${{ github.event.inputs.race_ids || '202605040811 202609040811' }}
+        run: |
+          python -m scripts.check_training_page $IDS > report.json
+          { echo "### 調教ページの確認"; echo; echo '```json'; cat report.json; echo '```'; } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 結果をPRにコメント
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
