@@ -81,6 +81,78 @@ def parse_pdf_text(text: str, year: int, venue: str, kai: int, source: str = "")
     return rows
 
 
+RANGE_RE = re.compile(r"(\d{4})年(\d{1,2})月(\d{1,2})日\s*(?:~|から|〜)\s*(?:(\d{1,2})月)?(\d{1,2})日")
+WEEKDAY_LINE = re.compile(r"((?:[月火水木金土日]曜日\s*){1,5})")
+NUM = re.compile(r"\d+\.\d|[－―\-]")
+
+
+def _nums(text: str) -> list[float | None]:
+    return [_num(t) for t in NUM.findall(text)]
+
+
+def parse_block_text(text: str, year: int, venue: str, kai: int, source: str = "") -> list[dict]:
+    """
+    古い年の並び（1週分＝1つの表）を読む。
+      見出し：「（2021年11月5日～7日）」または「2019年11月29日から12月1日の含水率」
+      曜日の行：「金曜日 土曜日 日曜日」
+      （2020年9月以降は）その次の数字の行がクッション値、そのあと
+      「芝コース含水率 ゴール前 a b c」「4コーナー a b c」「ダートコース含水率 ゴール前 …」「4コーナー …」
+    """
+    text = unicodedata.normalize("NFKC", text)
+    marks = list(RANGE_RE.finditer(text))
+    rows = []
+    for i, m in enumerate(marks):
+        block = text[m.end(): marks[i + 1].start() if i + 1 < len(marks) else len(text)]
+        try:
+            start = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            end = datetime.date(int(m.group(1)) + (1 if m.group(4) and int(m.group(4)) < start.month else 0),
+                                int(m.group(4) or m.group(2)), int(m.group(5)))
+        except ValueError:
+            continue
+        wl = WEEKDAY_LINE.search(block)
+        if not wl:
+            continue
+        days = re.findall(r"([月火水木金土日])曜日", wl.group(1))
+        span = [start + datetime.timedelta(d) for d in range((end - start).days + 1)]
+        by_wd = {"月火水木金土日"[d.weekday()]: d for d in span}
+        after = block[wl.end():]
+        cushion = [None] * len(days)
+        head = after.split("場所", 1)[0] if "場所" in after else ""
+        if head.strip():
+            vals = _nums(head)
+            if len(vals) == len(days):
+                cushion = vals
+
+        def pick(label: str) -> tuple[list, list]:
+            k = after.find(label)
+            if k < 0:
+                return [None] * len(days), [None] * len(days)
+            seg = after[k + len(label):]
+            g = re.search(r"ゴール前([^\n]*)", seg)
+            t4 = re.search(r"4\s*コーナー([^\n]*)", seg)
+            goal = _nums(g.group(1)) if g else []
+            turn4 = _nums(t4.group(1)) if t4 else []
+            fix = lambda v: (v + [None] * len(days))[:len(days)]
+            return fix(goal), fix(turn4)
+
+        tg, t4 = pick("芝コース含水率")
+        dg, d4 = pick("ダートコース含水率")
+        for j, wd in enumerate(days):
+            d = by_wd.get(wd)
+            if d is None or all(v is None for v in (tg[j], t4[j], dg[j], d4[j], cushion[j])):
+                continue
+            rows.append({"year": year, "venue": venue, "kai": kai, "day_no": "", "date": d.isoformat(),
+                         "weekday": wd, "course": "", "cushion_time": "", "cushion": cushion[j], "moisture_time": "",
+                         "turf_goal": tg[j], "turf_turn4": t4[j], "dirt_goal": dg[j], "dirt_turn4": d4[j],
+                         "source": source})
+    return rows
+
+
+def parse_any(text: str, year: int, venue: str, kai: int, source: str = "") -> list[dict]:
+    """新しい年の並び（1日1行）で読めなければ、古い年の並び（1週分＝1表）で読む。"""
+    return parse_pdf_text(text, year, venue, kai, source) or parse_block_text(text, year, venue, kai, source)
+
+
 def pdf_links(year: int) -> list[tuple[str, str, int]]:
     """年のページから（PDFのURL, 競馬場, 回）を取る。"""
     from scraper.common.http import get as http_get
@@ -121,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         report = []
         for year, url, ven, kai in checks:
             txt = pdf_text(url)
-            rows = parse_pdf_text(txt or "", year, ven, kai, url)
+            rows = parse_any(txt or "", year, ven, kai, url)
             rec = {"pdf": url, "text_chars": len(txt or ""), "rows": len(rows), "first_rows": rows[:2]}
             if not rows:      # 読めなかったときは、並びを直すための手がかりとして先頭の文字列を出す（JRAの数値表）
                 rec["text_head"] = (txt or "")[:700]
@@ -131,6 +203,7 @@ def main(argv: list[str] | None = None) -> int:
         # PDFの1行目（2025年1回中山 1月4日）：B 10:30 10.1 10:30 13.4 13.7 2.1 2.1
         ok = (first.get("date") == "2025-01-04" and first.get("course") == "B" and first.get("cushion") == 10.1
               and [first.get(k) for k in ("turf_goal", "turf_turn4", "dirt_goal", "dirt_turn4")] == [13.4, 13.7, 2.1, 2.1])
+        ok = ok and all(r["rows"] > 0 for r in report)
         print("SAMPLE_CHECK", "OK" if ok else "NG")
         return 0 if ok else 1
 
@@ -141,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.info("%d年：PDF %d 件", year, len(links))
         for url, ven, kai in links:
             txt = pdf_text(url)
-            got = parse_pdf_text(txt or "", year, ven, kai, url)
+            got = parse_any(txt or "", year, ven, kai, url)
             if not got:
                 logger.warning("行を読めません: %s", url)
             rows.extend(got)

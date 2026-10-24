@@ -67,3 +67,47 @@ def test_training_summary_reports_structure_only():
     assert s["columns"][1]["has_time"] == 1 and s["columns"][1]["filled"] == 1
     assert s["columns"][2]["locked"] == 1 and "プレミアム" in s["lock_words"]
     assert "テスト馬" not in str(s)          # 中身（馬名など）は出さない
+
+
+# 古い年の並び（1週分＝1表）。2020年9月以降はクッション値の行がある（自作・数字の並びだけ）
+BLOCK_WITH_CUSHION = """第１日・第２日（2021年11月5日～7日）
+金曜日 土曜日 日曜日
+8.9 9.2 9.2
+場所 金曜日 土曜日 日曜日
+芝コース含水率 ゴール前 14.7 14.3 14.3
+（パーセント） ４コーナー 13.6 13.2 13.7
+ダートコース含水率 ゴール前 4.9 2.9 2.7
+（パーセント） ４コーナー 5.1 4.0 4.0
+第３日・第４日（2021年11月12日～14日）
+金曜日 土曜日 日曜日
+8.6 9.1 9.2
+場所 金曜日 土曜日 日曜日
+芝コース含水率 ゴール前 15.0 15.2 14.3
+（パーセント） ４コーナー 14.6 13.7 13.4
+ダートコース含水率 ゴール前 8.1 7.4 6.7
+（パーセント） ４コーナー 8.2 8.0 6.0
+"""
+BLOCK_NO_CUSHION = """第１日・第２日の含水率
+2019年11月29日から12月1日の含水率
+場所 金曜日 土曜日 日曜日
+芝コース含水率 ゴール前 10.5 10.3 9.2
+（パーセント） ４コーナー 9.2 11.1 11.1
+ダートコース含水率 ゴール前 2.1 1.5 2.0
+（パーセント） ４コーナー 1.6 1.8 2.1
+"""
+
+
+def test_block_format_with_cushion():
+    rows = jra.parse_any(BLOCK_WITH_CUSHION, 2021, "東京", 5)
+    assert len(rows) == 6
+    sat = [r for r in rows if r["date"] == "2021-11-06"][0]
+    assert sat["weekday"] == "土" and sat["cushion"] == 9.2
+    assert [sat["turf_goal"], sat["turf_turn4"], sat["dirt_goal"], sat["dirt_turn4"]] == [14.3, 13.2, 2.9, 4.0]
+    assert [r["date"] for r in rows][-1] == "2021-11-14"
+
+
+def test_block_format_without_cushion_across_months():
+    rows = jra.parse_any(BLOCK_NO_CUSHION, 2019, "阪神", 5)
+    assert [r["date"] for r in rows] == ["2019-11-29", "2019-11-30", "2019-12-01"]
+    assert all(r["cushion"] is None for r in rows)
+    assert [rows[2]["turf_goal"], rows[2]["turf_turn4"], rows[2]["dirt_goal"], rows[2]["dirt_turn4"]] == [9.2, 11.1, 2.0, 2.1]
