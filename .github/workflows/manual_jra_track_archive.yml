@@ -1,0 +1,73 @@
+name: JRA馬場データの過去分（手動）
+
+# JRA公式の「含水率・クッション値」の過去データ（2018年〜、開催ごとのPDF）を読み、
+# data/track/jra_track_archive.csv（1日1行）にする。PDFは保存しない。間隔は3〜5秒。
+# PRでは3ファイルだけ読み、1行目が正しく読めるかをPRにコメントする（コミットしない）。
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'scripts/backfill_jra_track_archive.py'
+      - '.github/workflows/manual_jra_track_archive.yml'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: jra-track-archive-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt pypdf
+
+      - name: 読み取りの確認（PR）
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python -m scripts.backfill_jra_track_archive --sample > sample.txt 2> sample.log
+          code=$?
+          {
+            echo "### JRA馬場データ：読み取りの確認"
+            echo
+            echo '```'
+            tail -c 6000 sample.txt
+            echo '```'
+          } > comment.md
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file comment.md
+          exit $code
+
+      - name: 過去分をすべて読む
+        if: github.event_name == 'workflow_dispatch'
+        run: python -m scripts.backfill_jra_track_archive
+
+      - name: 表をコミット
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/track/jra_track_archive.csv
+          if git diff --cached --quiet; then
+            echo "変更はありません"
+            exit 0
+          fi
+          git commit -m "data: JRA馬場データ（含水率・クッション値）の過去分"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1

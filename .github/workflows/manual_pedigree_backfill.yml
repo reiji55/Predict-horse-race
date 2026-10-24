@@ -4,6 +4,8 @@ name: 血統の取り込み（過去レース・手動）
 # data/pedigree/pedigree.csv に追記する。1回の実行で limit レースだけ取り、済んだレースは次回飛ばす。
 # 予想ロジックはまだ血統を使わない（蓄積だけ）。手順と注意は docs/PEDIGREE.md。
 # 先に「血統の並びの確認（手動）」で verified になっていないと、取り込みは何もせず止まる。
+# 平日の 3:20・12:20・21:20（日本時間）にも自動で200レースずつ回す（土日の日中は週次の取り込みと重なるので避ける）。
+# 全レースが終われば、取りに行く対象が無くなるので何もしない。
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +13,10 @@ on:
         description: '今回取りに行くレース数（1レース約4秒。200で約15分）'
         required: true
         default: '200'
+  schedule:
+    - cron: '20 18 * * 0-4'   # 日本時間 月〜金 3:20
+    - cron: '20 3 * * 1-5'    # 日本時間 月〜金 12:20
+    - cron: '20 12 * * 1-5'   # 日本時間 月〜金 21:20
 
 permissions:
   contents: write
@@ -38,7 +44,7 @@ jobs:
 
       - name: 血統の取り込み
         env:
-          LIMIT: ${{ github.event.inputs.limit }}
+          LIMIT: ${{ github.event.inputs.limit || '200' }}
         run: |
           case "$LIMIT" in
             ''|*[!0-9]*) echo "limit は数字で指定してください: $LIMIT"; exit 1 ;;
