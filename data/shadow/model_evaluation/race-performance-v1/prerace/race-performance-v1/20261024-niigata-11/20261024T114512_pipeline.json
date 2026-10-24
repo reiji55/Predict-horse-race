@@ -1,0 +1,296 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "race-performance-v1",
+  "race_id": "20261024-niigata-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-10-24T11:45:12+09:00",
+  "post_time": "15:15",
+  "minutes_to_post": 209.8,
+  "provenance": {
+    "git_commit": "1f33462f5de34c295742ac54247bde9f33f39619",
+    "evaluation_version": "race-performance-v1-forward-eval-v1",
+    "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+    "input_raw_sha256": "c1aa463b2bb755a32d45976332e968e056f192827826d0d804c5b29d57f9d218",
+    "snapshot": {
+      "path": "data/challengers/race-performance-v1/snapshots/20261024-niigata-11.json",
+      "sha256": "e2d67c6c11ce8c51cc81c0d8a26cb3f7ff51f5e0d8210e00057664454aa3e102",
+      "frozen_at": "2026-10-24T11:45:11+09:00",
+      "model_id": "race-performance-v1",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "ab7d639c51b21e3a",
+      "base_times_ref": null,
+      "race_performance_ref": {
+        "version": "race-performance-v1",
+        "config_file": "config/race_performance_v1.json",
+        "config_sha256": "592cf78fef99866839d1c385eded9a7388c7e6a5a7e5a1635d7bd9e902121b70"
+      }
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      6,
+      10,
+      7,
+      3,
+      2,
+      11,
+      5,
+      1,
+      9,
+      4,
+      8,
+      12
+    ],
+    "snapshot_order": [
+      6,
+      10,
+      7,
+      3,
+      2,
+      11,
+      5,
+      1,
+      9,
+      4,
+      8,
+      12
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 67.61985180797362,
+      "odds": 19.8
+    },
+    {
+      "num": 2,
+      "score": 74.51420843320288,
+      "odds": 18.2
+    },
+    {
+      "num": 3,
+      "score": 76.86941644548124,
+      "odds": 3.7
+    },
+    {
+      "num": 4,
+      "score": 63.32315511734634,
+      "odds": 36.7
+    },
+    {
+      "num": 5,
+      "score": 68.47252930993854,
+      "odds": 10.0
+    },
+    {
+      "num": 6,
+      "score": 79.79619893722607,
+      "odds": 8.3
+    },
+    {
+      "num": 7,
+      "score": 77.45289997910197,
+      "odds": 6.2
+    },
+    {
+      "num": 8,
+      "score": 59.22841354045903,
+      "odds": 38.0
+    },
+    {
+      "num": 9,
+      "score": 65.55798648319185,
+      "odds": 12.3
+    },
+    {
+      "num": 10,
+      "score": 79.238784991798,
+      "odds": 4.7
+    },
+    {
+      "num": 11,
+      "score": 70.67872988208318,
+      "odds": 10.9
+    },
+    {
+      "num": 12,
+      "score": 57.247825072197315,
+      "odds": 15.4
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 6,
+        "sel": 1.0
+      },
+      {
+        "num": 10,
+        "sel": 0.840909
+      },
+      {
+        "num": 3,
+        "sel": 0.695455
+      },
+      {
+        "num": 2,
+        "sel": 0.677273
+      },
+      {
+        "num": 7,
+        "sel": 0.631818
+      },
+      {
+        "num": 11,
+        "sel": 0.559091
+      },
+      {
+        "num": 1,
+        "sel": 0.509091
+      },
+      {
+        "num": 5,
+        "sel": 0.35
+      },
+      {
+        "num": 9,
+        "sel": 0.286364
+      },
+      {
+        "num": 4,
+        "sel": 0.263636
+      },
+      {
+        "num": 8,
+        "sel": 0.159091
+      },
+      {
+        "num": 12,
+        "sel": 0.027273
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 6,
+        "sel": 1.0
+      },
+      {
+        "num": 7,
+        "sel": 0.745455
+      },
+      {
+        "num": 2,
+        "sel": 0.745455
+      },
+      {
+        "num": 10,
+        "sel": 0.690909
+      },
+      {
+        "num": 1,
+        "sel": 0.509091
+      },
+      {
+        "num": 11,
+        "sel": 0.509091
+      },
+      {
+        "num": 4,
+        "sel": 0.436364
+      },
+      {
+        "num": 3,
+        "sel": 0.436364
+      },
+      {
+        "num": 5,
+        "sel": 0.345455
+      },
+      {
+        "num": 8,
+        "sel": 0.272727
+      },
+      {
+        "num": 9,
+        "sel": 0.272727
+      },
+      {
+        "num": 12,
+        "sel": 0.036364
+      }
+    ],
+    "gen": [
+      {
+        "num": 6,
+        "sel": 1.0
+      },
+      {
+        "num": 2,
+        "sel": 0.818182
+      },
+      {
+        "num": 4,
+        "sel": 0.659091
+      },
+      {
+        "num": 1,
+        "sel": 0.636364
+      },
+      {
+        "num": 11,
+        "sel": 0.636364
+      },
+      {
+        "num": 10,
+        "sel": 0.568182
+      },
+      {
+        "num": 7,
+        "sel": 0.454545
+      },
+      {
+        "num": 8,
+        "sel": 0.431818
+      },
+      {
+        "num": 3,
+        "sel": 0.340909
+      },
+      {
+        "num": 5,
+        "sel": 0.318182
+      },
+      {
+        "num": 9,
+        "sel": 0.136364
+      },
+      {
+        "num": 12,
+        "sel": 0.0
+      }
+    ]
+  },
+  "race_performance_audit": {
+    "status": "recorded",
+    "speed_rps_correlation": {
+      "status": "speed_not_used",
+      "n": 0,
+      "r": null
+    },
+    "usable_runs": 56,
+    "graded_usable_runs": 1,
+    "non_jra_graded_usable_runs": 0
+  }
+}
