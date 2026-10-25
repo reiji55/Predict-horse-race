@@ -1,8 +1,8 @@
 {
   "schema": "market-mix-summary-v1",
   "version": "market-mix-v1",
-  "generated_at": "2026-10-24T23:02:18+09:00",
-  "as_of": "2026-10-24",
+  "generated_at": "2026-10-25T18:28:44+09:00",
+  "as_of": "2026-10-25",
   "as_of_mode": "live",
   "used_for_prediction": false,
   "official_results_untouched": true,
@@ -14,9 +14,9 @@
   },
   "status": "collecting",
   "warnings": [],
-  "races": 28,
-  "training_pool": 14,
-  "evaluated": 3,
+  "races": 31,
+  "training_pool": 16,
+  "evaluated": 5,
   "pending_result": [],
   "eligibility_unverified": [],
   "eligibility_unverified_overdue": [],
@@ -44,62 +44,66 @@
     ],
     "p_model_missing_runner": [
       "20261012-kyoto-11"
+    ],
+    "dead_heat_top3": [
+      "20261025-niigata-11"
     ]
   },
   "evaluation_days": [
-    "20261024"
+    "20261024",
+    "20261025"
   ],
   "decision": {
-    "counted_races": 3,
+    "counted_races": 6,
     "reached": {},
     "checkpoints": {},
-    "resolved_through": "20261024",
+    "resolved_through": "20261025",
     "unresolved": [],
     "status": "collecting"
   },
   "decision_fixed": null,
   "decision_check": null,
   "to_date": {
-    "races_in_window": 3,
-    "evaluated": 3,
-    "n_day": 1,
+    "races_in_window": 5,
+    "evaluated": 5,
+    "n_day": 2,
     "pending_result": [],
     "excluded_by_result_contract": [],
-    "primary_mean_D": 0.0,
+    "primary_mean_D": 0.024125,
     "variants_mean_D": {
-      "payout=0.725|shape=harville|cap=on": 0.0,
-      "payout=0.725|shape=harville|cap=off": 0.0,
-      "payout=0.725|shape=discounted_harville|cap=on": 0.0,
-      "payout=0.725|shape=discounted_harville|cap=off": 0.0,
-      "payout=0.725|shape=uniform|cap=on": 0.0,
-      "payout=0.725|shape=uniform|cap=off": 0.0,
-      "payout=0.75|shape=harville|cap=on": 0.0,
-      "payout=0.75|shape=harville|cap=off": 0.0,
-      "payout=0.75|shape=discounted_harville|cap=on": 0.0,
-      "payout=0.75|shape=discounted_harville|cap=off": 0.0,
-      "payout=0.75|shape=uniform|cap=on": 0.0,
-      "payout=0.75|shape=uniform|cap=off": 0.0,
+      "payout=0.725|shape=harville|cap=on": 0.06216,
+      "payout=0.725|shape=harville|cap=off": 0.06216,
+      "payout=0.725|shape=discounted_harville|cap=on": 0.06216,
+      "payout=0.725|shape=discounted_harville|cap=off": 0.06216,
+      "payout=0.725|shape=uniform|cap=on": 0.06216,
+      "payout=0.725|shape=uniform|cap=off": 0.06216,
+      "payout=0.75|shape=harville|cap=on": 0.024125,
+      "payout=0.75|shape=harville|cap=off": 0.024125,
+      "payout=0.75|shape=discounted_harville|cap=on": 0.024125,
+      "payout=0.75|shape=discounted_harville|cap=off": 0.024125,
+      "payout=0.75|shape=uniform|cap=on": 0.024125,
+      "payout=0.75|shape=uniform|cap=off": 0.024125,
       "payout=0.775|shape=harville|cap=on": 0.0,
       "payout=0.775|shape=harville|cap=off": 0.0,
       "payout=0.775|shape=discounted_harville|cap=on": 0.0,
       "payout=0.775|shape=discounted_harville|cap=off": 0.0,
       "payout=0.775|shape=uniform|cap=on": 0.0,
-      "payout=0.775|shape=uniform|cap=off": 0.0
+      "payout=0.775|shape=uniform|cap=off": 0.051246
     },
     "secondary": {
-      "win_logloss": 0.249507,
-      "top3_brier": 0.0,
-      "T1_vs_harville_mkt": 0.329361
+      "win_logloss": 0.169968,
+      "top3_brier": 0.000209,
+      "T1_vs_harville_mkt": 0.341598
     },
-    "secondary_p_model_mean_D": 0.0,
-    "secondary_p_model_n": 3,
+    "secondary_p_model_mean_D": 0.105936,
+    "secondary_p_model_n": 5,
     "champion_segments": [
       {
         "model_id": "win-v1-speed-guard",
         "config_hash": "097972c4afa00737",
         "from_day": "20261024",
-        "n": 3,
-        "mean_D": 0.0
+        "n": 5,
+        "mean_D": 0.024125
       }
     ]
   },
