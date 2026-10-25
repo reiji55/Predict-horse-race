@@ -1,0 +1,365 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "speed-base-times-v2-coverage",
+  "race_id": "20261025-tokyo-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-10-25T14:28:43+09:00",
+  "post_time": "15:20",
+  "minutes_to_post": 51.3,
+  "provenance": {
+    "git_commit": "eb7d156189e9978564b6586a549dd4750a259f1f",
+    "evaluation_version": "speed-v2-forward-eval-v2",
+    "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+    "input_raw_sha256": "55dc3895a40a68ad2136dfc52d19814bb2b21f9bdf95882c4d8c666f84008ae4",
+    "snapshot": {
+      "path": "data/challengers/speed-base-times-v2-coverage/snapshots/20261025-tokyo-11.json",
+      "sha256": "bc948bd1d7f7166075bf87083c4fbac98a1fa0e2f48d38afcdf9662e37e9cba2",
+      "frozen_at": "2026-10-25T14:28:42+09:00",
+      "model_id": "speed-base-times-v2-coverage",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "4174dc69c392cc30",
+      "base_times_ref": {
+        "artifact_id": "base-times-v2-coverage-20260928-r2",
+        "lookup_file": "data/reference/base_times/base-times-v2-coverage-20260928-r2.json",
+        "lookup_sha256": "e671fd8ab3a2785fa63a7ea53248e5d8ecde404ee8071b1fef713dda64d98b9f",
+        "cutoff_date": "2026-09-27",
+        "meta_content_sha256": "58834c0e30e7bb3ac7944696eb629f190dafabbd1a42d490d3bb651f78f7a5fa",
+        "method_version": "v1-median-class-offset",
+        "file_hash": "4174dc69c392cc30"
+      },
+      "race_performance_ref": null
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      4,
+      2,
+      5,
+      3,
+      11,
+      7,
+      1,
+      13,
+      12,
+      6,
+      16,
+      10,
+      9,
+      8,
+      15,
+      14
+    ],
+    "snapshot_order": [
+      4,
+      2,
+      5,
+      3,
+      11,
+      7,
+      1,
+      13,
+      12,
+      6,
+      16,
+      10,
+      9,
+      8,
+      15,
+      14
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 72.26808719994847,
+      "odds": 13.9
+    },
+    {
+      "num": 2,
+      "score": 79.43536073134061,
+      "odds": 3.5
+    },
+    {
+      "num": 3,
+      "score": 75.46094652071768,
+      "odds": 21.4
+    },
+    {
+      "num": 4,
+      "score": 84.77955099429094,
+      "odds": 4.2
+    },
+    {
+      "num": 5,
+      "score": 77.61030919922273,
+      "odds": 16.7
+    },
+    {
+      "num": 6,
+      "score": 71.06454099931378,
+      "odds": 96.9
+    },
+    {
+      "num": 7,
+      "score": 72.34415372360654,
+      "odds": 11.8
+    },
+    {
+      "num": 8,
+      "score": 61.34495385196008,
+      "odds": 93.4
+    },
+    {
+      "num": 9,
+      "score": 65.18749408112542,
+      "odds": 20.7
+    },
+    {
+      "num": 10,
+      "score": 66.04472875312796,
+      "odds": 17.8
+    },
+    {
+      "num": 11,
+      "score": 72.9987521260464,
+      "odds": 14.1
+    },
+    {
+      "num": 12,
+      "score": 71.57244539882299,
+      "odds": 26.6
+    },
+    {
+      "num": 13,
+      "score": 71.64789353634953,
+      "odds": 23.1
+    },
+    {
+      "num": 14,
+      "score": 55.40231469657778,
+      "odds": 56.4
+    },
+    {
+      "num": 15,
+      "score": 55.67237599300786,
+      "odds": 114.9
+    },
+    {
+      "num": 16,
+      "score": 68.0657178323552,
+      "odds": 5.8
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 4,
+        "sel": 0.97
+      },
+      {
+        "num": 5,
+        "sel": 0.866667
+      },
+      {
+        "num": 3,
+        "sel": 0.82
+      },
+      {
+        "num": 2,
+        "sel": 0.793333
+      },
+      {
+        "num": 6,
+        "sel": 0.773333
+      },
+      {
+        "num": 1,
+        "sel": 0.636667
+      },
+      {
+        "num": 11,
+        "sel": 0.57
+      },
+      {
+        "num": 13,
+        "sel": 0.496667
+      },
+      {
+        "num": 7,
+        "sel": 0.493333
+      },
+      {
+        "num": 12,
+        "sel": 0.45
+      },
+      {
+        "num": 16,
+        "sel": 0.293333
+      },
+      {
+        "num": 10,
+        "sel": 0.256667
+      },
+      {
+        "num": 8,
+        "sel": 0.203333
+      },
+      {
+        "num": 9,
+        "sel": 0.19
+      },
+      {
+        "num": 15,
+        "sel": 0.136667
+      },
+      {
+        "num": 14,
+        "sel": 0.05
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 5,
+        "sel": 0.92
+      },
+      {
+        "num": 4,
+        "sel": 0.866667
+      },
+      {
+        "num": 3,
+        "sel": 0.853333
+      },
+      {
+        "num": 11,
+        "sel": 0.653333
+      },
+      {
+        "num": 13,
+        "sel": 0.613333
+      },
+      {
+        "num": 12,
+        "sel": 0.6
+      },
+      {
+        "num": 6,
+        "sel": 0.586667
+      },
+      {
+        "num": 2,
+        "sel": 0.56
+      },
+      {
+        "num": 1,
+        "sel": 0.52
+      },
+      {
+        "num": 7,
+        "sel": 0.506667
+      },
+      {
+        "num": 8,
+        "sel": 0.32
+      },
+      {
+        "num": 15,
+        "sel": 0.226667
+      },
+      {
+        "num": 16,
+        "sel": 0.226667
+      },
+      {
+        "num": 10,
+        "sel": 0.213333
+      },
+      {
+        "num": 9,
+        "sel": 0.2
+      },
+      {
+        "num": 14,
+        "sel": 0.133333
+      }
+    ],
+    "gen": [
+      {
+        "num": 3,
+        "sel": 0.833333
+      },
+      {
+        "num": 13,
+        "sel": 0.9
+      },
+      {
+        "num": 6,
+        "sel": 0.85
+      },
+      {
+        "num": 5,
+        "sel": 0.716667
+      },
+      {
+        "num": 12,
+        "sel": 0.666667
+      },
+      {
+        "num": 8,
+        "sel": 0.633333
+      },
+      {
+        "num": 11,
+        "sel": 0.55
+      },
+      {
+        "num": 7,
+        "sel": 0.516667
+      },
+      {
+        "num": 15,
+        "sel": 0.466667
+      },
+      {
+        "num": 1,
+        "sel": 0.433333
+      },
+      {
+        "num": 4,
+        "sel": 0.4
+      },
+      {
+        "num": 2,
+        "sel": 0.333333
+      },
+      {
+        "num": 9,
+        "sel": 0.3
+      },
+      {
+        "num": 10,
+        "sel": 0.266667
+      },
+      {
+        "num": 16,
+        "sel": 0.083333
+      },
+      {
+        "num": 14,
+        "sel": 0.05
+      }
+    ]
+  }
+}
