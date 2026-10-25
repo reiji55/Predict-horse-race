@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-24T23:02:13+09:00",
+  "generated_at": "2026-10-25T18:28:38+09:00",
   "version": "context-layers-v1",
   "status": "hypothesis_only",
   "rules": {
@@ -8,43 +8,44 @@
     "market_rank_min": 6
   },
   "summary": {
-    "races_scanned": 27,
-    "anomalies": 47,
+    "races_scanned": 30,
+    "anomalies": 53,
     "by_reason": {
-      "model_miss": 38,
-      "market_miss": 31
+      "model_miss": 42,
+      "market_miss": 34
     },
     "audit": {
-      "races": 27,
-      "with_manifest": 15,
+      "races": 30,
+      "with_manifest": 18,
       "derived_without_manifest": 12,
       "missing_prediction_snapshot": 0,
       "missing_context_snapshot": 4,
       "missing_odds_observation": 4,
       "latest_win_freshness": {
         "unknown": 4,
-        "very_late": 3,
-        "stale": 20
+        "very_late": 4,
+        "stale": 21,
+        "target_window": 1
       },
       "basis_by_market_freshness": {
         "win": {
           "unknown": 4,
-          "stale": 23
+          "stale": 26
         },
         "umaren": {
           "unknown": 12,
-          "stale": 15
+          "stale": 18
         },
         "wide": {
           "unknown": 12,
-          "stale": 15
+          "stale": 18
         },
         "sanrenpuku": {
           "unknown": 12,
-          "stale": 15
+          "stale": 18
         }
       },
-      "body_weight_full_coverage": 17
+      "body_weight_full_coverage": 20
     }
   },
   "race_audits": [
@@ -5298,6 +5299,621 @@
         "reason": "insufficient_race_coverage"
       },
       "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20261025-kyoto-11",
+      "venue": "京都",
+      "race_no": 11,
+      "race_name": "菊花賞",
+      "post_time": "15:40",
+      "evidence_source": "pre_race_manifest",
+      "manifest_recorded_at": "2026-10-25T15:39:19+09:00",
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "2c42489f66e354601018f6d5a18b022c929c11dd6ed9870afc12de6b250a5640",
+        "context": "f6e71cb3f9be334a776b32cbe82ece7e11ca6ce112fc8428629bf41b1fb02462",
+        "odds_latest": "774b0117ee9337d2d7fb5dd3b0a3a0954909d09683cebe708389c51b9961e11b",
+        "odds_prediction_basis": "37112cbae64b4e034eed97c8a6cf4824dbacb8e7e50f13801399164610a47923"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-10-25T14:28:42+09:00",
+        "context_observed_at": "2026-10-25T15:39:19+09:00",
+        "odds_latest_observed_at": "2026-10-25T15:39:15+09:00",
+        "odds_latest_source_time_win": "2026-10-25 15:35:13"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "very_late",
+        "freshness_basis": "source_time",
+        "source_time": "2026-10-25 15:35:13",
+        "minutes_to_post": 4.783,
+        "fresh": true,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 4,
+        "latest": {
+          "path": "data/odds_history/20261025-kyoto-11/attempts/20261025T153915_late.json",
+          "sha256": "268b2276589c81cfc293fd17095f488dec113cd79e9fa72024a11a170c14cd7d",
+          "phase": "late",
+          "observed_at": "2026-10-25T15:39:15+09:00",
+          "observed_minutes_to_post": 0.75,
+          "returned_source_time": "2026-10-25 15:35:13",
+          "market_scope": "win",
+          "result": "added",
+          "odds_sha256": "a9b909825659651379f42580e35678fc0dc6b758ce11e9e1ee7346594cf74651",
+          "observation_file": "20261025T153915_late.json",
+          "win_freshness": "very_late"
+        }
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-10-25T14:27:26+09:00",
+        "market_scope": "all"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-10-25 13:35:33",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": "2026-10-25 13:35:33",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "wide": {
+          "source_time": "2026-10-25 13:35:33",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "sanrenpuku": {
+          "source_time": "2026-10-25 13:35:33",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 13:35:33",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 13:35:33",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 13:35:33",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 13:35:33",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 13:35:33",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": false,
+        "coverage": 0.2222,
+        "qualified_horses": 4,
+        "total_horses": 18,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20261025-niigata-11",
+      "venue": "新潟",
+      "race_no": 11,
+      "race_name": "ルミエールAD",
+      "post_time": "15:11",
+      "evidence_source": "pre_race_manifest",
+      "manifest_recorded_at": "2026-10-25T15:08:17+09:00",
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "b8e3ae24bc6d487f95ae667a2b9aa964b60e666c9387e2861d10505809855f42",
+        "context": "3876702f42b8c07d0b503bd374fbd6fd905898c5a830bdc5ca44e51092991a91",
+        "odds_latest": "cdf623647896634d88b0c53b9f488e096b93a48c774bcd1dc85cef61254cd079",
+        "odds_prediction_basis": "70f2840b5de287bac8d1c91f99ec7223890296290ffbc48cce2cab68f81503d0"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-10-25T14:28:42+09:00",
+        "context_observed_at": "2026-10-25T15:08:17+09:00",
+        "odds_latest_observed_at": "2026-10-25T15:08:05+09:00",
+        "odds_latest_source_time_win": "2026-10-25 15:05:08"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "target_window",
+        "freshness_basis": "source_time",
+        "source_time": "2026-10-25 15:05:08",
+        "minutes_to_post": 5.867,
+        "fresh": true,
+        "target_window": true
+      },
+      "fetch_attempts": {
+        "count": 3,
+        "latest": {
+          "path": "data/odds_history/20261025-niigata-11/attempts/20261025T150805_late.json",
+          "sha256": "4ba9efd76a6504478a4b4ea2cac9d556be95d205abad54bb844e7166bfa6a667",
+          "phase": "late",
+          "observed_at": "2026-10-25T15:08:05+09:00",
+          "observed_minutes_to_post": 2.917,
+          "returned_source_time": "2026-10-25 15:05:08",
+          "market_scope": "win",
+          "result": "added",
+          "odds_sha256": "02dc8f03a2ef14126a2d7d5beacd16b7e3d01f335a72b7dcfd0cb121e75bf407",
+          "observation_file": "20261025T150805_late.json",
+          "win_freshness": "target_window"
+        }
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-10-25T14:27:51+09:00",
+        "market_scope": "all"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-10-25 14:05:23",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": "2026-10-25 14:05:23",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "wide": {
+          "source_time": "2026-10-25 14:05:23",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "sanrenpuku": {
+          "source_time": "2026-10-25 14:05:23",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:05:23",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:05:23",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:05:23",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:05:23",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:05:23",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": false,
+        "coverage": 0.0588,
+        "qualified_horses": 1,
+        "total_horses": 17,
+        "reason": "insufficient_race_coverage"
+      },
+      "interpretation": "audit_only"
+    },
+    {
+      "race_id": "20261025-tokyo-11",
+      "venue": "東京",
+      "race_no": 11,
+      "race_name": "神無月S",
+      "post_time": "15:20",
+      "evidence_source": "pre_race_manifest",
+      "manifest_recorded_at": "2026-10-25T15:08:17+09:00",
+      "present": {
+        "prediction_snapshot": true,
+        "context_snapshot": true,
+        "odds_observation": true
+      },
+      "hashes": {
+        "prediction": "045d4f48e0121f00026e1bd74794b5fdf2cb1e4fea11998fdb74c8d4bebe68a6",
+        "context": "fc64938bfccf479da2fa1a8eb28e0888823b77ab630539ca3f8fc8c12aada376",
+        "odds_latest": "7d89e9e6989ee0f455f117a9d2c3fd169d3e8845bf50464c5d74108b1b38819a",
+        "odds_prediction_basis": "891fb890a5d0369ba22dbdaba2636a5d8d1e321d417776138047ae5f5d640ca9"
+      },
+      "times": {
+        "prediction_frozen_at": "2026-10-25T14:28:42+09:00",
+        "context_observed_at": "2026-10-25T15:08:17+09:00",
+        "odds_latest_observed_at": "2026-10-25T15:08:12+09:00",
+        "odds_latest_source_time_win": "2026-10-25 14:15:34"
+      },
+      "odds_freshness_latest_win": {
+        "market": "win",
+        "status": "stale",
+        "freshness_basis": "source_time",
+        "source_time": "2026-10-25 14:15:34",
+        "minutes_to_post": 64.433,
+        "fresh": false,
+        "target_window": false
+      },
+      "fetch_attempts": {
+        "count": 3,
+        "latest": {
+          "path": "data/odds_history/20261025-tokyo-11/attempts/20261025T150812_late.json",
+          "sha256": "4aacd5ebb5413a05cf57c7962e53141609d90c7a12e89e62ad45df41e7602f73",
+          "phase": "late",
+          "observed_at": "2026-10-25T15:08:12+09:00",
+          "observed_minutes_to_post": 11.8,
+          "returned_source_time": "2026-10-25 14:15:34",
+          "market_scope": "win",
+          "result": "added",
+          "odds_sha256": "4821f502a89a3215d9addec1dae6b85aec772ba58d4c9305871472f72e7d8d58",
+          "observation_file": "20261025T150812_late.json",
+          "win_freshness": "stale"
+        }
+      },
+      "prediction_price_basis": {
+        "status": "linked",
+        "prediction_odds_match": true,
+        "observed_at": "2026-10-25T14:28:15+09:00",
+        "market_scope": "all"
+      },
+      "price_times_by_market": {
+        "win": {
+          "source_time": "2026-10-25 14:15:34",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "umaren": {
+          "source_time": "2026-10-25 14:15:34",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "wide": {
+          "source_time": "2026-10-25 14:15:34",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        },
+        "sanrenpuku": {
+          "source_time": "2026-10-25 14:15:34",
+          "fetch_status": "ok",
+          "freshness": "stale"
+        }
+      },
+      "card_price_evidence": [
+        {
+          "char": "kei",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:15:34",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "tetsu",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:15:34",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        },
+        {
+          "char": "gen",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:15:34",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "wide"
+          ]
+        },
+        {
+          "char": "chappy",
+          "market_ev_computed": true,
+          "pq_basis_win": {
+            "source_time": "2026-10-25 14:15:34",
+            "freshness": "stale"
+          },
+          "markets_used": {
+            "sanrenpuku": {
+              "bet_type": "3連複",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "wide": {
+              "bet_type": "ワイド",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            },
+            "umaren": {
+              "bet_type": "馬連",
+              "source_time": "2026-10-25 14:15:34",
+              "freshness": "stale"
+            }
+          },
+          "prices_not_fresh": [
+            "sanrenpuku",
+            "umaren",
+            "wide"
+          ]
+        }
+      ],
+      "otori_price_evidence": {
+        "legendary": false,
+        "card_present": false,
+        "otori_card_ev_recorded": false,
+        "prices_not_fresh": [],
+        "note": "記録のみ。EV の再計算や鳳ゲートの変更はしない"
+      },
+      "body_weight_current_coverage": 1.0,
+      "speed": {
+        "used": true,
+        "coverage": 0.75,
+        "qualified_horses": 12,
+        "total_horses": 16,
+        "reason": "ok"
+      },
+      "interpretation": "audit_only"
     }
   ],
   "anomalies": [
@@ -9360,6 +9976,641 @@
           "last_odds": 6.0,
           "odds_ratio": 0.952381,
           "support_shift": 0.04879
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-kyoto-11",
+      "venue": "京都",
+      "race_no": 11,
+      "race_name": "菊花賞",
+      "finish": 1,
+      "num": 9,
+      "name": "ゴーイントゥスカイ",
+      "model_rank": 10,
+      "market_rank": 3,
+      "pre_race_odds": 12.4,
+      "score": 69.8,
+      "reasons": [
+        "model_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 18,
+        "field_size": 18,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.484652,
+          "market_top3_share": 0.723425,
+          "market_entropy": 0.644052,
+          "model_market_tv": 0.376934,
+          "top3_overlap": 2,
+          "market_top3_indices": [
+            7,
+            9,
+            8
+          ],
+          "model_top3_indices": [
+            9,
+            7,
+            13
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": true,
+          "market_entropy": true,
+          "model_market_tv": false,
+          "top3_overlap": true
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:39:19+09:00",
+      "context": {
+        "body_weight": {
+          "current": 498.0,
+          "history": [
+            502.0,
+            498.0,
+            504.0,
+            512.0
+          ],
+          "n_history": 4,
+          "last": 502.0,
+          "median": 503.0,
+          "change_from_last": -4.0,
+          "deviation_from_median": -5.0,
+          "deviation_pct": -0.00994,
+          "robust_z": -1.1242,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 42,
+          "bucket": "normal"
+        },
+        "track_metrics": {
+          "venue": "京都",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/index2.html",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 10.2,
+              "turn4": 10.6
+            },
+            "ダート": {
+              "goal": 13.3,
+              "turn4": 13.9
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "コース全周の内柵沿いに軽微な傷みがあります。"
+        },
+        "odds_movement": {
+          "num": 9,
+          "first_odds": 12.0,
+          "last_odds": 11.2,
+          "odds_ratio": 0.933333,
+          "support_shift": 0.068993
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-kyoto-11",
+      "venue": "京都",
+      "race_no": 11,
+      "race_name": "菊花賞",
+      "finish": 2,
+      "num": 6,
+      "name": "バステール",
+      "model_rank": 5,
+      "market_rank": 8,
+      "pre_race_odds": 39.2,
+      "score": 73.3,
+      "reasons": [
+        "market_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 18,
+        "field_size": 18,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.484652,
+          "market_top3_share": 0.723425,
+          "market_entropy": 0.644052,
+          "model_market_tv": 0.376934,
+          "top3_overlap": 2,
+          "market_top3_indices": [
+            7,
+            9,
+            8
+          ],
+          "model_top3_indices": [
+            9,
+            7,
+            13
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": true,
+          "market_entropy": true,
+          "model_market_tv": false,
+          "top3_overlap": true
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:39:19+09:00",
+      "context": {
+        "body_weight": {
+          "current": 464.0,
+          "history": [
+            472.0,
+            464.0,
+            460.0,
+            456.0
+          ],
+          "n_history": 4,
+          "last": 472.0,
+          "median": 462.0,
+          "change_from_last": -8.0,
+          "deviation_from_median": 2.0,
+          "deviation_pct": 0.004329,
+          "robust_z": 0.3372,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 42,
+          "bucket": "normal"
+        },
+        "track_metrics": {
+          "venue": "京都",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/index2.html",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 10.2,
+              "turn4": 10.6
+            },
+            "ダート": {
+              "goal": 13.3,
+              "turn4": 13.9
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "コース全周の内柵沿いに軽微な傷みがあります。"
+        },
+        "odds_movement": {
+          "num": 6,
+          "first_odds": 36.8,
+          "last_odds": 42.2,
+          "odds_ratio": 1.146739,
+          "support_shift": -0.136922
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-niigata-11",
+      "venue": "新潟",
+      "race_no": 11,
+      "race_name": "ルミエールAD",
+      "finish": 1,
+      "num": 9,
+      "name": "モズナナスター",
+      "model_rank": 6,
+      "market_rank": 4,
+      "pre_race_odds": 8.7,
+      "score": 73.2,
+      "reasons": [
+        "model_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 17,
+        "field_size": 17,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.256543,
+          "market_top3_share": 0.502603,
+          "market_entropy": 0.841281,
+          "model_market_tv": 0.289049,
+          "top3_overlap": 1,
+          "market_top3_indices": [
+            13,
+            10,
+            16
+          ],
+          "model_top3_indices": [
+            13,
+            14,
+            2
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false,
+          "top3_overlap": false
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:08:17+09:00",
+      "context": {
+        "body_weight": {
+          "current": 458.0,
+          "history": [
+            458.0,
+            448.0,
+            460.0,
+            458.0,
+            460.0
+          ],
+          "n_history": 5,
+          "last": 458.0,
+          "median": 458.0,
+          "change_from_last": 0.0,
+          "deviation_from_median": 0.0,
+          "deviation_pct": 0.0,
+          "robust_z": 0.0,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 77,
+          "bucket": "layoff"
+        },
+        "track_metrics": {
+          "venue": "新潟",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/index3.html",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 13.5,
+              "turn4": 14.1
+            },
+            "ダート": {
+              "goal": 10.3,
+              "turn4": 11.4
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "コース全体の内側に傷みが見られますが、全体的には概ね良好な状態です。"
+        },
+        "odds_movement": {
+          "num": 9,
+          "first_odds": 5.5,
+          "last_odds": 13.7,
+          "odds_ratio": 2.490909,
+          "support_shift": -0.912648
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-niigata-11",
+      "venue": "新潟",
+      "race_no": 11,
+      "race_name": "ルミエールAD",
+      "finish": 2,
+      "num": 11,
+      "name": "エコロレジーナ",
+      "model_rank": 10,
+      "market_rank": 2,
+      "pre_race_odds": 5.8,
+      "score": 69.5,
+      "reasons": [
+        "model_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 17,
+        "field_size": 17,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.256543,
+          "market_top3_share": 0.502603,
+          "market_entropy": 0.841281,
+          "model_market_tv": 0.289049,
+          "top3_overlap": 1,
+          "market_top3_indices": [
+            13,
+            10,
+            16
+          ],
+          "model_top3_indices": [
+            13,
+            14,
+            2
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false,
+          "top3_overlap": false
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:08:17+09:00",
+      "context": {
+        "body_weight": {
+          "current": 502.0,
+          "history": [
+            504.0,
+            504.0,
+            504.0,
+            508.0,
+            508.0
+          ],
+          "n_history": 5,
+          "last": 504.0,
+          "median": 504.0,
+          "change_from_last": -2.0,
+          "deviation_from_median": -2.0,
+          "deviation_pct": -0.003968,
+          "robust_z": null,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 84,
+          "bucket": "layoff"
+        },
+        "track_metrics": {
+          "venue": "新潟",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/index3.html",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 13.5,
+              "turn4": 14.1
+            },
+            "ダート": {
+              "goal": 10.3,
+              "turn4": 11.4
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "コース全体の内側に傷みが見られますが、全体的には概ね良好な状態です。"
+        },
+        "odds_movement": {
+          "num": 11,
+          "first_odds": 6.9,
+          "last_odds": 5.1,
+          "odds_ratio": 0.73913,
+          "support_shift": 0.302281
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-niigata-11",
+      "venue": "新潟",
+      "race_no": 11,
+      "race_name": "ルミエールAD",
+      "finish": 3,
+      "num": 10,
+      "name": "クムシラコ",
+      "model_rank": 11,
+      "market_rank": 12,
+      "pre_race_odds": 41.2,
+      "score": 66.6,
+      "reasons": [
+        "model_miss",
+        "market_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 17,
+        "field_size": 17,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.256543,
+          "market_top3_share": 0.502603,
+          "market_entropy": 0.841281,
+          "model_market_tv": 0.289049,
+          "top3_overlap": 1,
+          "market_top3_indices": [
+            13,
+            10,
+            16
+          ],
+          "model_top3_indices": [
+            13,
+            14,
+            2
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false,
+          "top3_overlap": false
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:08:17+09:00",
+      "context": {
+        "body_weight": {
+          "current": 472.0,
+          "history": [
+            470.0,
+            470.0,
+            476.0,
+            470.0,
+            472.0
+          ],
+          "n_history": 5,
+          "last": 470.0,
+          "median": 470.0,
+          "change_from_last": 2.0,
+          "deviation_from_median": 2.0,
+          "deviation_pct": 0.004255,
+          "robust_z": null,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 84,
+          "bucket": "layoff"
+        },
+        "track_metrics": {
+          "venue": "新潟",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/index3.html",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 13.5,
+              "turn4": 14.1
+            },
+            "ダート": {
+              "goal": 10.3,
+              "turn4": 11.4
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "コース全体の内側に傷みが見られますが、全体的には概ね良好な状態です。"
+        },
+        "odds_movement": {
+          "num": 10,
+          "first_odds": 42.7,
+          "last_odds": 41.5,
+          "odds_ratio": 0.971897,
+          "support_shift": 0.028505
+        },
+        "paddock": null,
+        "context_version": "context-layers-v1"
+      },
+      "interpretation": "hypothesis_only"
+    },
+    {
+      "race_id": "20261025-tokyo-11",
+      "venue": "東京",
+      "race_no": 11,
+      "race_name": "神無月S",
+      "finish": 3,
+      "num": 5,
+      "name": "ノーブルロジャー",
+      "model_rank": 3,
+      "market_rank": 7,
+      "pre_race_odds": 16.7,
+      "score": 77.3,
+      "reasons": [
+        "market_miss"
+      ],
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 16,
+        "field_size": 16,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.226169,
+          "market_top3_share": 0.551125,
+          "market_entropy": 0.848473,
+          "model_market_tv": 0.232373,
+          "top3_overlap": 2,
+          "market_top3_indices": [
+            1,
+            3,
+            15
+          ],
+          "model_top3_indices": [
+            3,
+            1,
+            4
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false,
+          "top3_overlap": true
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false
+        },
+        "reason": "mixed_signals"
+      },
+      "context_observed_at": "2026-10-25T15:08:17+09:00",
+      "context": {
+        "body_weight": {
+          "current": 506.0,
+          "history": [
+            500.0,
+            500.0,
+            500.0,
+            502.0,
+            500.0
+          ],
+          "n_history": 5,
+          "last": 500.0,
+          "median": 500.0,
+          "change_from_last": 6.0,
+          "deviation_from_median": 6.0,
+          "deviation_pct": 0.012,
+          "robust_z": null,
+          "unusual": false,
+          "quality": "usable"
+        },
+        "rest": {
+          "days": 50,
+          "bucket": "normal"
+        },
+        "track_metrics": {
+          "venue": "東京",
+          "date": "2026-10-25",
+          "source_url": "https://www.jra.go.jp/keiba/baba/",
+          "cushion": null,
+          "moisture": {
+            "芝": {
+              "goal": 17.5,
+              "turn4": 16.9
+            },
+            "ダート": {
+              "goal": 7.4,
+              "turn4": 7.9
+            }
+          },
+          "course_usage": "A コース（内柵を最内に設置）",
+          "turf_state": "向正面直線から正面直線にかけての内柵沿いに傷みが見られます。"
+        },
+        "odds_movement": {
+          "num": 5,
+          "first_odds": 17.5,
+          "last_odds": 16.7,
+          "odds_ratio": 0.954286,
+          "support_shift": 0.046792
         },
         "paddock": null,
         "context_version": "context-layers-v1"

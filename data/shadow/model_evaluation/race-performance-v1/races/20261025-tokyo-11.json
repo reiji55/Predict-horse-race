@@ -1,0 +1,582 @@
+{
+  "schema": "model-eval-race-v1",
+  "race_id": "20261025-tokyo-11",
+  "post_time": "15:20",
+  "official_results_untouched": true,
+  "used_for_prediction": false,
+  "evaluation_version": "race-performance-v1-forward-eval-v1",
+  "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+  "status": "evaluated",
+  "phase": "forward",
+  "frozen_at": "2026-10-25T14:28:42+09:00",
+  "config_hash": "097972c4afa00737",
+  "top3": [
+    4,
+    2,
+    5
+  ],
+  "sel_orders_paired": true,
+  "probability": {
+    "score_source": "capture_full_precision",
+    "temperature": 10.0,
+    "temperature_source": "capture",
+    "evaluation_set": {
+      "field_size": 16,
+      "scored_horses": 16,
+      "coverage": 1.0
+    },
+    "winner": 4,
+    "models": {
+      "champion": {
+        "log_loss": 1.638845,
+        "brier": 0.705367,
+        "p_winner": 0.194204
+      },
+      "challenger": {
+        "log_loss": 1.611088,
+        "brier": 0.695256,
+        "p_winner": 0.19967
+      }
+    },
+    "market": {
+      "status": "available",
+      "log_loss": 1.668793,
+      "brier": 0.748747,
+      "p_winner": 0.188474
+    },
+    "horses": [
+      {
+        "num": 1,
+        "y": 0,
+        "p_champion": 0.050244,
+        "p_challenger": 0.055672,
+        "p_q_market": 0.056949
+      },
+      {
+        "num": 2,
+        "y": 0,
+        "p_champion": 0.120163,
+        "p_challenger": 0.115706,
+        "p_q_market": 0.226169
+      },
+      {
+        "num": 3,
+        "y": 0,
+        "p_champion": 0.079592,
+        "p_challenger": 0.090888,
+        "p_q_market": 0.03699
+      },
+      {
+        "num": 4,
+        "y": 1,
+        "p_champion": 0.194204,
+        "p_challenger": 0.19967,
+        "p_q_market": 0.188474
+      },
+      {
+        "num": 5,
+        "y": 0,
+        "p_champion": 0.101263,
+        "p_challenger": 0.089904,
+        "p_q_market": 0.047401
+      },
+      {
+        "num": 6,
+        "y": 0,
+        "p_champion": 0.051475,
+        "p_challenger": 0.049782,
+        "p_q_market": 0.008169
+      },
+      {
+        "num": 7,
+        "y": 0,
+        "p_champion": 0.061751,
+        "p_challenger": 0.059583,
+        "p_q_market": 0.067084
+      },
+      {
+        "num": 8,
+        "y": 0,
+        "p_champion": 0.03263,
+        "p_challenger": 0.027667,
+        "p_q_market": 0.008475
+      },
+      {
+        "num": 9,
+        "y": 0,
+        "p_champion": 0.031815,
+        "p_challenger": 0.033947,
+        "p_q_market": 0.038241
+      },
+      {
+        "num": 10,
+        "y": 0,
+        "p_champion": 0.033061,
+        "p_challenger": 0.036765,
+        "p_q_market": 0.044471
+      },
+      {
+        "num": 11,
+        "y": 0,
+        "p_champion": 0.065637,
+        "p_challenger": 0.065113,
+        "p_q_market": 0.056141
+      },
+      {
+        "num": 12,
+        "y": 0,
+        "p_champion": 0.057363,
+        "p_challenger": 0.057338,
+        "p_q_market": 0.029759
+      },
+      {
+        "num": 13,
+        "y": 0,
+        "p_champion": 0.057344,
+        "p_challenger": 0.056885,
+        "p_q_market": 0.034268
+      },
+      {
+        "num": 14,
+        "y": 0,
+        "p_champion": 0.012192,
+        "p_challenger": 0.010948,
+        "p_q_market": 0.014035
+      },
+      {
+        "num": 15,
+        "y": 0,
+        "p_champion": 0.009433,
+        "p_challenger": 0.009893,
+        "p_q_market": 0.006889
+      },
+      {
+        "num": 16,
+        "y": 0,
+        "p_champion": 0.041833,
+        "p_challenger": 0.040238,
+        "p_q_market": 0.136481
+      }
+    ],
+    "status": "evaluated"
+  },
+  "models": {
+    "champion": {
+      "model_id": "win-v1-speed-guard",
+      "snapshot": {
+        "path": "data/snapshots/20261025-tokyo-11.json",
+        "sha256": "045d4f48e0121f00026e1bd74794b5fdf2cb1e4fea11998fdb74c8d4bebe68a6",
+        "frozen_at": "2026-10-25T14:28:42+09:00",
+        "base_times_hash": "ab7d639c51b21e3a",
+        "base_times_ref": null
+      },
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "ranking": {
+        "order_recall": {
+          "base": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 1.0,
+            "count4": 3,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "top3": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.6667,
+            "count4": 2,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "kei_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 1.0,
+            "count4": 3,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "tetsu_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.6667,
+            "count4": 2,
+            "at6": 0.6667,
+            "count6": 2
+          },
+          "gen_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          }
+        },
+        "card_selection_recall": {
+          "kei": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              4,
+              5
+            ],
+            "count": 2,
+            "recall": 0.6667
+          },
+          "tetsu": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              4,
+              5,
+              12
+            ],
+            "count": 2,
+            "recall": 0.6667
+          },
+          "gen": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              6,
+              8,
+              13
+            ],
+            "count": 0,
+            "recall": 0.0
+          }
+        }
+      },
+      "speed_quality": {
+        "surface": "ダ",
+        "status": "available",
+        "used": true,
+        "qualified_horses": 12,
+        "total_horses": 16,
+        "coverage": 0.75,
+        "raw_available_horses": 13,
+        "reason": "ok"
+      },
+      "diversity": {
+        "active_chars": [
+          "kei",
+          "tetsu",
+          "gen"
+        ],
+        "passed_chars": [],
+        "missing_chars": [],
+        "axis_source": "ticket_template_index0",
+        "axes": {
+          "kei": 4,
+          "tetsu": 5,
+          "gen": 3
+        },
+        "axis_counts": {
+          "3": 1,
+          "4": 1,
+          "5": 1
+        },
+        "max_axis_agreement": 1,
+        "axis_all_same": false,
+        "dominant_axis": 3,
+        "dominant_axis_exposure_yen": 1000,
+        "total_stake_yen": 1500,
+        "dominant_axis_exposure_ratio": 0.6667,
+        "pairwise_rank_spearman": {
+          "kei-tetsu": 0.914706,
+          "kei-gen": 0.488235,
+          "tetsu-gen": 0.641176
+        },
+        "bet_horse_jaccard": {
+          "kei-tetsu": 0.75,
+          "kei-gen": 0.166667,
+          "tetsu-gen": 0.142857
+        },
+        "redundant_pairs": [],
+        "redundancy_flag": false
+      },
+      "secondary": {
+        "status": "evaluated",
+        "fixed_three": {
+          "kei": {
+            "status": "bet",
+            "hit": true,
+            "spent": 500,
+            "payout": 1740
+          },
+          "tetsu": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "gen": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          }
+        },
+        "auto_chappy": {
+          "char": "chappy",
+          "status": "bet",
+          "hit": true,
+          "spent": 1000,
+          "payout": 870
+        },
+        "conversion": {
+          "kei": {
+            "actual_top3_selected_count": 2,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "tetsu": {
+            "actual_top3_selected_count": 2,
+            "winning_pair_present_but_not_ticketed": true,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "gen": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          }
+        },
+        "winning_coverage": {
+          "wide_pairs_covered": 1,
+          "wide_pairs_total": 3,
+          "umaren_covered": false,
+          "trio_covered": false
+        }
+      }
+    },
+    "challenger": {
+      "model_id": "race-performance-v1",
+      "snapshot": {
+        "path": "data/challengers/race-performance-v1/snapshots/20261025-tokyo-11.json",
+        "sha256": "21eedc5c98a2499980d03394cbd279943af1d4c62c5cfd687728cf8a13212427",
+        "frozen_at": "2026-10-25T14:28:42+09:00",
+        "base_times_hash": "ab7d639c51b21e3a",
+        "base_times_ref": null
+      },
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "ranking": {
+        "order_recall": {
+          "base": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 1.0,
+            "count4": 3,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "top3": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.6667,
+            "count4": 2,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "kei_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 1.0,
+            "count4": 3,
+            "at6": 1.0,
+            "count6": 3
+          },
+          "tetsu_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.6667,
+            "count4": 2,
+            "at6": 0.6667,
+            "count6": 2
+          },
+          "gen_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          }
+        },
+        "card_selection_recall": {
+          "kei": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              4,
+              5
+            ],
+            "count": 2,
+            "recall": 0.6667
+          },
+          "tetsu": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              4,
+              5,
+              12
+            ],
+            "count": 2,
+            "recall": 0.6667
+          },
+          "gen": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              6,
+              8,
+              13
+            ],
+            "count": 0,
+            "recall": 0.0
+          }
+        }
+      },
+      "speed_quality": {
+        "surface": "ダ",
+        "status": "available",
+        "used": true,
+        "qualified_horses": 12,
+        "total_horses": 16,
+        "coverage": 0.75,
+        "raw_available_horses": 13,
+        "reason": "ok"
+      },
+      "diversity": {
+        "active_chars": [
+          "kei",
+          "tetsu",
+          "gen"
+        ],
+        "passed_chars": [],
+        "missing_chars": [],
+        "axis_source": "ticket_template_index0",
+        "axes": {
+          "kei": 4,
+          "tetsu": 3,
+          "gen": 3
+        },
+        "axis_counts": {
+          "3": 2,
+          "4": 1
+        },
+        "max_axis_agreement": 2,
+        "axis_all_same": false,
+        "dominant_axis": 3,
+        "dominant_axis_exposure_yen": 1200,
+        "total_stake_yen": 1500,
+        "dominant_axis_exposure_ratio": 0.8,
+        "pairwise_rank_spearman": {
+          "kei-tetsu": 0.9,
+          "kei-gen": 0.488235,
+          "tetsu-gen": 0.676471
+        },
+        "bet_horse_jaccard": {
+          "kei-tetsu": 0.75,
+          "kei-gen": 0.166667,
+          "tetsu-gen": 0.142857
+        },
+        "redundant_pairs": [],
+        "redundancy_flag": false
+      },
+      "secondary": {
+        "status": "evaluated",
+        "fixed_three": {
+          "kei": {
+            "status": "bet",
+            "hit": true,
+            "spent": 500,
+            "payout": 1740
+          },
+          "tetsu": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "gen": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          }
+        },
+        "auto_chappy": {
+          "char": "chappy",
+          "status": "bet",
+          "hit": true,
+          "spent": 1000,
+          "payout": 870
+        },
+        "conversion": {
+          "kei": {
+            "actual_top3_selected_count": 2,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "tetsu": {
+            "actual_top3_selected_count": 2,
+            "winning_pair_present_but_not_ticketed": true,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "gen": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          }
+        },
+        "winning_coverage": {
+          "wide_pairs_covered": 1,
+          "wide_pairs_total": 3,
+          "umaren_covered": false,
+          "trio_covered": false
+        }
+      },
+      "race_performance": {
+        "ref": {
+          "version": "race-performance-v1",
+          "config_file": "config/race_performance_v1.json",
+          "config_sha256": "592cf78fef99866839d1c385eded9a7388c7e6a5a7e5a1635d7bd9e902121b70"
+        },
+        "input_raw_hash": "55dc3895a40a68ad2136dfc52d19814bb2b21f9bdf95882c4d8c666f84008ae4",
+        "factor_active": true,
+        "factor_inactive_reason": null,
+        "field_size": 16,
+        "rps_available_horses": 14,
+        "rps_coverage": 0.875,
+        "rps_sd": 0.10889722977891407,
+        "max_abs_z": 2.04764,
+        "excluded_by_reason_total": {
+          "surface_mismatch": 6,
+          "class_unknown": 4
+        },
+        "speed_used": true,
+        "effective_rps_weight": 0.15,
+        "capture_audit": {
+          "status": "recorded",
+          "speed_rps_correlation": {
+            "status": "computed",
+            "n": 12,
+            "r": 0.831602
+          },
+          "usable_runs": 62,
+          "graded_usable_runs": 5,
+          "non_jra_graded_usable_runs": 1
+        }
+      }
+    }
+  }
+}

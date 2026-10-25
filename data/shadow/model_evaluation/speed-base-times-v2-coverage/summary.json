@@ -1,6 +1,6 @@
 {
   "schema": "model-eval-summary-v1",
-  "generated_at": "2026-10-24T23:02:16+09:00",
+  "generated_at": "2026-10-25T18:28:42+09:00",
   "evaluation_version": "speed-v2-forward-eval-v2",
   "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
   "spec": "docs/audit/SPEED_V2_FORWARD_EVALUATION_SPEC_20261002.md",
@@ -24,9 +24,9 @@
   },
   "note": "Champion と speed-v2 Challenger を同じレース・同じ発走前情報で対にした比較。昇格の判定はしない。Secondary（成績）は判定に使わない。",
   "coverage": {
-    "forward_races_with_result": 19,
-    "evaluated_pairs": 18,
-    "coverage_rate": 0.9474,
+    "forward_races_with_result": 22,
+    "evaluated_pairs": 21,
+    "coverage_rate": 0.9545,
     "not_evaluated": [
       {
         "race_id": "20261012-kyoto-11",
@@ -47,10 +47,10 @@
     "pending_result": []
   },
   "forward": {
-    "races": 18,
+    "races": 21,
     "primary": {
       "probability": {
-        "races": 18,
+        "races": 21,
         "score_sources": [
           "capture_full_precision"
         ],
@@ -59,31 +59,31 @@
         ],
         "not_evaluated": [],
         "log_loss": {
-          "n": 18,
+          "n": 21,
           "direction": "lower_is_better",
-          "champion_mean": 2.612509,
-          "challenger_mean": 2.642594,
-          "mean_delta_challenger_minus_champion": 0.030085,
-          "se_delta": 0.068593,
+          "champion_mean": 2.610416,
+          "challenger_mean": 2.610468,
+          "mean_delta_challenger_minus_champion": 5.2e-05,
+          "se_delta": 0.061311,
           "ties": 2,
-          "challenger_better": 6,
+          "challenger_better": 9,
           "champion_better": 10
         },
         "brier": {
-          "n": 18,
+          "n": 21,
           "direction": "lower_is_better",
-          "champion_mean": 0.930844,
-          "challenger_mean": 0.924174,
-          "mean_delta_challenger_minus_champion": -0.006669,
-          "se_delta": 0.013161,
+          "champion_mean": 0.928901,
+          "challenger_mean": 0.916939,
+          "mean_delta_challenger_minus_champion": -0.011962,
+          "se_delta": 0.011792,
           "ties": 2,
-          "challenger_better": 7,
+          "challenger_better": 10,
           "champion_better": 9
         },
         "q_market_reference": {
-          "races": 18,
-          "log_loss": 2.279491,
-          "brier": 0.858589,
+          "races": 21,
+          "log_loss": 2.27924,
+          "brier": 0.871321,
           "note": "参考の基準線。出走馬全員の正の単勝オッズが揃うレースだけ。"
         },
         "calibration_buckets": {
@@ -91,50 +91,50 @@
             {
               "lo": 0.0,
               "hi": 0.02,
-              "n": 42,
-              "mean_p": 0.013199,
-              "observed_win_rate": 0.02381
+              "n": 48,
+              "mean_p": 0.012972,
+              "observed_win_rate": 0.020833
             },
             {
               "lo": 0.02,
               "hi": 0.05,
-              "n": 91,
-              "mean_p": 0.03412,
-              "observed_win_rate": 0.043956
+              "n": 113,
+              "mean_p": 0.033962,
+              "observed_win_rate": 0.044248
             },
             {
               "lo": 0.05,
               "hi": 0.1,
-              "n": 84,
-              "mean_p": 0.069241,
-              "observed_win_rate": 0.059524
+              "n": 98,
+              "mean_p": 0.067731,
+              "observed_win_rate": 0.061224
             },
             {
               "lo": 0.1,
               "hi": 0.15,
-              "n": 26,
-              "mean_p": 0.120889,
-              "observed_win_rate": 0.192308
+              "n": 32,
+              "mean_p": 0.11926,
+              "observed_win_rate": 0.15625
             },
             {
               "lo": 0.15,
               "hi": 0.2,
-              "n": 11,
-              "mean_p": 0.165813,
-              "observed_win_rate": 0.090909
+              "n": 12,
+              "mean_p": 0.168179,
+              "observed_win_rate": 0.166667
             },
             {
               "lo": 0.2,
               "hi": 0.3,
-              "n": 12,
-              "mean_p": 0.241311,
-              "observed_win_rate": 0.166667
+              "n": 13,
+              "mean_p": 0.238226,
+              "observed_win_rate": 0.153846
             },
             {
               "lo": 0.3,
               "hi": 0.5,
-              "n": 2,
-              "mean_p": 0.330817,
+              "n": 3,
+              "mean_p": 0.323542,
               "observed_win_rate": 0.0
             },
             {
@@ -149,44 +149,44 @@
             {
               "lo": 0.0,
               "hi": 0.02,
-              "n": 38,
-              "mean_p": 0.013187,
-              "observed_win_rate": 0.026316
+              "n": 48,
+              "mean_p": 0.013514,
+              "observed_win_rate": 0.020833
             },
             {
               "lo": 0.02,
               "hi": 0.05,
-              "n": 82,
-              "mean_p": 0.035032,
-              "observed_win_rate": 0.04878
+              "n": 95,
+              "mean_p": 0.03542,
+              "observed_win_rate": 0.052632
             },
             {
               "lo": 0.05,
               "hi": 0.1,
-              "n": 96,
-              "mean_p": 0.069791,
-              "observed_win_rate": 0.072917
+              "n": 118,
+              "mean_p": 0.068933,
+              "observed_win_rate": 0.067797
             },
             {
               "lo": 0.1,
               "hi": 0.15,
-              "n": 30,
-              "mean_p": 0.119607,
-              "observed_win_rate": 0.066667
+              "n": 33,
+              "mean_p": 0.119373,
+              "observed_win_rate": 0.060606
             },
             {
               "lo": 0.15,
               "hi": 0.2,
-              "n": 13,
-              "mean_p": 0.170745,
-              "observed_win_rate": 0.230769
+              "n": 14,
+              "mean_p": 0.169376,
+              "observed_win_rate": 0.214286
             },
             {
               "lo": 0.2,
               "hi": 0.3,
-              "n": 9,
-              "mean_p": 0.235384,
-              "observed_win_rate": 0.111111
+              "n": 11,
+              "mean_p": 0.231072,
+              "observed_win_rate": 0.181818
             },
             {
               "lo": 0.3,
@@ -207,50 +207,50 @@
             {
               "lo": 0.0,
               "hi": 0.02,
-              "n": 57,
-              "mean_p": 0.011915,
-              "observed_win_rate": 0.035088
+              "n": 78,
+              "mean_p": 0.011724,
+              "observed_win_rate": 0.025641
             },
             {
               "lo": 0.02,
               "hi": 0.05,
-              "n": 92,
-              "mean_p": 0.032825,
+              "n": 104,
+              "mean_p": 0.032998,
               "observed_win_rate": 0.0
             },
             {
               "lo": 0.05,
               "hi": 0.1,
-              "n": 62,
-              "mean_p": 0.073099,
-              "observed_win_rate": 0.129032
+              "n": 72,
+              "mean_p": 0.07181,
+              "observed_win_rate": 0.138889
             },
             {
               "lo": 0.1,
               "hi": 0.15,
-              "n": 31,
-              "mean_p": 0.124989,
-              "observed_win_rate": 0.064516
+              "n": 34,
+              "mean_p": 0.125212,
+              "observed_win_rate": 0.058824
             },
             {
               "lo": 0.15,
               "hi": 0.2,
-              "n": 12,
-              "mean_p": 0.166696,
-              "observed_win_rate": 0.166667
+              "n": 14,
+              "mean_p": 0.168933,
+              "observed_win_rate": 0.214286
             },
             {
               "lo": 0.2,
               "hi": 0.3,
-              "n": 9,
-              "mean_p": 0.227977,
-              "observed_win_rate": 0.333333
+              "n": 11,
+              "mean_p": 0.23041,
+              "observed_win_rate": 0.272727
             },
             {
               "lo": 0.3,
               "hi": 0.5,
-              "n": 4,
-              "mean_p": 0.320626,
+              "n": 5,
+              "mean_p": 0.353431,
               "observed_win_rate": 0.0
             },
             {
@@ -265,296 +265,296 @@
       },
       "ranking": {
         "base_recall@4": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.500006,
-          "challenger_mean": 0.481483,
-          "mean_delta_challenger_minus_champion": -0.018522,
-          "se_delta": 0.042375,
-          "ties": 13,
-          "challenger_better": 2,
+          "champion_mean": 0.492067,
+          "challenger_mean": 0.492062,
+          "mean_delta_challenger_minus_champion": -5e-06,
+          "se_delta": 0.039843,
+          "ties": 15,
+          "challenger_better": 3,
           "champion_better": 3
         },
         "base_recall@6": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
           "champion_mean": 0.666667,
-          "challenger_mean": 0.574072,
-          "mean_delta_challenger_minus_champion": -0.092594,
-          "se_delta": 0.036212,
-          "ties": 13,
-          "challenger_better": 0,
+          "challenger_mean": 0.603176,
+          "mean_delta_challenger_minus_champion": -0.06349,
+          "se_delta": 0.037228,
+          "ties": 15,
+          "challenger_better": 1,
           "champion_better": 5
         },
         "top3_recall@4": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.499994,
-          "challenger_mean": 0.499994,
+          "champion_mean": 0.476186,
+          "challenger_mean": 0.476186,
           "mean_delta_challenger_minus_champion": 0.0,
           "se_delta": 0.0,
-          "ties": 18,
+          "ties": 21,
           "challenger_better": 0,
           "champion_better": 0
         },
         "top3_recall@6": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.629644,
-          "challenger_mean": 0.629644,
+          "champion_mean": 0.634933,
+          "challenger_mean": 0.634933,
           "mean_delta_challenger_minus_champion": 0.0,
           "se_delta": 0.0,
-          "ties": 18,
+          "ties": 21,
           "challenger_better": 0,
           "champion_better": 0
         },
         "kei_sel_recall@4": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.481478,
-          "challenger_mean": 0.462961,
-          "mean_delta_challenger_minus_champion": -0.018517,
-          "se_delta": 0.042373,
-          "ties": 13,
-          "challenger_better": 2,
-          "champion_better": 3
+          "champion_mean": 0.492062,
+          "challenger_mean": 0.476186,
+          "mean_delta_challenger_minus_champion": -0.015876,
+          "se_delta": 0.042888,
+          "ties": 14,
+          "challenger_better": 3,
+          "champion_better": 4
         },
         "kei_sel_recall@6": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.64815,
-          "challenger_mean": 0.555561,
-          "mean_delta_challenger_minus_champion": -0.092589,
-          "se_delta": 0.064931,
-          "ties": 8,
-          "challenger_better": 3,
+          "champion_mean": 0.634924,
+          "challenger_mean": 0.58731,
+          "mean_delta_challenger_minus_champion": -0.047614,
+          "se_delta": 0.066212,
+          "ties": 10,
+          "challenger_better": 4,
           "champion_better": 7
         },
         "tetsu_sel_recall@4": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.4074,
-          "challenger_mean": 0.370367,
-          "mean_delta_challenger_minus_champion": -0.037033,
-          "se_delta": 0.025405,
-          "ties": 16,
-          "challenger_better": 0,
-          "champion_better": 2
+          "champion_mean": 0.412695,
+          "challenger_mean": 0.380948,
+          "mean_delta_challenger_minus_champion": -0.031748,
+          "se_delta": 0.031745,
+          "ties": 17,
+          "challenger_better": 1,
+          "champion_better": 3
         },
         "tetsu_sel_recall@6": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.555556,
-          "challenger_mean": 0.53705,
-          "mean_delta_challenger_minus_champion": -0.018506,
-          "se_delta": 0.050219,
-          "ties": 11,
-          "challenger_better": 3,
-          "champion_better": 4
+          "champion_mean": 0.539686,
+          "challenger_mean": 0.523819,
+          "mean_delta_challenger_minus_champion": -0.015867,
+          "se_delta": 0.048669,
+          "ties": 12,
+          "challenger_better": 4,
+          "champion_better": 5
         },
         "gen_sel_recall@4": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.277767,
-          "challenger_mean": 0.203689,
-          "mean_delta_challenger_minus_champion": -0.074078,
-          "se_delta": 0.04308,
-          "ties": 12,
-          "challenger_better": 1,
+          "champion_mean": 0.238086,
+          "challenger_mean": 0.206333,
+          "mean_delta_challenger_minus_champion": -0.031752,
+          "se_delta": 0.045452,
+          "ties": 13,
+          "challenger_better": 3,
           "champion_better": 5
         },
         "gen_sel_recall@6": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.425917,
-          "challenger_mean": 0.35185,
-          "mean_delta_challenger_minus_champion": -0.074067,
-          "se_delta": 0.050816,
-          "ties": 13,
-          "challenger_better": 1,
+          "champion_mean": 0.380943,
+          "challenger_mean": 0.3492,
+          "mean_delta_challenger_minus_champion": -0.031743,
+          "se_delta": 0.050942,
+          "ties": 14,
+          "challenger_better": 3,
           "champion_better": 4
         },
         "kei_card_selection_recall": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.425917,
-          "challenger_mean": 0.388889,
-          "mean_delta_challenger_minus_champion": -0.037028,
-          "se_delta": 0.045806,
-          "ties": 12,
-          "challenger_better": 2,
-          "champion_better": 4
+          "champion_mean": 0.41269,
+          "challenger_mean": 0.380952,
+          "mean_delta_challenger_minus_champion": -0.031738,
+          "se_delta": 0.045454,
+          "ties": 13,
+          "challenger_better": 3,
+          "champion_better": 5
         },
         "tetsu_card_selection_recall": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.4074,
-          "challenger_mean": 0.370367,
-          "mean_delta_challenger_minus_champion": -0.037033,
-          "se_delta": 0.025405,
-          "ties": 16,
-          "challenger_better": 0,
-          "champion_better": 2
+          "champion_mean": 0.412695,
+          "challenger_mean": 0.380948,
+          "mean_delta_challenger_minus_champion": -0.031748,
+          "se_delta": 0.031745,
+          "ties": 17,
+          "challenger_better": 1,
+          "champion_better": 3
         },
         "gen_card_selection_recall": {
-          "n": 18,
+          "n": 21,
           "direction": "higher_is_better",
-          "champion_mean": 0.277767,
-          "challenger_mean": 0.203689,
-          "mean_delta_challenger_minus_champion": -0.074078,
-          "se_delta": 0.04308,
-          "ties": 12,
-          "challenger_better": 1,
+          "champion_mean": 0.238086,
+          "challenger_mean": 0.206333,
+          "mean_delta_challenger_minus_champion": -0.031752,
+          "se_delta": 0.045452,
+          "ties": 13,
+          "challenger_better": 3,
           "champion_better": 5
         }
       },
       "speed_quality": {
         "champion": {
           "all": {
-            "races": 18,
-            "used_races": 5,
-            "used_rate": 0.2778,
-            "qualified_horses": 77,
-            "total_horses": 268,
-            "qualified_horse_rate": 0.2873,
-            "raw_available_horses": 132,
-            "mean_coverage": 0.298128
+            "races": 21,
+            "used_races": 6,
+            "used_rate": 0.2857,
+            "qualified_horses": 94,
+            "total_horses": 319,
+            "qualified_horse_rate": 0.2947,
+            "raw_available_horses": 159,
+            "mean_coverage": 0.304633
           },
           "by_surface": {
             "ダ": {
-              "races": 5,
-              "used_races": 5,
+              "races": 6,
+              "used_races": 6,
               "used_rate": 1.0,
-              "qualified_horses": 59,
-              "total_horses": 70,
-              "qualified_horse_rate": 0.8429,
-              "raw_available_horses": 66,
-              "mean_coverage": 0.84008
+              "qualified_horses": 71,
+              "total_horses": 86,
+              "qualified_horse_rate": 0.8256,
+              "raw_available_horses": 79,
+              "mean_coverage": 0.825067
             },
             "芝": {
-              "races": 13,
+              "races": 15,
               "used_races": 0,
               "used_rate": 0.0,
-              "qualified_horses": 18,
-              "total_horses": 198,
-              "qualified_horse_rate": 0.0909,
-              "raw_available_horses": 66,
-              "mean_coverage": 0.089685
+              "qualified_horses": 23,
+              "total_horses": 233,
+              "qualified_horse_rate": 0.0987,
+              "raw_available_horses": 80,
+              "mean_coverage": 0.09646
             }
           }
         },
         "challenger": {
           "all": {
-            "races": 18,
-            "used_races": 16,
-            "used_rate": 0.8889,
-            "qualified_horses": 245,
-            "total_horses": 268,
-            "qualified_horse_rate": 0.9142,
-            "raw_available_horses": 264,
-            "mean_coverage": 0.902456
+            "races": 21,
+            "used_races": 19,
+            "used_rate": 0.9048,
+            "qualified_horses": 291,
+            "total_horses": 319,
+            "qualified_horse_rate": 0.9122,
+            "raw_available_horses": 311,
+            "mean_coverage": 0.902033
           },
           "by_surface": {
             "ダ": {
-              "races": 5,
-              "used_races": 5,
+              "races": 6,
+              "used_races": 6,
               "used_rate": 1.0,
-              "qualified_horses": 66,
-              "total_horses": 70,
-              "qualified_horse_rate": 0.9429,
-              "raw_available_horses": 68,
-              "mean_coverage": 0.94366
+              "qualified_horses": 80,
+              "total_horses": 86,
+              "qualified_horse_rate": 0.9302,
+              "raw_available_horses": 82,
+              "mean_coverage": 0.932217
             },
             "芝": {
-              "races": 13,
-              "used_races": 11,
-              "used_rate": 0.8462,
-              "qualified_horses": 179,
-              "total_horses": 198,
-              "qualified_horse_rate": 0.904,
-              "raw_available_horses": 196,
-              "mean_coverage": 0.886608
+              "races": 15,
+              "used_races": 13,
+              "used_rate": 0.8667,
+              "qualified_horses": 211,
+              "total_horses": 233,
+              "qualified_horse_rate": 0.9056,
+              "raw_available_horses": 229,
+              "mean_coverage": 0.88996
             }
           }
         }
       },
       "diversity": {
         "champion": {
-          "races": 18,
-          "mean_axis_agreement": 2.055556,
+          "races": 21,
+          "mean_axis_agreement": 2.0,
           "axis_all_same_races": 4,
-          "mean_dominant_axis_exposure_ratio": 0.751833,
+          "mean_dominant_axis_exposure_ratio": 0.74919,
           "pairwise_rank_spearman": {
-            "kei-gen": 0.537427,
-            "kei-tetsu": 0.920979,
-            "tetsu-gen": 0.732448
+            "kei-gen": 0.519996,
+            "kei-tetsu": 0.922254,
+            "tetsu-gen": 0.715141
           },
           "bet_horse_jaccard": {
-            "kei-gen": 0.303704,
-            "kei-tetsu": 0.626852,
-            "tetsu-gen": 0.448677
+            "kei-gen": 0.284127,
+            "kei-tetsu": 0.627778,
+            "tetsu-gen": 0.423129
           }
         },
         "challenger": {
-          "races": 18,
-          "mean_axis_agreement": 1.944444,
+          "races": 21,
+          "mean_axis_agreement": 1.904762,
           "axis_all_same_races": 4,
-          "mean_dominant_axis_exposure_ratio": 0.777767,
+          "mean_dominant_axis_exposure_ratio": 0.758719,
           "pairwise_rank_spearman": {
-            "kei-gen": 0.489999,
-            "kei-tetsu": 0.917072,
-            "tetsu-gen": 0.688595
+            "kei-gen": 0.465333,
+            "kei-tetsu": 0.91442,
+            "tetsu-gen": 0.671317
           },
           "bet_horse_jaccard": {
-            "kei-gen": 0.264815,
-            "kei-tetsu": 0.633333,
-            "tetsu-gen": 0.402116
+            "kei-gen": 0.246032,
+            "kei-tetsu": 0.616667,
+            "tetsu-gen": 0.39229
           }
         },
         "paired": {
           "axis_agreement": {
-            "n": 18,
+            "n": 21,
             "direction": "descriptive_only",
-            "champion_mean": 2.055556,
-            "challenger_mean": 1.944444,
-            "mean_delta_challenger_minus_champion": -0.111111,
-            "se_delta": 0.196187,
-            "ties": 9,
+            "champion_mean": 2.0,
+            "challenger_mean": 1.904762,
+            "mean_delta_challenger_minus_champion": -0.095238,
+            "se_delta": 0.167684,
+            "ties": 12,
             "challenger_higher": 4,
             "challenger_lower": 5
           },
           "exposure_ratio": {
-            "n": 18,
+            "n": 21,
             "direction": "descriptive_only",
-            "champion_mean": 0.751833,
-            "challenger_mean": 0.777767,
-            "mean_delta_challenger_minus_champion": 0.025933,
-            "se_delta": 0.031023,
-            "ties": 10,
-            "challenger_higher": 4,
-            "challenger_lower": 4
+            "champion_mean": 0.74919,
+            "challenger_mean": 0.758719,
+            "mean_delta_challenger_minus_champion": 0.009529,
+            "se_delta": 0.031631,
+            "ties": 11,
+            "challenger_higher": 5,
+            "challenger_lower": 5
           },
           "spearman": {
-            "n": 18,
+            "n": 21,
             "direction": "descriptive_only",
-            "champion_mean": 0.730285,
-            "challenger_mean": 0.698555,
-            "mean_delta_challenger_minus_champion": -0.031729,
-            "se_delta": 0.025089,
+            "champion_mean": 0.71913,
+            "challenger_mean": 0.68369,
+            "mean_delta_challenger_minus_champion": -0.03544,
+            "se_delta": 0.021945,
             "ties": 2,
-            "challenger_higher": 8,
-            "challenger_lower": 8
+            "challenger_higher": 9,
+            "challenger_lower": 10
           },
           "jaccard": {
-            "n": 18,
+            "n": 21,
             "direction": "descriptive_only",
-            "champion_mean": 0.459744,
-            "challenger_mean": 0.433421,
-            "mean_delta_challenger_minus_champion": -0.026323,
-            "se_delta": 0.042943,
+            "champion_mean": 0.445011,
+            "challenger_mean": 0.41833,
+            "mean_delta_challenger_minus_champion": -0.026682,
+            "se_delta": 0.038251,
             "ties": 5,
-            "challenger_higher": 6,
-            "challenger_lower": 7
+            "challenger_higher": 7,
+            "challenger_lower": 9
           }
         },
         "note": "多様性は高ければ良いとは限らない。speed 復活で本来のキャラ差が自然に戻るかを見る観察値。"
@@ -563,128 +563,128 @@
     "secondary": {
       "champion": {
         "note": "Secondary。少数レースでは分散が大きいので判定には使わない。",
-        "races": 18,
+        "races": 21,
         "not_settled_races": 0,
         "fixed_three": {
-          "cards": 54,
+          "cards": 63,
           "passes": 0,
-          "hits": 10,
-          "hit_rate": 0.1852,
-          "spent": 27000,
-          "payout": 21050,
-          "roi": 0.7796
+          "hits": 11,
+          "hit_rate": 0.1746,
+          "spent": 31500,
+          "payout": 22790,
+          "roi": 0.7235
         },
         "by_char": {
           "kei": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
-            "hits": 6,
+            "hits": 7,
             "hit_rate": 0.3333,
-            "spent": 9000,
-            "payout": 15380,
-            "roi": 1.7089
+            "spent": 10500,
+            "payout": 17120,
+            "roi": 1.6305
           },
           "tetsu": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
             "hits": 4,
-            "hit_rate": 0.2222,
-            "spent": 9000,
+            "hit_rate": 0.1905,
+            "spent": 10500,
             "payout": 5670,
-            "roi": 0.63
+            "roi": 0.54
           },
           "gen": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
             "hits": 0,
             "hit_rate": 0.0,
-            "spent": 9000,
+            "spent": 10500,
             "payout": 0,
             "roi": 0.0
           }
         },
         "auto_chappy": {
-          "cards": 18,
+          "cards": 21,
           "passes": 0,
-          "hits": 8,
-          "hit_rate": 0.4444,
-          "spent": 18000,
-          "payout": 11420,
-          "roi": 0.6344
+          "hits": 10,
+          "hit_rate": 0.4762,
+          "spent": 21000,
+          "payout": 12870,
+          "roi": 0.6129
         },
-        "largest_single_race_payout_share": 0.3705,
+        "largest_single_race_payout_share": 0.3423,
         "conversion_loss": {
-          "cards": 54,
-          "winning_pair_present_but_not_ticketed": 6,
+          "cards": 63,
+          "winning_pair_present_but_not_ticketed": 8,
           "winning_trio_selected_but_not_ticketed": 2
         },
         "winning_coverage": {
-          "wide_pairs_covered": 8,
-          "wide_pairs_total": 54,
+          "wide_pairs_covered": 9,
+          "wide_pairs_total": 63,
           "umaren_covered_races": 2,
           "trio_covered_races": 0
         }
       },
       "challenger": {
         "note": "Secondary。少数レースでは分散が大きいので判定には使わない。",
-        "races": 18,
+        "races": 21,
         "not_settled_races": 0,
         "fixed_three": {
-          "cards": 54,
+          "cards": 63,
           "passes": 0,
-          "hits": 11,
-          "hit_rate": 0.2037,
-          "spent": 27000,
-          "payout": 24470,
-          "roi": 0.9063
+          "hits": 12,
+          "hit_rate": 0.1905,
+          "spent": 31500,
+          "payout": 26210,
+          "roi": 0.8321
         },
         "by_char": {
           "kei": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
-            "hits": 7,
-            "hit_rate": 0.3889,
-            "spent": 9000,
-            "payout": 14580,
-            "roi": 1.62
+            "hits": 8,
+            "hit_rate": 0.381,
+            "spent": 10500,
+            "payout": 16320,
+            "roi": 1.5543
           },
           "tetsu": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
             "hits": 4,
-            "hit_rate": 0.2222,
-            "spent": 9000,
+            "hit_rate": 0.1905,
+            "spent": 10500,
             "payout": 9890,
-            "roi": 1.0989
+            "roi": 0.9419
           },
           "gen": {
-            "cards": 18,
+            "cards": 21,
             "passes": 0,
             "hits": 0,
             "hit_rate": 0.0,
-            "spent": 9000,
+            "spent": 10500,
             "payout": 0,
             "roi": 0.0
           }
         },
         "auto_chappy": {
-          "cards": 18,
+          "cards": 21,
           "passes": 0,
-          "hits": 8,
-          "hit_rate": 0.4444,
-          "spent": 18000,
-          "payout": 10740,
-          "roi": 0.5967
+          "hits": 10,
+          "hit_rate": 0.4762,
+          "spent": 21000,
+          "payout": 12190,
+          "roi": 0.5805
         },
-        "largest_single_race_payout_share": 0.611,
+        "largest_single_race_payout_share": 0.5704,
         "conversion_loss": {
-          "cards": 54,
-          "winning_pair_present_but_not_ticketed": 3,
+          "cards": 63,
+          "winning_pair_present_but_not_ticketed": 4,
           "winning_trio_selected_but_not_ticketed": 0
         },
         "winning_coverage": {
-          "wide_pairs_covered": 8,
-          "wide_pairs_total": 54,
+          "wide_pairs_covered": 9,
+          "wide_pairs_total": 63,
           "umaren_covered_races": 2,
           "trio_covered_races": 0
         }
