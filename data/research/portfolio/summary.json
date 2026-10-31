@@ -1,6 +1,6 @@
 {
   "schema": "portfolio-summary-v1",
-  "generated_at": "2026-10-25T23:25:11+09:00",
+  "generated_at": "2026-10-31T16:31:53+09:00",
   "config_version": "portfolio-v1",
   "config_hash": "239d0cc3cb31318fe6761706bfeb3f1682eae5b590e3e7278865850e1c8e8bcc",
   "engine": "market_trio",
@@ -8,10 +8,13 @@
   "used_for_prediction": false,
   "official_results_untouched": true,
   "note": "3連複ポートフォリオ層（observe-only、事前登録ではない）。確率は市場だけの分布で、モデルの優位性を含まない。的中確率は確率の和、期待回収は収録オッズのある組だけで測る市場の値で、構造上ほぼ払戻率になる。発走後の的中・払戻は反実仮想で、正式成績・ROI には入れない。展開のデータは無いので pace_unknown。",
-  "races": 31,
-  "used": 18,
+  "races": 33,
+  "used": 20,
   "errors": [],
-  "pending_result": [],
+  "pending_result": [
+    "20261031-kyoto-11",
+    "20261031-tokyo-11"
+  ],
   "excluded": {
     "no_prerace_commit": [
       "20260919-hanshin-11",
@@ -33,13 +36,13 @@
   },
   "strategies": {
     "top_prob": {
-      "races": 18,
-      "mean_p_hit": 0.1939265455561931,
-      "mean_p_hit_given_x_out": 0.004868965976997607,
-      "mean_p_hit_given_x_in": 0.3238890281153102,
-      "mean_tickets_without_x": 0.1111111111111111,
-      "mean_max_exposure": 4.888888888888889,
-      "mean_expected_return_market": 0.7535456477454446,
+      "races": 20,
+      "mean_p_hit": 0.19262984338084876,
+      "mean_p_hit_given_x_out": 0.004382069379297847,
+      "mean_p_hit_given_x_in": 0.3241668812851269,
+      "mean_tickets_without_x": 0.1,
+      "mean_max_exposure": 4.9,
+      "mean_expected_return_market": 0.7531910829709002,
       "realized_counterfactual": {
         "races": 18,
         "hits": 4,
@@ -48,13 +51,13 @@
       }
     },
     "x_out_2": {
-      "races": 18,
-      "mean_p_hit": 0.16884630971678893,
-      "mean_p_hit_given_x_out": 0.08164706398801692,
-      "mean_p_hit_given_x_in": 0.2295332550664788,
+      "races": 20,
+      "mean_p_hit": 0.16830190576177295,
+      "mean_p_hit_given_x_out": 0.08246639200713066,
+      "mean_p_hit_given_x_in": 0.22897963327739318,
       "mean_tickets_without_x": 2.0,
-      "mean_max_exposure": 4.666666666666667,
-      "mean_expected_return_market": 0.7535456477454446,
+      "mean_max_exposure": 4.7,
+      "mean_expected_return_market": 0.7531910829709002,
       "realized_counterfactual": {
         "races": 18,
         "hits": 3,
@@ -63,13 +66,13 @@
       }
     },
     "exposure_cap_3": {
-      "races": 18,
-      "mean_p_hit": 0.15468822290869794,
-      "mean_p_hit_given_x_out": 0.04889556711714096,
-      "mean_p_hit_given_x_in": 0.22782808157069542,
+      "races": 20,
+      "mean_p_hit": 0.1535107498491261,
+      "mean_p_hit_given_x_out": 0.04995200337387799,
+      "mean_p_hit_given_x_in": 0.22611263647105653,
       "mean_tickets_without_x": 2.0,
       "mean_max_exposure": 3.0,
-      "mean_expected_return_market": 0.7535456477454446,
+      "mean_expected_return_market": 0.7531910829709002,
       "realized_counterfactual": {
         "races": 18,
         "hits": 3,
@@ -78,13 +81,13 @@
       }
     },
     "cap3_x_out_2": {
-      "races": 18,
-      "mean_p_hit": 0.15468822290869794,
-      "mean_p_hit_given_x_out": 0.04889556711714096,
-      "mean_p_hit_given_x_in": 0.22782808157069542,
+      "races": 20,
+      "mean_p_hit": 0.1535107498491261,
+      "mean_p_hit_given_x_out": 0.04995200337387799,
+      "mean_p_hit_given_x_in": 0.22611263647105653,
       "mean_tickets_without_x": 2.0,
       "mean_max_exposure": 3.0,
-      "mean_expected_return_market": 0.7535456477454446,
+      "mean_expected_return_market": 0.7531910829709002,
       "realized_counterfactual": {
         "races": 18,
         "hits": 3,
@@ -101,30 +104,30 @@
   },
   "constraint_cost_vs_top_prob": {
     "x_out_2": {
-      "races": 18,
-      "mean_delta_p_hit": -0.025080235839404184,
-      "mean_delta_p_hit_given_x_out": 0.07677809801101931
+      "races": 20,
+      "mean_delta_p_hit": -0.0243279376190758,
+      "mean_delta_p_hit_given_x_out": 0.07808432262783281
     },
     "exposure_cap_3": {
-      "races": 18,
-      "mean_delta_p_hit": -0.03923832264749519,
-      "mean_delta_p_hit_given_x_out": 0.04402660114014335
+      "races": 20,
+      "mean_delta_p_hit": -0.039119093531722646,
+      "mean_delta_p_hit_given_x_out": 0.04556993399458015
     },
     "cap3_x_out_2": {
-      "races": 18,
-      "mean_delta_p_hit": -0.03923832264749519,
-      "mean_delta_p_hit_given_x_out": 0.04402660114014335
+      "races": 20,
+      "mean_delta_p_hit": -0.039119093531722646,
+      "mean_delta_p_hit_given_x_out": 0.04556993399458015
     }
   },
   "not_proven_optimal": [],
   "scenario_frame_v1": {
     "all_records": {
-      "races": 10,
-      "mean_p_hit": 0.04703836997481173,
-      "mean_p_hit_given_x_out": 0.03129133411018947,
-      "mean_p_hit_given_x_in": 0.05670583308131535,
-      "mean_tickets_without_x": 2.2,
-      "mean_max_exposure": 3.9,
+      "races": 12,
+      "mean_p_hit": 0.054148191693797997,
+      "mean_p_hit_given_x_out": 0.03957182730301998,
+      "mean_p_hit_given_x_in": 0.06258612096772422,
+      "mean_tickets_without_x": 2.5,
+      "mean_max_exposure": 4.0,
       "mean_expected_return_market": 0.75,
       "realized_counterfactual": {
         "races": 10,
@@ -134,12 +137,12 @@
       }
     },
     "official_v1_valid_records": {
-      "races": 10,
-      "mean_p_hit": 0.04703836997481173,
-      "mean_p_hit_given_x_out": 0.03129133411018947,
-      "mean_p_hit_given_x_in": 0.05670583308131535,
-      "mean_tickets_without_x": 2.2,
-      "mean_max_exposure": 3.9,
+      "races": 12,
+      "mean_p_hit": 0.054148191693797997,
+      "mean_p_hit_given_x_out": 0.03957182730301998,
+      "mean_p_hit_given_x_in": 0.06258612096772422,
+      "mean_tickets_without_x": 2.5,
+      "mean_max_exposure": 4.0,
       "mean_expected_return_market": 0.75,
       "realized_counterfactual": {
         "races": 10,

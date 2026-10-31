@@ -1,0 +1,467 @@
+{
+  "schema": "shadow-race-result-v1",
+  "race_id": "20261031-tokyo-11",
+  "phase": "forward",
+  "evidence": "prerace_record_matched",
+  "post_at": "2026-10-31T15:30:00+09:00",
+  "snapshot": {
+    "sha256": "d9bf29e53bc485839c72c412c9e1b64144a4352bb8bed878bbe288d6f465fe32",
+    "frozen_at": "2026-10-31T15:26:05+09:00",
+    "model_id": "win-v1-speed-guard",
+    "config_hash": "097972c4afa00737"
+  },
+  "prerace_record_captured_at": "2026-10-31T15:26:05+09:00",
+  "finish": [
+    6,
+    9,
+    12
+  ],
+  "official_results_untouched": true,
+  "experiments": {
+    "calibration": {
+      "experiment": "calibration",
+      "version": "calibration-monitor-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "score_source": "prerace_full_precision",
+      "temperature_current": 10,
+      "temperature_source": "prerace_record",
+      "evaluation_set": {
+        "field_size": 16,
+        "evaluated_horses": 16,
+        "coverage": 1.0,
+        "usable": true
+      },
+      "winner": 6,
+      "models": {
+        "p_current": {
+          "log_loss": 1.861288,
+          "brier": 0.779327,
+          "p_winner": 0.155472,
+          "temperature": 10.0
+        },
+        "q_market": {
+          "log_loss": 2.233304,
+          "brier": 0.891496,
+          "p_winner": 0.107174,
+          "temperature": null
+        },
+        "p_T4": {
+          "log_loss": 1.148071,
+          "brier": 0.60512,
+          "p_winner": 0.317248,
+          "temperature": 4.0
+        },
+        "p_T5": {
+          "log_loss": 1.317645,
+          "brier": 0.642083,
+          "p_winner": 0.267765,
+          "temperature": 5.0
+        },
+        "p_T6": {
+          "log_loss": 1.465816,
+          "brier": 0.679724,
+          "p_winner": 0.230889,
+          "temperature": 6.0
+        },
+        "p_T7": {
+          "log_loss": 1.591022,
+          "brier": 0.712334,
+          "p_winner": 0.203717,
+          "temperature": 7.0
+        },
+        "p_T8": {
+          "log_loss": 1.696326,
+          "brier": 0.73926,
+          "p_winner": 0.183356,
+          "temperature": 8.0
+        },
+        "p_T10": {
+          "log_loss": 1.861288,
+          "brier": 0.779327,
+          "p_winner": 0.155472,
+          "temperature": 10.0
+        },
+        "p_T12": {
+          "log_loss": 1.983406,
+          "brier": 0.806804,
+          "p_winner": 0.1376,
+          "temperature": 12.0
+        },
+        "p_entropy_match": {
+          "log_loss": 1.689515,
+          "brier": 0.737544,
+          "p_winner": 0.184609,
+          "temperature": 7.929906
+        },
+        "p_walk_forward": {
+          "log_loss": 2.116007,
+          "brier": 0.834291,
+          "p_winner": 0.120512,
+          "temperature": 15.0
+        }
+      },
+      "walk_forward": {
+        "history_races": 30,
+        "temperature": 15.0
+      },
+      "status": "evaluated"
+    },
+    "rank_gap": {
+      "experiment": "rank_gap",
+      "version": "rank-gap-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "n": 3,
+      "observed_top3": 0,
+      "expected_top3": 0.254237,
+      "observed_minus_expected": -0.254237,
+      "horses": [
+        {
+          "num": 8,
+          "name": "ハワイアンタイム",
+          "base_rank": 3,
+          "market_rank": 10,
+          "win_odds": 24.6,
+          "q": 0.032239,
+          "market_top3_prob": 0.105909,
+          "top3": false
+        },
+        {
+          "num": 3,
+          "name": "ロードラビリンス",
+          "base_rank": 4,
+          "market_rank": 11,
+          "win_odds": 30.4,
+          "q": 0.026088,
+          "market_top3_prob": 0.086273,
+          "top3": false
+        },
+        {
+          "num": 2,
+          "name": "シーズンリッチ",
+          "base_rank": 5,
+          "market_rank": 13,
+          "win_odds": 42.6,
+          "q": 0.018617,
+          "market_top3_prob": 0.062055,
+          "top3": false
+        }
+      ]
+    },
+    "chappy_shadow": {
+      "experiment": "chappy_shadow",
+      "version": "chappy-shadow-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "chappy_version": "chappy-signal-v1",
+      "variants": {
+        "current_auto": {
+          "roles": {
+            "win_anchor": 12,
+            "support": 9,
+            "top3_edge": 13,
+            "long_edge": 8
+          },
+          "horses": [
+            8,
+            9,
+            12,
+            13
+          ],
+          "anchor_stake_share": 0.8,
+          "spent": 1000,
+          "payout": 1350,
+          "hit": true,
+          "hit_bets": 1,
+          "top3_capture": 2,
+          "overlap_with_current": 4,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                13
+              ],
+              "amt": 200,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                9
+              ],
+              "amt": 100,
+              "hit": true,
+              "payout": 1350
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                9,
+                13
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                12,
+                9
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                9,
+                13
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                13,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                9,
+                13,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                9,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            }
+          ]
+        },
+        "integrated_top4_same_pattern": {
+          "roles": {
+            "win_anchor": 12,
+            "support": 9,
+            "top3_edge": 13,
+            "long_edge": 8
+          },
+          "horses": [
+            8,
+            9,
+            12,
+            13
+          ],
+          "anchor_stake_share": 0.8,
+          "spent": 1000,
+          "payout": 1350,
+          "hit": true,
+          "hit_bets": 1,
+          "top3_capture": 2,
+          "overlap_with_current": 4,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                13
+              ],
+              "amt": 200,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                9
+              ],
+              "amt": 100,
+              "hit": true,
+              "payout": 1350
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                9,
+                13
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                12,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                12,
+                9
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                9,
+                13
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                13,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                9,
+                13,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                12,
+                9,
+                8
+              ],
+              "amt": 100,
+              "hit": false,
+              "payout": 0
+            }
+          ]
+        }
+      }
+    },
+    "diversity": {
+      "experiment": "diversity",
+      "version": "diversity-monitor-v1",
+      "research_version": "shadow-research-v1",
+      "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+      "registered_at": "2026-09-27T00:00:00+09:00",
+      "sel_orders_available": true,
+      "axes": {
+        "kei": 6,
+        "tetsu": 6,
+        "gen": 2
+      },
+      "horse_sets": {
+        "kei": [
+          6,
+          8,
+          12
+        ],
+        "tetsu": [
+          2,
+          3,
+          6,
+          8
+        ],
+        "gen": [
+          2,
+          8,
+          9,
+          15
+        ]
+      },
+      "pairs": [
+        {
+          "pair": "kei-tetsu",
+          "sel_spearman": 0.808824,
+          "axis": [
+            6,
+            6
+          ],
+          "axis_match": true,
+          "jaccard": 0.4,
+          "redundancy_flag": false
+        },
+        {
+          "pair": "kei-gen",
+          "sel_spearman": 0.370588,
+          "axis": [
+            6,
+            2
+          ],
+          "axis_match": false,
+          "jaccard": 0.166667,
+          "redundancy_flag": false
+        },
+        {
+          "pair": "tetsu-gen",
+          "sel_spearman": 0.752941,
+          "axis": [
+            6,
+            2
+          ],
+          "axis_match": false,
+          "jaccard": 0.333333,
+          "redundancy_flag": false
+        }
+      ]
+    },
+    "chat_chappy": []
+  }
+}
