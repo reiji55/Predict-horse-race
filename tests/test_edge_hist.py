@@ -110,8 +110,87 @@ def test_summarise_counts_pass_races_as_zero_stake():
     assert sum(b["hits"] for b in s["bands"]) == 40
 
 
-def test_confirm_requires_candidates_written_in_spec(tmp_path):
+def _explore(candidates: list[str], **over) -> dict:
+    out = {"phase": "explore", "spec_commit": eh.SPEC_COMMIT, "beta": [1.0143, 0.8534, 0.7305],
+           "rules": {k: {} for k in ("M-x_out_2", "M-top5", "P-5", "P-5|11R")},
+           "candidates": [{"rule": c} for c in candidates]}
+    out.update(over)
+    return out
+
+
+def test_confirm_with_zero_candidates_stops_before_reading_data(tmp_path, monkeypatch):
+    monkeypatch.setattr(eh, "check_spec", lambda: None)
+    monkeypatch.setattr(eh, "load_fixed_explore", lambda: _explore([]))
+
+    def must_not_load(*args, **kwargs):
+        raise AssertionError("データを読んではいけない")
+    monkeypatch.setattr(eh, "load_races", must_not_load)
     with pytest.raises(SystemExit):
         eh.main(["--warehouse", str(tmp_path), "--phase", "confirm"])
+
+
+def test_confirm_cannot_take_candidates_or_beta_from_the_command_line(tmp_path):
     with pytest.raises(SystemExit):
-        eh.main(["--warehouse", str(tmp_path), "--phase", "confirm", "--beta", "1,1,1", "--candidates", "Z-not-in-spec"])
+        eh.main(["--warehouse", str(tmp_path), "--phase", "confirm", "--candidates", "M-top5"])
+    with pytest.raises(SystemExit):
+        eh.main(["--warehouse", str(tmp_path), "--phase", "confirm", "--beta", "1,1,1"])
+
+
+def test_confirm_plan_uses_only_the_fixed_explore_output():
+    beta, found = eh.confirm_plan(_explore(["P-5|11R"]))
+    assert beta == (1.0143, 0.8534, 0.7305) and found == ["P-5|11R"]
+    with pytest.raises(eh.SealError):
+        eh.confirm_plan(_explore([]))
+    with pytest.raises(eh.SealError):  # 探す期間で計算していない作り方
+        eh.confirm_plan(_explore(["M-cap3"]))
+    with pytest.raises(eh.SealError):  # 本線そのものは候補にならない
+        eh.confirm_plan(_explore(["M-x_out_2"]))
+    with pytest.raises(eh.SealError):  # 固定した仕様で作った出力ではない
+        eh.confirm_plan(_explore(["P-5|11R"], spec_commit="0" * 40))
+
+
+def test_explore_output_must_match_first_commit_head_and_disk():
+    a, b = b'{"candidates": []}\n', b'{"candidates": [{"rule": "M-top5"}]}\n'
+    assert eh.explore_output_fixed(a, a, a)
+    assert not eh.explore_output_fixed(b, a, a)  # 手元で書き換えた
+    assert not eh.explore_output_fixed(b, b, a)  # 最初のコミットの後に書き換えた
+    assert not eh.explore_output_fixed(None, a, a)
+    assert not eh.explore_output_fixed(a, a, None)
+
+
+def test_pinned_spec_allows_only_additions_after_section_8():
+    pinned = "# 計画\n\n## 7. 限界\n\n- a\n"
+    assert eh.pinned_spec_matches(pinned + "\n## 8. 結果\n\n- 候補は0件\n", pinned)
+    assert not eh.pinned_spec_matches(pinned.replace("- a", "- b") + "\n## 8. 結果\n", pinned)
+
+
+def test_repository_spec_still_matches_the_pinned_commit():
+    try:
+        eh.check_spec()
+    except eh.SealError as exc:
+        if "読めない" in str(exc):
+            pytest.skip("浅い clone で、固定したコミットが無い")
+        raise
+
+
+def test_provenance_keeps_the_pinned_spec_commit():
+    assert eh.SPEC_COMMIT == "f1f843605ae335c633eaf23febafe279a45466f7"
+    out = __import__("json").loads((eh.ROOT / eh.EXPLORE_OUT).read_text(encoding="utf-8"))
+    assert out["spec_commit"] == eh.SPEC_COMMIT and out["candidates"] == []
+
+
+def test_summarise_with_keys_computes_only_those_rules_and_the_baseline(monkeypatch):
+    calls = []
+    real_choose = eh.pf.choose
+    monkeypatch.setattr(eh.pf, "choose", lambda dist, x, n, cap, wx, **kw: calls.append((cap, wx)) or real_choose(dist, x, n, cap, wx))
+    rng = random.Random(5)
+    races = []
+    for i in range(12):
+        odds = {h: rng.uniform(1.5, 40.0) for h in range(1, 11)}
+        order = tuple(sorted(odds, key=odds.get)[:3])
+        races.append(_race(f"r{i}", datetime.date(2022, 1, 1) + datetime.timedelta(i // 3), odds, order,
+                           popularity=1 + i % 6, race_num=11 if i % 2 else 5))
+    s = eh.summarise(races, (1.0, 1.0, 1.0), {"P-5|11R"})
+    assert set(s["rules"]) == {"P-5|11R", "M-x_out_2"} and "bands" not in s
+    assert s["rules"]["P-5|11R"]["races"] == 6
+    assert set(calls) == {(None, 2)}  # 本線の M-x_out_2 だけを組んだ

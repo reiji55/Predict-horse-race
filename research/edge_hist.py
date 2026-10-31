@@ -1,7 +1,10 @@
 """過去データでの探索 v1（edge-hist-v1、observe-only）。
 
-仕様は docs/research/EDGE_LOOP_HIST_V1.md（結果を見る前にコミット c046a20・f1f8436 で固定）。この実装は仕様に無い選択をしない。
-仕様の節番号（§）をコメントに残す。
+仕様は docs/research/EDGE_LOOP_HIST_V1.md の §0〜§7（結果を見る前にコミット f1f8436 で固定）。この実装は仕様に無い選択をしない。
+仕様の節番号（§）をコメントに残す。実行のたびに、今の仕様の §8 より前が固定したコミットの版と同じかを確かめる。
+
+確かめる期間（§6・§9）は封印する：候補と β は、最初にコミットした探す期間の出力からだけ取り、候補が0件ならデータを読む前に止まる。
+候補があっても、計算するのは候補と本線だけ。Git の履歴が要るので、浅い clone では確かめる期間を開けない（止まる）。
 
 データは公開データ keiba_core（iinumac/keiba_core の data/warehouse、netkeiba 由来）。ライセンスの表記が無いので、
 データはこのリポジトリに置かず、実行するときに場所を渡す。parquet の読み込みにだけ pyarrow を使う（研究用で、本番の依存には入れない）。
@@ -30,7 +33,10 @@ from research import portfolio as pf
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = "docs/research/EDGE_LOOP_HIST_V1.md"
+SPEC_COMMIT = "f1f843605ae335c633eaf23febafe279a45466f7"  # §0〜§7 を固定したコミット（結果を見る前）
+SPEC_TAIL = "\n## 8. "  # これより前が固定した本文。訂正と追記は §8 以降にだけ書く
 OUT_DIR = ROOT / "data" / "research" / "edge_hist"
+EXPLORE_OUT = "data/research/edge_hist/explore_v1.json"
 DATA_COMMIT = "2be1fafe3d9c"
 PERIODS = {  # §2
     "explore": (datetime.date(2014, 7, 1), datetime.date(2021, 12, 31)),
@@ -183,16 +189,29 @@ def band_index(popularity: int) -> int:
     raise ValueError(popularity)
 
 
-def tickets_by_rule(race: Race, beta: tuple[float, float, float]) -> dict[str, dict[str, Any]]:
-    """1レースの各作り方の結果（投資・払戻・的中）。M- が最適と示せなければ、そのレースの M- は使えない（status に残す）。"""
+M_RULES = (("M-top5", None, 0), ("M-x_out_2", None, 2), ("M-cap3", 3, 0))
+RULE_NAMES = tuple(f"P-{k}" for k in P_KS) + tuple(name for name, _, _ in M_RULES)
+
+
+def tickets_by_rule(race: Race, beta: tuple[float, float, float],
+                    names: set[str] | None = None) -> dict[str, dict[str, Any]]:
+    """1レースの各作り方の結果（投資・払戻・的中）。M- が最適と示せなければ、そのレースの M- は使えない（status に残す）。
+
+    names を渡すと、その作り方だけを計算する（確かめる期間では候補と本線だけ、§9）。
+    """
     trio = tuple(sorted(race.order))
     out: dict[str, dict[str, Any]] = {}
     for k in P_KS:
+        if names is not None and f"P-{k}" not in names:
+            continue
         hit = race.popularity <= k
         out[f"P-{k}"] = {"stake": k * UNIT, "payout": race.payout if hit else 0, "hit": hit, "status": "chosen"}
+    m_rules = [m for m in M_RULES if names is None or m[0] in names]
+    if not m_rules:
+        return out
     dist = trio_dist(race.runners, beta)
     x = x_horse(dist)
-    for name, cap, wx in (("M-top5", None, 0), ("M-x_out_2", None, 2), ("M-cap3", 3, 0)):
+    for name, cap, wx in m_rules:
         res = pf.choose(dist, x, 5, cap, wx)
         if res["status"] != "chosen" or not res["proven_optimal"]:
             out[name] = {"stake": 0, "payout": 0, "hit": False, "status": res["status"]}
@@ -243,8 +262,14 @@ def bootstrap(per_day: dict[str, dict[datetime.date, tuple[int, int]]], baseline
     return out
 
 
-def summarise(races: list[Race], beta: tuple[float, float, float]) -> dict[str, Any]:
-    """§4 の A1・A2・A3 と区間。"""
+def summarise(races: list[Race], beta: tuple[float, float, float], keys: set[str] | None = None) -> dict[str, Any]:
+    """§4 の A1・A2・A3 と区間。
+
+    keys を渡すと（確かめる期間、§9）、その作り方と本線だけを計算し、帯（A1）や他の区分は計算しない。
+    レースを外す規則は「計算した M- のどれかが最適と示せなければ外す」。探す期間で外れたレースは0件だった。
+    """
+    if keys is not None:
+        return _summarise_only(races, beta, set(keys) | {BASELINE})
     band_stake = [0] * len(BANDS)
     band_pay = [0] * len(BANDS)
     band_hits = [0] * len(BANDS)
@@ -291,6 +316,14 @@ def summarise(races: list[Race], beta: tuple[float, float, float]) -> dict[str, 
                 for name in ("P-5", BASELINE):
                     per_day.setdefault(f"{name}|{seg}", {}).setdefault(r.day, [0, 0])
 
+    bands = [{"band": f"{lo}" if hi == lo else f"{lo}〜{'' if hi is None else hi}", "combos": band_stake[i] // UNIT,
+              "hits": band_hits[i], "roi": band_pay[i] / band_stake[i] if band_stake[i] else None}
+             for i, (lo, hi) in enumerate(BANDS)]
+    return {"bands": bands, "rules": _rows(per_day, totals, per_race_ratio, p_sums), "unusable_by_rule": dict(unusable)}
+
+
+def _rows(per_day: dict[str, dict[datetime.date, list[int]]], totals: dict[str, Counter],
+          per_race_ratio: dict[str, list[float]], p_sums: dict[str, list[float]]) -> dict[str, Any]:
     frozen = {k: {d: (v[0], v[1]) for d, v in series.items()} for k, series in per_day.items()}
     boot = bootstrap(frozen, BASELINE)
     rows = {}
@@ -303,10 +336,40 @@ def summarise(races: list[Race], beta: tuple[float, float, float]) -> dict[str, 
                      "sd_ratio_per_race": sd,
                      "mean_p_sum": (sum(p_sums[key]) / len(p_sums[key])) if key in p_sums else None,
                      **boot.get(key, {})}
-    bands = [{"band": f"{lo}" if hi == lo else f"{lo}〜{'' if hi is None else hi}", "combos": band_stake[i] // UNIT,
-              "hits": band_hits[i], "roi": band_pay[i] / band_stake[i] if band_stake[i] else None}
-             for i, (lo, hi) in enumerate(BANDS)]
-    return {"bands": bands, "rules": rows, "unusable_by_rule": dict(unusable)}
+    return rows
+
+
+def _summarise_only(races: list[Race], beta: tuple[float, float, float], wanted: set[str]) -> dict[str, Any]:
+    """§9：渡した作り方（候補と本線）だけを計算する。"""
+    base_names = {k.split("|")[0] for k in wanted}
+    per_day: dict[str, dict[datetime.date, list[int]]] = {}
+    per_race_ratio: dict[str, list[float]] = {}
+    totals: dict[str, Counter] = {}
+    p_sums: dict[str, list[float]] = {}
+    unusable: Counter = Counter()
+    for r in races:
+        rules = tickets_by_rule(r, beta, base_names)
+        if any(v["status"] != "chosen" for v in rules.values()):
+            unusable.update(k for k, v in rules.items() if v["status"] != "chosen")
+            continue
+        segs = set(segments(r))
+        for key in wanted:
+            name, _, seg = key.partition("|")
+            v = rules[name]
+            series = per_day.setdefault(key, {}).setdefault(r.day, [0, 0])
+            if seg and seg not in segs:
+                continue  # 区分の外は見送り（投資0）として、同じ日の組に入れる
+            series[0] += v["stake"]
+            series[1] += v["payout"]
+            t = totals.setdefault(key, Counter())
+            t["races"] += 1
+            t["stake"] += v["stake"]
+            t["payout"] += v["payout"]
+            t["hits"] += int(v["hit"])
+            per_race_ratio.setdefault(key, []).append(v["payout"] / v["stake"])
+            if "p_sum" in v and not seg:
+                p_sums.setdefault(key, []).append(v["p_sum"])
+    return {"rules": _rows(per_day, totals, per_race_ratio, p_sums), "unusable_by_rule": dict(unusable)}
 
 
 def candidates(summary: dict[str, Any]) -> list[dict[str, Any]]:
@@ -382,8 +445,62 @@ def load_races(warehouse: Path, start: datetime.date, end: datetime.date) -> tup
     return races, excluded
 
 
-def _git(*args: str) -> str:
-    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+def _git_bytes(*args: str) -> bytes:
+    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, check=True).stdout
+
+
+# ------------------------------------------------------------------ 仕様と確かめる期間の封印（§8・§9）
+
+class SealError(RuntimeError):
+    """固定した仕様・探す期間の出力と食い違う。確かめる期間は開けない。"""
+
+
+def pinned_spec_matches(head_text: str, pinned_text: str) -> bool:
+    """今の仕様のうち §8 より前が、固定したコミットの仕様と同じか（訂正と追記は §8 以降にだけ書く）。"""
+    return head_text.split(SPEC_TAIL, 1)[0].rstrip() == pinned_text.rstrip()
+
+
+def check_spec() -> None:
+    try:
+        pinned = _git_bytes("show", f"{SPEC_COMMIT}:{SPEC}").decode("utf-8")
+    except subprocess.CalledProcessError as exc:
+        raise SealError(f"固定した仕様のコミット {SPEC_COMMIT[:12]} を読めない（浅い clone では確かめられない）") from exc
+    if not pinned_spec_matches((ROOT / SPEC).read_text(encoding="utf-8"), pinned):
+        raise SealError(f"{SPEC} の §8 より前が、固定したコミット {SPEC_COMMIT[:12]} の版と違う")
+
+
+def explore_output_fixed(on_disk: bytes | None, at_head: bytes | None, first_added: bytes | None) -> bool:
+    """探す期間の出力が、最初にコミットした版・HEAD の版・手元のファイルの3つで同じか。"""
+    return on_disk is not None and on_disk == at_head == first_added
+
+
+def load_fixed_explore() -> dict[str, Any]:
+    """§9：最初にコミットしたまま書き換えられていない、探す期間の出力を読む。"""
+    path = ROOT / EXPLORE_OUT
+    on_disk = path.read_bytes() if path.exists() else None
+    try:
+        at_head = _git_bytes("show", f"HEAD:{EXPLORE_OUT}")
+        added = _git_bytes("log", "--first-parent", "--diff-filter=A", "--format=%H", "--", EXPLORE_OUT).split()
+        first_added = _git_bytes("show", f"{added[-1].decode()}:{EXPLORE_OUT}") if added else None
+    except subprocess.CalledProcessError as exc:
+        raise SealError("探す期間の出力の履歴を Git から読めない") from exc
+    if not explore_output_fixed(on_disk, at_head, first_added):
+        raise SealError(f"{EXPLORE_OUT} が、最初にコミットした版と違う（または手元で書き換えられている）")
+    return json.loads(on_disk)
+
+
+def confirm_plan(explore: dict[str, Any]) -> tuple[tuple[float, float, float], list[str]]:
+    """§9：確かめる期間で使う β と候補を、探す期間の出力だけから決める。候補が0件なら止める。"""
+    if explore.get("phase") != "explore" or explore.get("spec_commit") != SPEC_COMMIT:
+        raise SealError("探す期間の出力が、固定した仕様で作ったものではない")
+    found = [c["rule"] for c in explore.get("candidates") or []]
+    if not found:
+        raise SealError("探す期間の候補が0件なので、確かめる期間は開けない（§5）")
+    known = set(explore.get("rules") or {}) - {BASELINE}
+    if any(c not in known for c in found):
+        raise SealError(f"探す期間で計算していない作り方が候補に入っている：{found}")
+    b1, b2, b3 = (float(x) for x in explore["beta"])
+    return (b1, b2, b3), found
 
 
 def run(warehouse: Path, phase: str, beta: tuple[float, float, float] | None, only: list[str] | None) -> dict[str, Any]:
@@ -392,17 +509,14 @@ def run(warehouse: Path, phase: str, beta: tuple[float, float, float] | None, on
     if phase == "explore":
         beta = fit_beta(races)  # §3：探す期間だけで決める
     assert beta is not None
-    summary = summarise(races, beta)
-    if only is not None:  # 確かめる期間（§6）：候補と本線だけを残し、他の集計は出さない
-        keep = set(only) | {BASELINE}
-        summary["rules"] = {k: v for k, v in summary["rules"].items() if k in keep}
-        summary.pop("bands")
+    # 確かめる期間（§9）：候補と本線だけを計算する。帯や他の作り方・区分は計算しない
+    summary = summarise(races, beta) if only is None else summarise(races, beta, set(only))
     out = {
         "schema": "edge-hist-v1",
         "phase": phase,
         "period": [start.isoformat(), end.isoformat()],
         "spec": SPEC,
-        "spec_commit": _git("log", "-1", "--format=%H", "--", SPEC),
+        "spec_commit": SPEC_COMMIT,
         "data": {"source": "iinumac/keiba_core data/warehouse", "commit": DATA_COMMIT},
         "races": len(races),
         "race_days": len({r.day for r in races}),
@@ -421,27 +535,26 @@ def run(warehouse: Path, phase: str, beta: tuple[float, float, float] | None, on
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--warehouse", type=Path, required=True, help="keiba_core の data/warehouse")
-    ap.add_argument("--phase", choices=sorted(PERIODS), required=True)
-    ap.add_argument("--beta", help="確かめる期間で使う指数（探す期間の出力の beta）。例 1.0,0.85,0.7")
-    ap.add_argument("--candidates", help="確かめる期間で測る候補（仕様の末尾に書いたもの）。カンマ区切り")
+    ap.add_argument("--phase", choices=sorted(PERIODS), required=True,
+                    help="confirm の候補と β は探す期間の出力からだけ取る（§9）。コマンドでは渡せない")
     args = ap.parse_args(argv)
-    if args.phase == "confirm":
-        if not args.beta or not args.candidates:
-            ap.error("確かめる期間は --beta と --candidates が要る（§5・§6）")
-        beta = tuple(float(x) for x in args.beta.split(","))
-        only = [c.strip() for c in args.candidates.split(",") if c.strip()]
-        spec_text = (ROOT / SPEC).read_text(encoding="utf-8")
-        missing = [c for c in only if c not in spec_text]
-        if missing:
-            ap.error(f"仕様の文書に書いていない候補がある：{missing}（§5：先に書き足してコミットする）")
-    else:
-        beta, only = None, None
+    # データを読む前に、仕様と探す期間の出力を確かめる（§8・§9）
+    try:
+        check_spec()
+        beta, only = confirm_plan(load_fixed_explore()) if args.phase == "confirm" else (None, None)
+    except SealError as exc:
+        ap.error(str(exc))
     out = run(args.warehouse, args.phase, beta, only)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / f"{args.phase}_v1.json"
-    path.write_text(json.dumps(out, ensure_ascii=False, indent=1, sort_keys=False) + "\n", encoding="utf-8")
+    if path.exists():  # 最初にコミットした出力は上書きしない。再実行の結果は別のファイルに書いて比べる
+        path = OUT_DIR / f"{args.phase}_v1.rerun.json"
+    text = json.dumps(out, ensure_ascii=False, indent=1, sort_keys=False) + "\n"
+    path.write_text(text, encoding="utf-8")
+    first = OUT_DIR / f"{args.phase}_v1.json"
     print(json.dumps({"phase": args.phase, "races": out["races"], "beta": out["beta"],
-                      "candidates": out.get("candidates")}, ensure_ascii=False))
+                      "candidates": out.get("candidates"), "written": str(path.relative_to(ROOT)),
+                      "same_as_committed": first.read_text(encoding="utf-8") == text}, ensure_ascii=False))
     return 0
 
 
