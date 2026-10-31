@@ -1,0 +1,134 @@
+{
+  "schema_version": "chat-experiment-record-v1",
+  "experiment_id": "scenario-frame",
+  "rule_ref": {
+    "path": "data/chat_experiments/scenario-frame/rule_v1.md",
+    "version": "v1"
+  },
+  "race_id": "20261031-kyoto-11",
+  "created_at": "2026-10-31T15:00:15+09:00",
+  "author": "Claude（reference_v1.py を実行）",
+  "snapshot_ref": {
+    "path": "data/snapshots/20261031-kyoto-11.json",
+    "frozen_at": "2026-10-31T13:04:17+09:00"
+  },
+  "baseline_char": "gen",
+  "budget": 500,
+  "action": "bet",
+  "pass_reason": null,
+  "candidates": [
+    {
+      "num": 1,
+      "frames": []
+    },
+    {
+      "num": 2,
+      "frames": []
+    },
+    {
+      "num": 3,
+      "frames": [
+        "B"
+      ],
+      "evidence": "B1 2026-08-30 中京 芝1400m g3 3着・着差0.6秒"
+    },
+    {
+      "num": 4,
+      "frames": []
+    },
+    {
+      "num": 5,
+      "frames": []
+    },
+    {
+      "num": 6,
+      "frames": [
+        "C"
+      ],
+      "evidence": "C3 2026-07-19 函館 芝1200m g3 2着・着差0.0秒・距離差200m"
+    },
+    {
+      "num": 7,
+      "frames": []
+    },
+    {
+      "num": 8,
+      "frames": [
+        "A"
+      ],
+      "evidence": "A 共通順位4位・Top3順位1位"
+    },
+    {
+      "num": 9,
+      "frames": []
+    },
+    {
+      "num": 10,
+      "frames": [
+        "A",
+        "B"
+      ],
+      "evidence": "A 共通順位2位・Top3順位3位; B1 2026-07-19 函館 芝1200m g3 1着・着差0.0秒"
+    },
+    {
+      "num": 11,
+      "frames": [
+        "A"
+      ],
+      "evidence": "A 共通順位1位・Top3順位2位"
+    }
+  ],
+  "bets": [
+    {
+      "type": "3連複",
+      "horses": [
+        3,
+        6,
+        11
+      ],
+      "amt": 100,
+      "frame_tag": "A+B+C"
+    },
+    {
+      "type": "3連複",
+      "horses": [
+        6,
+        8,
+        10
+      ],
+      "amt": 100,
+      "frame_tag": "A+B+C"
+    },
+    {
+      "type": "3連複",
+      "horses": [
+        3,
+        6,
+        8
+      ],
+      "amt": 100,
+      "frame_tag": "A+B+C"
+    },
+    {
+      "type": "3連複",
+      "horses": [
+        6,
+        10,
+        11
+      ],
+      "amt": 100,
+      "frame_tag": "A+B+C"
+    },
+    {
+      "type": "3連複",
+      "horses": [
+        3,
+        6,
+        10
+      ],
+      "amt": 100,
+      "frame_tag": "A+B+C"
+    }
+  ],
+  "summary": "固定ルールv1。源さん別比較。raw Git SHA=c9f3223a2957。発走前取消確認済（取消・除外なし）。"
+}
