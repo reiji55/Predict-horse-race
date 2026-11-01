@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py tests/test_portfolio_shadow.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py tests/test_portfolio_shadow.py tests/test_edge_trial.py -q
 
       - name: 対象の週を決める
         id: target
@@ -272,3 +272,36 @@ jobs:
           echo "::warning title=portfolio-shadow-v1::記録が失敗、または警告で終了しました（data/research/portfolio_shadow/summary.json の status・warnings を確認）"
           echo "### ⚠️ portfolio-shadow-v1 の記録が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
           echo "data/research/portfolio_shadow/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: edge-loop の試験の版 edge-v1 の記録（observe-only）
+        id: edge_trial
+        # 事前登録（docs/research/EDGE_V1_PREREG.md）どおりに、登録後のレースで「印の中の5組」の券と的中を記録し、
+        # 本線 edge-v0（portfolio-shadow-v1 の x_out_2）と比べる。本線の記録をコミット済みの版から読むので、
+        # portfolio-shadow-v1 の記録の後に走らせる。data/research/edge_loop/ にだけ書く。
+        # 予想・正式成績・UI・チャットの参考券には使わない。
+        # 登録の不一致・レースの失敗・固定した判定との不一致は終了コード 1（出力はコミットしてから失敗にする）。
+        continue-on-error: true
+        run: |
+          set +e
+          python -m research.edge_trial
+          rc=$?
+          set -e
+          git add data/research/edge_loop/
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: ${{ steps.target.outputs.week }} edge-v1 記録"
+            pushed=0
+            for i in 1 2 3 4; do
+              if git push; then pushed=1; break; fi
+              sleep $((i * 5))
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+            done
+            [ "$pushed" = 1 ] || exit 1
+          fi
+          exit $rc
+
+      - name: edge-v1 の失敗を知らせる
+        if: steps.edge_trial.outcome == 'failure'
+        run: |
+          echo "::warning title=edge-v1::記録が失敗、または警告で終了しました（data/research/edge_loop/edge-v1/summary.json の status・warnings を確認）"
+          echo "### ⚠️ edge-v1 の記録が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
+          echo "data/research/edge_loop/edge-v1/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"
