@@ -4,13 +4,15 @@ name: 全レースのオッズ記録（odds-live）
 # 共通に使う記録。予想・正式成績・UI・snapshot・raw には使わない。
 # 記録は main ではなく odds-live ブランチに書く（main の予想・成績集計の push とぶつからず、Pages にも載らない）。
 #
-# 1レースにつき発走30分前・3分前・25分後の3回、単勝と複勝・3連複・ワイド・馬連を取る（scraper/capture_odds_live.py）。
+# 1レースにつき発走30分前・3分前・25分後・60分後の4回、単勝と複勝・3連複・ワイド・馬連を取る（scraper/capture_odds_live.py）。
 # 取得の間隔は scraper/common/http.py のマナー（3秒以上＋ゆらぎ、UA を偽らない、リトライ1回）に従う。
 #
 # ★ 定時実行は数時間遅れることがある（run_late_odds.yml の注記）。そこで朝に複数の枠を置き、
 #   1回の実行は最大約5時間半で終えて、予定が残っていれば次の実行を自分で起動して1日をつなぐ。
-#   同時に2つは走らせない（concurrency）。後から来た枠は、前の実行が終わってから動き、
-#   取り終えた予定は取り直さないので、すぐ終わる。
+#   同時に2つは走らせない（concurrency）。GitHub は待っている実行を1つしか残さず、新しく来た実行が
+#   前に待っていた実行と入れ替わる。どの実行も「その日の、まだ取っていない予定」を続けるだけなので、
+#   入れ替わっても1日はつながる（取り終えた予定は取り直さない）。途切れていないかは、実行ごとに
+#   {日付}/runs/ に残す記録（始まった時刻・終わり方）で確かめる。
 on:
   schedule:
     - cron: '40 21 * * 5,6'   # 土日 06:40 JST
@@ -89,24 +91,35 @@ jobs:
         env:
           DATE: ${{ steps.target.outputs.date }}
           DEADLINE: ${{ steps.target.outputs.deadline }}
+          EVENT: ${{ github.event_name }}
         run: |
           set +e
+          started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          commit_push() {
+            [ -n "$(git -C odds-live status --porcelain)" ] || return 0
+            git -C odds-live add -A
+            git -C odds-live commit -q -m "odds-live: $DATE の記録"
+            for i in 1 2 3 4; do
+              git -C odds-live push -q origin odds-live && return 0
+              sleep $((i * 5))
+              git -C odds-live pull -q --rebase origin odds-live
+            done
+            echo "odds-live への push に失敗しました"
+            return 1
+          }
           while true; do
             python -m scraper.capture_odds_live --date "$DATE" --out odds-live --deadline "$DEADLINE"
             rc=$?
-            if [ -n "$(git -C odds-live status --porcelain)" ]; then
-              git -C odds-live add -A
-              git -C odds-live commit -q -m "odds-live: $DATE の記録"
-              pushed=0
-              for i in 1 2 3 4; do
-                if git -C odds-live push -q origin odds-live; then pushed=1; break; fi
-                sleep $((i * 5))
-                git -C odds-live pull -q --rebase origin odds-live
-              done
-              [ "$pushed" = 1 ] || { echo "odds-live への push に失敗しました"; exit 1; }
-            fi
+            commit_push || exit 1
             [ "$rc" -eq 0 ] || break
           done
+          # 実行ごとの記録（1日が途切れずにつながったかを、後から確かめるため）。上書きしない
+          day="${DATE//-/}"
+          mkdir -p "odds-live/$day/runs"
+          printf '{"run_id": "%s", "run_attempt": "%s", "event": "%s", "started_at": "%s", "ended_at": "%s", "exit_code": %s}\n' \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$EVENT" "$started_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$rc" \
+            > "odds-live/$day/runs/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          commit_push || exit 1
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           # 3＝その日の予定が終わった、4＝時間切れ（次の実行を起動する）。それ以外は失敗
           [ "$rc" -eq 3 ] || [ "$rc" -eq 4 ]
