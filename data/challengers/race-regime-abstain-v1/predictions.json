@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-31T19:17:39+09:00",
+  "generated_at": "2026-11-01T11:49:22+09:00",
   "week_id": "2026-W44",
   "model": {
     "model_id": "race-regime-abstain-v1",
     "model_role": "challenger",
-    "git_commit": "8d37a4e68fa57072ed43217f2ab71027ec7d1e1c",
+    "git_commit": "cfe12520eccbd793758231a32d8f17b68d680b2b",
     "config_hash": "097972c4afa00737",
     "base_times_hash": "ab7d639c51b21e3a"
   },
@@ -5475,6 +5475,5693 @@
       ],
       "id": "20261031-tokyo-11",
       "frozen_at": "2026-10-31T15:26:05+09:00"
+    },
+    {
+      "id": "20261101-kyoto-11",
+      "source_refs": {
+        "netkeiba": "202608041111",
+        "jravan": null
+      },
+      "day": "日",
+      "venue": "京都",
+      "race_no": 11,
+      "name": "まほろばS",
+      "grade": "op",
+      "post_time": "15:20",
+      "course": {
+        "surface": "芝",
+        "dist": 1600,
+        "heads": 13,
+        "note": "ハンデ"
+      },
+      "model_id": "race-regime-abstain-v1",
+      "model_role": "challenger",
+      "git_commit": "cfe12520eccbd793758231a32d8f17b68d680b2b",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "ab7d639c51b21e3a",
+      "speed_quality": {
+        "raw_available_horses": 3,
+        "qualified_horses": 2,
+        "total_horses": 13,
+        "coverage": 0.1538,
+        "min_usable_runs": 2,
+        "min_race_coverage": 0.5,
+        "same_surface_only": true,
+        "used": false,
+        "imputed_horses": 0,
+        "reason": "insufficient_race_coverage"
+      },
+      "context_layers": {
+        "version": "context-layers-v1",
+        "mode": "observe_only",
+        "layer1": {
+          "status": "active",
+          "source": "existing_prediction_model"
+        },
+        "layer2": {
+          "status": "observe_only",
+          "track_metrics": {
+            "venue": "京都",
+            "date": "2026-11-01",
+            "source_url": "https://www.jra.go.jp/keiba/baba/index2.html",
+            "cushion": null,
+            "moisture": {
+              "芝": {
+                "goal": 10.9,
+                "turn4": 9.2
+              },
+              "ダート": {
+                "goal": 8.9,
+                "turn4": 9.7
+              }
+            },
+            "course_usage": "B コース（Aコースから直線部4メートル、曲線部3メートル外に内柵を設置）",
+            "turf_state": "今週からBコースを使用します。柵の移動により内柵沿いの傷みはカバーされ、全体的に概ね良好な状態です。"
+          },
+          "odds_movement": {
+            "n_observations": 1,
+            "horses": []
+          },
+          "horses": [
+            {
+              "num": 1,
+              "name": "ガロンヌ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  468.0,
+                  466.0,
+                  476.0,
+                  468.0
+                ],
+                "n_history": 4,
+                "last": 468.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 71,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 2,
+              "name": "ダイシンヤマト",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  510.0,
+                  522.0,
+                  514.0,
+                  502.0
+                ],
+                "n_history": 4,
+                "last": 510.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 231,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 3,
+              "name": "ブエナオンダ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  460.0,
+                  458.0,
+                  454.0,
+                  458.0,
+                  460.0
+                ],
+                "n_history": 5,
+                "last": 460.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 77,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 4,
+              "name": "テリオスララ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  532.0,
+                  508.0,
+                  502.0,
+                  522.0
+                ],
+                "n_history": 4,
+                "last": 532.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 20,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 5,
+              "name": "ビップデイジー",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  454.0,
+                  440.0,
+                  452.0,
+                  450.0
+                ],
+                "n_history": 4,
+                "last": 454.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 35,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 6,
+              "name": "メイショウシンタケ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  486.0,
+                  480.0,
+                  492.0,
+                  484.0
+                ],
+                "n_history": 4,
+                "last": 486.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 35,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 7,
+              "name": "レザベーション",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  468.0,
+                  462.0,
+                  458.0,
+                  458.0,
+                  458.0
+                ],
+                "n_history": 5,
+                "last": 468.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 20,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 8,
+              "name": "スマートワイス",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  482.0,
+                  484.0,
+                  488.0,
+                  486.0
+                ],
+                "n_history": 4,
+                "last": 482.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 133,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 9,
+              "name": "ムイ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  462.0,
+                  464.0,
+                  468.0,
+                  466.0,
+                  458.0
+                ],
+                "n_history": 5,
+                "last": 462.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 21,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 10,
+              "name": "セオ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  474.0,
+                  486.0,
+                  494.0,
+                  498.0
+                ],
+                "n_history": 4,
+                "last": 474.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 337,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 11,
+              "name": "クファシル",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  498.0,
+                  498.0,
+                  504.0,
+                  500.0,
+                  496.0
+                ],
+                "n_history": 5,
+                "last": 498.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 84,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 12,
+              "name": "キョウエイブリッサ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  488.0,
+                  486.0,
+                  480.0,
+                  492.0
+                ],
+                "n_history": 4,
+                "last": 488.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 112,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 13,
+              "name": "ショウナンアデイブ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  516.0,
+                  520.0,
+                  530.0,
+                  518.0,
+                  526.0
+                ],
+                "n_history": 5,
+                "last": 516.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 77,
+                "bucket": "layoff"
+              }
+            }
+          ]
+        },
+        "layer3": {
+          "status": "unobserved",
+          "paddock": null
+        }
+      },
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 13,
+        "field_size": 13,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.177066,
+          "market_top3_share": 0.483976,
+          "market_entropy": 0.89418,
+          "model_market_tv": 0.231882,
+          "top3_overlap": 2,
+          "market_top3_indices": [
+            7,
+            6,
+            11
+          ],
+          "model_top3_indices": [
+            6,
+            0,
+            7
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false,
+          "top3_overlap": true
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": false
+        },
+        "reason": "mixed_signals"
+      },
+      "race_regime_policy_active": true,
+      "myomi": 41.6,
+      "myomi_parts": {
+        "umami": 0.8319,
+        "conf": 0.5
+      },
+      "myomi_source": "model_disagreement_with_ev_veto",
+      "legendary": false,
+      "chappy_decision": {
+        "engine": "chappy-signal-v1",
+        "source": "signal_engine",
+        "race_regime": {
+          "version": "race-regime-v1",
+          "label": "neutral",
+          "usable_horses": 13,
+          "field_size": 13,
+          "pair_coverage": 1.0,
+          "metrics": {
+            "market_top1_share": 0.177066,
+            "market_top3_share": 0.483976,
+            "market_entropy": 0.89418,
+            "model_market_tv": 0.231882,
+            "top3_overlap": 2,
+            "market_top3_indices": [
+              7,
+              6,
+              11
+            ],
+            "model_top3_indices": [
+              6,
+              0,
+              7
+            ]
+          },
+          "solid_checks": {
+            "market_top3_share": false,
+            "market_entropy": false,
+            "model_market_tv": false,
+            "top3_overlap": true
+          },
+          "open_checks": {
+            "market_top3_share": false,
+            "market_entropy": false,
+            "model_market_tv": false
+          },
+          "reason": "mixed_signals"
+        },
+        "role_policy": {
+          "long_edge_selector": "long_edge",
+          "manual_unconstrained": false
+        },
+        "roles": {
+          "win_anchor": {
+            "num": 7,
+            "name": "レザベーション",
+            "odds": 4.7
+          },
+          "support": {
+            "num": 1,
+            "name": "ガロンヌ",
+            "odds": 12.7
+          },
+          "top3_edge": {
+            "num": 13,
+            "name": "ショウナンアデイブ",
+            "odds": 8.7
+          },
+          "long_edge": {
+            "num": 10,
+            "name": "セオ",
+            "odds": 34.6
+          }
+        },
+        "conviction": 0.660877,
+        "data_quality": 0.70383,
+        "myomi": 41.6,
+        "otori_gate": {
+          "passed": false,
+          "checks": {
+            "myomi": false,
+            "conviction": false,
+            "data_quality": true,
+            "hit_pct_proxy": true,
+            "combo_odds": true,
+            "market_roi_veto": true
+          }
+        },
+        "summary": "勝ち軸は7番レザベーション。Top3妙味は13番ショウナンアデイブを最重視。能力側の相手に1番ガロンヌを残す。",
+        "manual": null,
+        "signal_board": {
+          "version": "chappy-signal-v1",
+          "horses": [
+            {
+              "num": 1,
+              "name": "ガロンヌ",
+              "odds": 12.7,
+              "signals": {
+                "win": 0.790788,
+                "top3": 0.86728,
+                "condition": 0.0,
+                "recent": 0.507509,
+                "market": 0.394573,
+                "value": 0.723862
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.507509,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.56964,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.767242,
+                "support": 0.609262,
+                "top3_edge": 0.475053,
+                "long_edge": 0.441864,
+                "solid_depth": 0.667268
+              }
+            },
+            {
+              "num": 2,
+              "name": "ダイシンヤマト",
+              "odds": 24.1,
+              "signals": {
+                "win": 0.474823,
+                "top3": 0.264584,
+                "condition": 0.0,
+                "recent": 0.171484,
+                "market": 0.638198,
+                "value": 0.408657
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 4,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.171484,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.298135,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.406337,
+                "support": 0.281798,
+                "top3_edge": 0.23449,
+                "long_edge": 0.327097,
+                "solid_depth": 0.296374
+              }
+            },
+            {
+              "num": 3,
+              "name": "ブエナオンダ",
+              "odds": 7.7,
+              "signals": {
+                "win": 0.637689,
+                "top3": 0.280954,
+                "condition": 0.0,
+                "recent": 0.193533,
+                "market": 0.204277,
+                "value": 0.229533
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 5,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.193533,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.311003,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.498948,
+                "support": 0.354344,
+                "top3_edge": 0.169482,
+                "long_edge": 0.172565,
+                "solid_depth": 0.352355
+              }
+            },
+            {
+              "num": 4,
+              "name": "テリオスララ",
+              "odds": 8.7,
+              "signals": {
+                "win": 0.388462,
+                "top3": 0.527508,
+                "condition": 0.0,
+                "recent": 0.05556,
+                "market": 0.250713,
+                "value": 0.0626
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.05556,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.281821,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.343443,
+                "support": 0.295596,
+                "top3_edge": 0.233699,
+                "long_edge": 0.228312,
+                "solid_depth": 0.329275
+              }
+            },
+            {
+              "num": 5,
+              "name": "ビップデイジー",
+              "odds": 12.3,
+              "signals": {
+                "win": 0.561711,
+                "top3": 0.189377,
+                "condition": 0.0,
+                "recent": 0.156589,
+                "market": 0.382402,
+                "value": 0.328974
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 3,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.156589,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.277586,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.442075,
+                "support": 0.295517,
+                "top3_edge": 0.163579,
+                "long_edge": 0.213293,
+                "solid_depth": 0.294988
+              }
+            },
+            {
+              "num": 6,
+              "name": "メイショウシンタケ",
+              "odds": 62.4,
+              "signals": {
+                "win": 0.0,
+                "top3": 0.0,
+                "condition": 0.0,
+                "recent": 0.019486,
+                "market": 1.0,
+                "value": 0.343808
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 3,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.019486,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.102923,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.036329,
+                "support": 0.002923,
+                "top3_edge": 0.170113,
+                "long_edge": 0.369139,
+                "solid_depth": 0.019139
+              }
+            },
+            {
+              "num": 7,
+              "name": "レザベーション",
+              "odds": 4.7,
+              "signals": {
+                "win": 1.0,
+                "top3": 1.0,
+                "condition": 0.5,
+                "recent": 0.169734,
+                "market": 0.016537,
+                "value": 1.0
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.5,
+                "same_dist_runs": 4,
+                "same_dist_top3": 2,
+                "same_dist_rate": 0.5,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.169734,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.677114,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.916973,
+                "support": 0.77546,
+                "top3_edge": 0.577941,
+                "long_edge": 0.447762,
+                "solid_depth": 0.841973
+              }
+            },
+            {
+              "num": 8,
+              "name": "スマートワイス",
+              "odds": 4.5,
+              "signals": {
+                "win": 0.786547,
+                "top3": 0.773516,
+                "condition": 0.0,
+                "recent": 0.378472,
+                "market": 0.0,
+                "value": 0.145753
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 2,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.378472,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.486114,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.679706,
+                "support": 0.564769,
+                "top3_edge": 0.334789,
+                "long_edge": 0.238514,
+                "solid_depth": 0.591157
+              }
+            },
+            {
+              "num": 9,
+              "name": "ムイ",
+              "odds": 39.4,
+              "signals": {
+                "win": 0.305215,
+                "top3": 0.120695,
+                "condition": 0.0,
+                "recent": 0.111949,
+                "market": 0.825137,
+                "value": 0.378107
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.111949,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.221045,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.2655,
+                "support": 0.169052,
+                "top3_edge": 0.201712,
+                "long_edge": 0.349072,
+                "solid_depth": 0.179169
+              }
+            },
+            {
+              "num": 10,
+              "name": "セオ",
+              "odds": 34.6,
+              "signals": {
+                "win": 0.415496,
+                "top3": 0.606168,
+                "condition": 0.401961,
+                "recent": 0.115761,
+                "market": 0.775731,
+                "value": 0.418381
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.401961,
+                "same_dist_runs": 3,
+                "same_dist_top3": 1,
+                "same_dist_rate": 0.333333,
+                "same_course_dist_runs": 2,
+                "same_course_dist_top3": 1,
+                "same_course_dist_rate": 0.5,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.115761,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.45152,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.414412,
+                "support": 0.415497,
+                "top3_edge": 0.48739,
+                "long_edge": 0.556033,
+                "solid_depth": 0.450372
+              }
+            },
+            {
+              "num": 11,
+              "name": "クファシル",
+              "odds": 62.4,
+              "signals": {
+                "win": 0.418246,
+                "top3": 0.155239,
+                "condition": 0.0,
+                "recent": 0.096875,
+                "market": 1.0,
+                "value": 0.470974
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.096875,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.278815,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.35193,
+                "support": 0.220639,
+                "top3_edge": 0.242414,
+                "long_edge": 0.422046,
+                "solid_depth": 0.233956
+              }
+            },
+            {
+              "num": 12,
+              "name": "キョウエイブリッサ",
+              "odds": 5.8,
+              "signals": {
+                "win": 0.589996,
+                "top3": 0.355875,
+                "condition": 0.0,
+                "recent": 0.211262,
+                "market": 0.096513,
+                "value": 0.0
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 3,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 2,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.211262,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.307308,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.458005,
+                "support": 0.356657,
+                "top3_edge": 0.170723,
+                "long_edge": 0.143875,
+                "solid_depth": 0.352181
+              }
+            },
+            {
+              "num": 13,
+              "name": "ショウナンアデイブ",
+              "odds": 8.7,
+              "signals": {
+                "win": 0.68536,
+                "top3": 0.877878,
+                "condition": 0.352941,
+                "recent": 0.125072,
+                "market": 0.250713,
+                "value": 0.362019
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.352941,
+                "same_dist_runs": 4,
+                "same_dist_top3": 1,
+                "same_dist_rate": 0.25,
+                "same_course_dist_runs": 2,
+                "same_course_dist_top3": 1,
+                "same_course_dist_rate": 0.5,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.125072,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.539498,
+              "data_quality": 0.70383,
+              "role_scores": {
+                "win_anchor": 0.625875,
+                "support": 0.582963,
+                "top3_edge": 0.487608,
+                "long_edge": 0.426062,
+                "solid_depth": 0.630683
+              }
+            }
+          ]
+        }
+      },
+      "otori_card_ev": null,
+      "card_ev_myomi": {
+        "myomi": 50.0,
+        "myomi_parts": {
+          "umami": 1.0,
+          "conf": 0.5
+        },
+        "legendary": false,
+        "myomi_source": "otori_market_card_ev",
+        "expected_roi": 1.750697
+      },
+      "model_disagreement_myomi": {
+        "myomi": 41.6,
+        "myomi_parts": {
+          "umami": 0.8319,
+          "conf": 0.5
+        },
+        "legendary": false
+      },
+      "marks": [
+        {
+          "mk": "◎",
+          "hon": true,
+          "num": 7,
+          "waku": 5,
+          "name": "レザベーション",
+          "odds": 4.7,
+          "score": 87.1,
+          "top3_score": 0.4249,
+          "top3_rank": 1,
+          "top3_same_dist_runs": 4,
+          "top3_same_dist_hits": 2
+        },
+        {
+          "mk": "○",
+          "num": 1,
+          "waku": 1,
+          "name": "ガロンヌ",
+          "odds": 12.7,
+          "score": 79.2,
+          "top3_score": 0.3762,
+          "top3_rank": 3,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "▲",
+          "num": 8,
+          "waku": 6,
+          "name": "スマートワイス",
+          "odds": 4.5,
+          "score": 79.0,
+          "top3_score": 0.3418,
+          "top3_rank": 4,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "△",
+          "num": 13,
+          "waku": 8,
+          "name": "ショウナンアデイブ",
+          "odds": 8.7,
+          "score": 75.1,
+          "top3_score": 0.3801,
+          "top3_rank": 2,
+          "top3_same_dist_runs": 4,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "△",
+          "num": 3,
+          "waku": 3,
+          "name": "ブエナオンダ",
+          "odds": 7.7,
+          "score": 73.3,
+          "top3_score": 0.1612,
+          "top3_rank": 8,
+          "top3_same_dist_runs": 5,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "✕",
+          "num": 12,
+          "waku": 8,
+          "name": "キョウエイブリッサ",
+          "odds": 5.8,
+          "score": 71.5,
+          "top3_score": 0.1887,
+          "top3_rank": 7,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 5,
+          "waku": 4,
+          "name": "ビップデイジー",
+          "odds": 12.3,
+          "score": 70.4,
+          "top3_score": 0.1276,
+          "top3_rank": 10,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 2,
+          "waku": 2,
+          "name": "ダイシンヤマト",
+          "odds": 24.1,
+          "score": 67.1,
+          "top3_score": 0.1552,
+          "top3_rank": 9,
+          "top3_same_dist_runs": 4,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 11,
+          "waku": 7,
+          "name": "クファシル",
+          "odds": 62.4,
+          "score": 64.9,
+          "top3_score": 0.1151,
+          "top3_rank": 11,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 10,
+          "waku": 7,
+          "name": "セオ",
+          "odds": 34.6,
+          "score": 64.8,
+          "top3_score": 0.2805,
+          "top3_rank": 5,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "",
+          "num": 4,
+          "waku": 4,
+          "name": "テリオスララ",
+          "odds": 8.7,
+          "score": 63.8,
+          "top3_score": 0.2516,
+          "top3_rank": 6,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 9,
+          "waku": 6,
+          "name": "ムイ",
+          "odds": 39.4,
+          "score": 60.6,
+          "top3_score": 0.1024,
+          "top3_rank": 12,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 6,
+          "waku": 5,
+          "name": "メイショウシンタケ",
+          "odds": 62.4,
+          "score": 49.0,
+          "top3_score": 0.0581,
+          "top3_rank": 13,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 0
+        }
+      ],
+      "cards": [
+        {
+          "char": "kei",
+          "objective": "pq",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 50,
+          "payout_range": [
+            300,
+            2400
+          ],
+          "market_ev": {
+            "complete": true,
+            "coverage": 1.0,
+            "expected_payout": 818.57,
+            "expected_roi": 1.637145,
+            "edge": 0.637145,
+            "bets": [
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  1
+                ],
+                "amt": 200,
+                "prob": 0.25034379,
+                "market_odds": 8.4,
+                "expected_payout": 420.58
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  8
+                ],
+                "amt": 100,
+                "prob": 0.24885994,
+                "market_odds": 4.5,
+                "expected_payout": 111.99
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  1,
+                  8
+                ],
+                "amt": 100,
+                "prob": 0.12513253,
+                "market_odds": 8.0,
+                "expected_payout": 100.11
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  7,
+                  1
+                ],
+                "amt": 100,
+                "prob": 0.09941267,
+                "market_odds": 18.7,
+                "expected_payout": 185.9
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.55,
+              "aptitude": 0.25,
+              "human": 0.2
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                1
+              ],
+              "amt": 200
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                8
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                1,
+                8
+              ],
+              "amt": 100
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                7,
+                1
+              ],
+              "amt": 100
+            }
+          ]
+        },
+        {
+          "char": "tetsu",
+          "objective": "pq",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 39,
+          "payout_range": [
+            300,
+            3600
+          ],
+          "market_ev": {
+            "complete": true,
+            "coverage": 1.0,
+            "expected_payout": 811.01,
+            "expected_roi": 1.622015,
+            "edge": 0.622015,
+            "bets": [
+              {
+                "type": "馬連",
+                "horses": [
+                  7,
+                  1
+                ],
+                "amt": 200,
+                "prob": 0.10115046,
+                "market_odds": 18.7,
+                "expected_payout": 378.3
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  7,
+                  13
+                ],
+                "amt": 100,
+                "prob": 0.06619773,
+                "market_odds": 17.0,
+                "expected_payout": 112.54
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  1,
+                  13
+                ],
+                "amt": 100,
+                "prob": 0.04018997,
+                "market_odds": 51.6,
+                "expected_payout": 207.38
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  8
+                ],
+                "amt": 100,
+                "prob": 0.25064052,
+                "market_odds": 4.5,
+                "expected_payout": 112.79
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.45,
+              "aptitude": 0.3,
+              "human": 0.25
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "馬連",
+              "horses": [
+                7,
+                1
+              ],
+              "amt": 200
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                7,
+                13
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                1,
+                13
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                8
+              ],
+              "amt": 100
+            }
+          ]
+        },
+        {
+          "char": "gen",
+          "objective": "ev",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 8,
+          "payout_range": [
+            2500,
+            18800
+          ],
+          "market_ev": {
+            "complete": false,
+            "coverage": 0.75,
+            "expected_payout": null,
+            "expected_roi": null,
+            "edge": null,
+            "bets": [
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  11,
+                  2
+                ],
+                "amt": 100,
+                "prob": 0.0049129,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  11,
+                  1
+                ],
+                "amt": 100,
+                "prob": 0.00915191,
+                "market_odds": 482.7,
+                "expected_payout": 441.76
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  2,
+                  1
+                ],
+                "amt": 100,
+                "prob": 0.01546909,
+                "market_odds": 166.5,
+                "expected_payout": 257.56
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  11
+                ],
+                "amt": 200,
+                "prob": 0.06450692,
+                "market_odds": 57.6,
+                "expected_payout": 743.12
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.25,
+              "aptitude": 0.55,
+              "human": 0.2
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                11,
+                2
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                11,
+                1
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                2,
+                1
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                11
+              ],
+              "amt": 200
+            }
+          ]
+        },
+        {
+          "char": "chappy",
+          "objective": "dynamic_signal_integration",
+          "place_partner_mode": "dynamic",
+          "model_version": "chappy-signal-v1",
+          "model_role": "challenger",
+          "portfolio_style": "balanced_edge_1000",
+          "source": "signal_engine",
+          "conviction": 0.660877,
+          "hit_pct": 48,
+          "payout_range": [
+            300,
+            27700
+          ],
+          "market_ev": {
+            "complete": true,
+            "coverage": 1.0,
+            "expected_payout": 1750.7,
+            "expected_roi": 1.750697,
+            "edge": 0.750697,
+            "bets": [
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  13
+                ],
+                "amt": 200,
+                "prob": 0.17543111,
+                "market_odds": 7.0,
+                "expected_payout": 245.6
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  1
+                ],
+                "amt": 100,
+                "prob": 0.25427205,
+                "market_odds": 8.4,
+                "expected_payout": 213.59
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  1,
+                  13
+                ],
+                "amt": 100,
+                "prob": 0.08768308,
+                "market_odds": 15.5,
+                "expected_payout": 135.91
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  7,
+                  10
+                ],
+                "amt": 100,
+                "prob": 0.06434477,
+                "market_odds": 20.7,
+                "expected_payout": 133.19
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  7,
+                  1
+                ],
+                "amt": 100,
+                "prob": 0.10115046,
+                "market_odds": 18.7,
+                "expected_payout": 189.15
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  1,
+                  13
+                ],
+                "amt": 100,
+                "prob": 0.04018997,
+                "market_odds": 51.6,
+                "expected_payout": 207.38
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  13,
+                  10
+                ],
+                "amt": 100,
+                "prob": 0.00849637,
+                "market_odds": 188.6,
+                "expected_payout": 160.24
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  1,
+                  13,
+                  10
+                ],
+                "amt": 100,
+                "prob": 0.00298871,
+                "market_odds": 475.7,
+                "expected_payout": 142.17
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  7,
+                  1,
+                  10
+                ],
+                "amt": 100,
+                "prob": 0.01346053,
+                "market_odds": 240.3,
+                "expected_payout": 323.46
+              }
+            ]
+          },
+          "probability_model": {
+            "source": "common_win_p_un-calibrated"
+          },
+          "total": 1000,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                13
+              ],
+              "amt": 200
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                1
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                1,
+                13
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                7,
+                10
+              ],
+              "amt": 100
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                7,
+                1
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                1,
+                13
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                13,
+                10
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                1,
+                13,
+                10
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                7,
+                1,
+                10
+              ],
+              "amt": 100
+            }
+          ],
+          "decision_log": {
+            "engine": "chappy-signal-v1",
+            "source": "signal_engine",
+            "race_regime": {
+              "version": "race-regime-v1",
+              "label": "neutral",
+              "usable_horses": 13,
+              "field_size": 13,
+              "pair_coverage": 1.0,
+              "metrics": {
+                "market_top1_share": 0.177066,
+                "market_top3_share": 0.483976,
+                "market_entropy": 0.89418,
+                "model_market_tv": 0.231882,
+                "top3_overlap": 2,
+                "market_top3_indices": [
+                  7,
+                  6,
+                  11
+                ],
+                "model_top3_indices": [
+                  6,
+                  0,
+                  7
+                ]
+              },
+              "solid_checks": {
+                "market_top3_share": false,
+                "market_entropy": false,
+                "model_market_tv": false,
+                "top3_overlap": true
+              },
+              "open_checks": {
+                "market_top3_share": false,
+                "market_entropy": false,
+                "model_market_tv": false
+              },
+              "reason": "mixed_signals"
+            },
+            "role_policy": {
+              "long_edge_selector": "long_edge",
+              "manual_unconstrained": false
+            },
+            "roles": {
+              "win_anchor": {
+                "num": 7,
+                "name": "レザベーション",
+                "odds": 4.7
+              },
+              "support": {
+                "num": 1,
+                "name": "ガロンヌ",
+                "odds": 12.7
+              },
+              "top3_edge": {
+                "num": 13,
+                "name": "ショウナンアデイブ",
+                "odds": 8.7
+              },
+              "long_edge": {
+                "num": 10,
+                "name": "セオ",
+                "odds": 34.6
+              }
+            },
+            "conviction": 0.660877,
+            "data_quality": 0.70383,
+            "myomi": 41.6,
+            "otori_gate": {
+              "passed": false,
+              "checks": {
+                "myomi": false,
+                "conviction": false,
+                "data_quality": true,
+                "hit_pct_proxy": true,
+                "combo_odds": true,
+                "market_roi_veto": true
+              }
+            },
+            "summary": "勝ち軸は7番レザベーション。Top3妙味は13番ショウナンアデイブを最重視。能力側の相手に1番ガロンヌを残す。",
+            "manual": null,
+            "signal_board": {
+              "version": "chappy-signal-v1",
+              "horses": [
+                {
+                  "num": 1,
+                  "name": "ガロンヌ",
+                  "odds": 12.7,
+                  "signals": {
+                    "win": 0.790788,
+                    "top3": 0.86728,
+                    "condition": 0.0,
+                    "recent": 0.507509,
+                    "market": 0.394573,
+                    "value": 0.723862
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.507509,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.56964,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.767242,
+                    "support": 0.609262,
+                    "top3_edge": 0.475053,
+                    "long_edge": 0.441864,
+                    "solid_depth": 0.667268
+                  }
+                },
+                {
+                  "num": 2,
+                  "name": "ダイシンヤマト",
+                  "odds": 24.1,
+                  "signals": {
+                    "win": 0.474823,
+                    "top3": 0.264584,
+                    "condition": 0.0,
+                    "recent": 0.171484,
+                    "market": 0.638198,
+                    "value": 0.408657
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 4,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.171484,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.298135,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.406337,
+                    "support": 0.281798,
+                    "top3_edge": 0.23449,
+                    "long_edge": 0.327097,
+                    "solid_depth": 0.296374
+                  }
+                },
+                {
+                  "num": 3,
+                  "name": "ブエナオンダ",
+                  "odds": 7.7,
+                  "signals": {
+                    "win": 0.637689,
+                    "top3": 0.280954,
+                    "condition": 0.0,
+                    "recent": 0.193533,
+                    "market": 0.204277,
+                    "value": 0.229533
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 5,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.193533,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.311003,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.498948,
+                    "support": 0.354344,
+                    "top3_edge": 0.169482,
+                    "long_edge": 0.172565,
+                    "solid_depth": 0.352355
+                  }
+                },
+                {
+                  "num": 4,
+                  "name": "テリオスララ",
+                  "odds": 8.7,
+                  "signals": {
+                    "win": 0.388462,
+                    "top3": 0.527508,
+                    "condition": 0.0,
+                    "recent": 0.05556,
+                    "market": 0.250713,
+                    "value": 0.0626
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.05556,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.281821,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.343443,
+                    "support": 0.295596,
+                    "top3_edge": 0.233699,
+                    "long_edge": 0.228312,
+                    "solid_depth": 0.329275
+                  }
+                },
+                {
+                  "num": 5,
+                  "name": "ビップデイジー",
+                  "odds": 12.3,
+                  "signals": {
+                    "win": 0.561711,
+                    "top3": 0.189377,
+                    "condition": 0.0,
+                    "recent": 0.156589,
+                    "market": 0.382402,
+                    "value": 0.328974
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 3,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.156589,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.277586,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.442075,
+                    "support": 0.295517,
+                    "top3_edge": 0.163579,
+                    "long_edge": 0.213293,
+                    "solid_depth": 0.294988
+                  }
+                },
+                {
+                  "num": 6,
+                  "name": "メイショウシンタケ",
+                  "odds": 62.4,
+                  "signals": {
+                    "win": 0.0,
+                    "top3": 0.0,
+                    "condition": 0.0,
+                    "recent": 0.019486,
+                    "market": 1.0,
+                    "value": 0.343808
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 3,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.019486,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.102923,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.036329,
+                    "support": 0.002923,
+                    "top3_edge": 0.170113,
+                    "long_edge": 0.369139,
+                    "solid_depth": 0.019139
+                  }
+                },
+                {
+                  "num": 7,
+                  "name": "レザベーション",
+                  "odds": 4.7,
+                  "signals": {
+                    "win": 1.0,
+                    "top3": 1.0,
+                    "condition": 0.5,
+                    "recent": 0.169734,
+                    "market": 0.016537,
+                    "value": 1.0
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.5,
+                    "same_dist_runs": 4,
+                    "same_dist_top3": 2,
+                    "same_dist_rate": 0.5,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.169734,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.677114,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.916973,
+                    "support": 0.77546,
+                    "top3_edge": 0.577941,
+                    "long_edge": 0.447762,
+                    "solid_depth": 0.841973
+                  }
+                },
+                {
+                  "num": 8,
+                  "name": "スマートワイス",
+                  "odds": 4.5,
+                  "signals": {
+                    "win": 0.786547,
+                    "top3": 0.773516,
+                    "condition": 0.0,
+                    "recent": 0.378472,
+                    "market": 0.0,
+                    "value": 0.145753
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.378472,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.486114,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.679706,
+                    "support": 0.564769,
+                    "top3_edge": 0.334789,
+                    "long_edge": 0.238514,
+                    "solid_depth": 0.591157
+                  }
+                },
+                {
+                  "num": 9,
+                  "name": "ムイ",
+                  "odds": 39.4,
+                  "signals": {
+                    "win": 0.305215,
+                    "top3": 0.120695,
+                    "condition": 0.0,
+                    "recent": 0.111949,
+                    "market": 0.825137,
+                    "value": 0.378107
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.111949,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.221045,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.2655,
+                    "support": 0.169052,
+                    "top3_edge": 0.201712,
+                    "long_edge": 0.349072,
+                    "solid_depth": 0.179169
+                  }
+                },
+                {
+                  "num": 10,
+                  "name": "セオ",
+                  "odds": 34.6,
+                  "signals": {
+                    "win": 0.415496,
+                    "top3": 0.606168,
+                    "condition": 0.401961,
+                    "recent": 0.115761,
+                    "market": 0.775731,
+                    "value": 0.418381
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.401961,
+                    "same_dist_runs": 3,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 0.333333,
+                    "same_course_dist_runs": 2,
+                    "same_course_dist_top3": 1,
+                    "same_course_dist_rate": 0.5,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.115761,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.45152,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.414412,
+                    "support": 0.415497,
+                    "top3_edge": 0.48739,
+                    "long_edge": 0.556033,
+                    "solid_depth": 0.450372
+                  }
+                },
+                {
+                  "num": 11,
+                  "name": "クファシル",
+                  "odds": 62.4,
+                  "signals": {
+                    "win": 0.418246,
+                    "top3": 0.155239,
+                    "condition": 0.0,
+                    "recent": 0.096875,
+                    "market": 1.0,
+                    "value": 0.470974
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.096875,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.278815,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.35193,
+                    "support": 0.220639,
+                    "top3_edge": 0.242414,
+                    "long_edge": 0.422046,
+                    "solid_depth": 0.233956
+                  }
+                },
+                {
+                  "num": 12,
+                  "name": "キョウエイブリッサ",
+                  "odds": 5.8,
+                  "signals": {
+                    "win": 0.589996,
+                    "top3": 0.355875,
+                    "condition": 0.0,
+                    "recent": 0.211262,
+                    "market": 0.096513,
+                    "value": 0.0
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 3,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 2,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.211262,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.307308,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.458005,
+                    "support": 0.356657,
+                    "top3_edge": 0.170723,
+                    "long_edge": 0.143875,
+                    "solid_depth": 0.352181
+                  }
+                },
+                {
+                  "num": 13,
+                  "name": "ショウナンアデイブ",
+                  "odds": 8.7,
+                  "signals": {
+                    "win": 0.68536,
+                    "top3": 0.877878,
+                    "condition": 0.352941,
+                    "recent": 0.125072,
+                    "market": 0.250713,
+                    "value": 0.362019
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.352941,
+                    "same_dist_runs": 4,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 0.25,
+                    "same_course_dist_runs": 2,
+                    "same_course_dist_top3": 1,
+                    "same_course_dist_rate": 0.5,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.125072,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.539498,
+                  "data_quality": 0.70383,
+                  "role_scores": {
+                    "win_anchor": 0.625875,
+                    "support": 0.582963,
+                    "top3_edge": 0.487608,
+                    "long_edge": 0.426062,
+                    "solid_depth": 0.630683
+                  }
+                }
+              ]
+            }
+          },
+          "say": "勝ち軸は7番レザベーション。Top3妙味は13番ショウナンアデイブを最重視。能力側の相手に1番ガロンヌを残す。"
+        }
+      ]
+    },
+    {
+      "id": "20261101-tokyo-11",
+      "source_refs": {
+        "netkeiba": "202605041111",
+        "jravan": null
+      },
+      "day": "日",
+      "venue": "東京",
+      "race_no": 11,
+      "name": "天皇賞(秋)",
+      "grade": "g1",
+      "post_time": "15:40",
+      "course": {
+        "surface": "芝",
+        "dist": 2000,
+        "heads": 17,
+        "note": "定量"
+      },
+      "model_id": "race-regime-abstain-v1",
+      "model_role": "challenger",
+      "git_commit": "cfe12520eccbd793758231a32d8f17b68d680b2b",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "ab7d639c51b21e3a",
+      "speed_quality": {
+        "raw_available_horses": 4,
+        "qualified_horses": 0,
+        "total_horses": 17,
+        "coverage": 0.0,
+        "min_usable_runs": 2,
+        "min_race_coverage": 0.5,
+        "same_surface_only": true,
+        "used": false,
+        "imputed_horses": 0,
+        "reason": "insufficient_race_coverage"
+      },
+      "context_layers": {
+        "version": "context-layers-v1",
+        "mode": "observe_only",
+        "layer1": {
+          "status": "active",
+          "source": "existing_prediction_model"
+        },
+        "layer2": {
+          "status": "observe_only",
+          "track_metrics": {
+            "venue": "東京",
+            "date": "2026-11-01",
+            "source_url": "https://www.jra.go.jp/keiba/baba/",
+            "cushion": null,
+            "moisture": {
+              "芝": {
+                "goal": 13.8,
+                "turn4": 13.4
+              },
+              "ダート": {
+                "goal": 4.3,
+                "turn4": 4.3
+              }
+            },
+            "course_usage": "B コース（Aコースから3メートル外に内柵を設置）",
+            "turf_state": "今週からBコースを使用します。柵の移動により傷んだ箇所は概ねカバーされており、正面直線の内柵沿いに軽微な傷みはありますが、全体的に良好な状態です。"
+          },
+          "odds_movement": {
+            "n_observations": 1,
+            "horses": []
+          },
+          "horses": [
+            {
+              "num": 1,
+              "name": "クロワデュノール",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  514.0,
+                  514.0,
+                  522.0,
+                  512.0
+                ],
+                "n_history": 4,
+                "last": 514.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 140,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 2,
+              "name": "エルトンバローズ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  516.0,
+                  520.0,
+                  520.0,
+                  522.0,
+                  518.0
+                ],
+                "n_history": 5,
+                "last": 516.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 3,
+              "name": "レガレイラ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  490.0,
+                  484.0,
+                  482.0,
+                  480.0
+                ],
+                "n_history": 4,
+                "last": 490.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 42,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 4,
+              "name": "レディネス",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  494.0,
+                  500.0,
+                  484.0,
+                  506.0,
+                  498.0
+                ],
+                "n_history": 5,
+                "last": 494.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 5,
+              "name": "シャンパンカラー",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  514.0,
+                  512.0,
+                  516.0,
+                  516.0
+                ],
+                "n_history": 4,
+                "last": 514.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 6,
+              "name": "セイウンハーデス",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  480.0,
+                  478.0,
+                  474.0,
+                  474.0
+                ],
+                "n_history": 4,
+                "last": 480.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 7,
+              "name": "マスカレードボール",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  474.0,
+                  470.0,
+                  470.0
+                ],
+                "n_history": 3,
+                "last": 474.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 99,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 8,
+              "name": "ジュンブロッサム",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  474.0,
+                  472.0,
+                  472.0,
+                  476.0,
+                  478.0
+                ],
+                "n_history": 5,
+                "last": 474.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 20,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 9,
+              "name": "ホウオウビスケッツ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  502.0,
+                  504.0,
+                  512.0,
+                  502.0,
+                  502.0
+                ],
+                "n_history": 5,
+                "last": 502.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 10,
+              "name": "ネブラディスク",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  456.0,
+                  452.0,
+                  448.0,
+                  440.0
+                ],
+                "n_history": 4,
+                "last": 456.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 120,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 11,
+              "name": "シェイクユアハート",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  450.0,
+                  456.0,
+                  462.0,
+                  458.0,
+                  458.0
+                ],
+                "n_history": 5,
+                "last": 450.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 77,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 12,
+              "name": "コスモキュランダ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  514.0,
+                  518.0,
+                  520.0,
+                  522.0
+                ],
+                "n_history": 4,
+                "last": 514.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 42,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 13,
+              "name": "リアライズシリウス",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  538.0,
+                  528.0,
+                  528.0,
+                  530.0
+                ],
+                "n_history": 4,
+                "last": 538.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 28,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 14,
+              "name": "タガノデュード",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  508.0,
+                  504.0,
+                  502.0,
+                  500.0
+                ],
+                "n_history": 4,
+                "last": 508.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 50,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 15,
+              "name": "サクラファレル",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  514.0,
+                  516.0,
+                  520.0,
+                  514.0
+                ],
+                "n_history": 4,
+                "last": 514.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 77,
+                "bucket": "layoff"
+              }
+            },
+            {
+              "num": 16,
+              "name": "ジョバンニ",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  478.0,
+                  474.0,
+                  470.0,
+                  482.0,
+                  480.0
+                ],
+                "n_history": 5,
+                "last": 478.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 50,
+                "bucket": "normal"
+              }
+            },
+            {
+              "num": 17,
+              "name": "ダノンデサイル",
+              "body_weight": {
+                "current": null,
+                "history": [
+                  520.0,
+                  516.0,
+                  514.0,
+                  508.0
+                ],
+                "n_history": 4,
+                "last": 520.0,
+                "median": null,
+                "change_from_last": null,
+                "deviation_from_median": null,
+                "deviation_pct": null,
+                "robust_z": null,
+                "unusual": false,
+                "quality": "usable"
+              },
+              "rest": {
+                "days": 140,
+                "bucket": "layoff"
+              }
+            }
+          ]
+        },
+        "layer3": {
+          "status": "unobserved",
+          "paddock": null
+        }
+      },
+      "race_regime": {
+        "version": "race-regime-v1",
+        "label": "neutral",
+        "usable_horses": 17,
+        "field_size": 17,
+        "pair_coverage": 1.0,
+        "metrics": {
+          "market_top1_share": 0.316958,
+          "market_top3_share": 0.68453,
+          "market_entropy": 0.701488,
+          "model_market_tv": 0.446739,
+          "top3_overlap": 1,
+          "market_top3_indices": [
+            0,
+            6,
+            2
+          ],
+          "model_top3_indices": [
+            9,
+            6,
+            15
+          ]
+        },
+        "solid_checks": {
+          "market_top3_share": true,
+          "market_entropy": true,
+          "model_market_tv": false,
+          "top3_overlap": false
+        },
+        "open_checks": {
+          "market_top3_share": false,
+          "market_entropy": false,
+          "model_market_tv": true
+        },
+        "reason": "mixed_signals"
+      },
+      "race_regime_policy_active": true,
+      "myomi": 50.0,
+      "myomi_parts": {
+        "umami": 1.0,
+        "conf": 0.5
+      },
+      "myomi_source": "model_disagreement_with_ev_veto",
+      "legendary": false,
+      "chappy_decision": {
+        "engine": "chappy-signal-v1",
+        "source": "signal_engine",
+        "race_regime": {
+          "version": "race-regime-v1",
+          "label": "neutral",
+          "usable_horses": 17,
+          "field_size": 17,
+          "pair_coverage": 1.0,
+          "metrics": {
+            "market_top1_share": 0.316958,
+            "market_top3_share": 0.68453,
+            "market_entropy": 0.701488,
+            "model_market_tv": 0.446739,
+            "top3_overlap": 1,
+            "market_top3_indices": [
+              0,
+              6,
+              2
+            ],
+            "model_top3_indices": [
+              9,
+              6,
+              15
+            ]
+          },
+          "solid_checks": {
+            "market_top3_share": true,
+            "market_entropy": true,
+            "model_market_tv": false,
+            "top3_overlap": false
+          },
+          "open_checks": {
+            "market_top3_share": false,
+            "market_entropy": false,
+            "model_market_tv": true
+          },
+          "reason": "mixed_signals"
+        },
+        "role_policy": {
+          "long_edge_selector": "long_edge",
+          "manual_unconstrained": false
+        },
+        "roles": {
+          "win_anchor": {
+            "num": 10,
+            "name": "ネブラディスク",
+            "odds": 46.1
+          },
+          "support": {
+            "num": 17,
+            "name": "ダノンデサイル",
+            "odds": 10.0
+          },
+          "top3_edge": {
+            "num": 16,
+            "name": "ジョバンニ",
+            "odds": 50.9
+          },
+          "long_edge": {
+            "num": 15,
+            "name": "サクラファレル",
+            "odds": 95.6
+          }
+        },
+        "conviction": 0.809482,
+        "data_quality": 0.65,
+        "myomi": 50.0,
+        "otori_gate": {
+          "passed": false,
+          "checks": {
+            "myomi": false,
+            "conviction": true,
+            "data_quality": true,
+            "hit_pct_proxy": true,
+            "combo_odds": false,
+            "market_roi_veto": false
+          }
+        },
+        "summary": "勝ち軸は10番ネブラディスク。Top3妙味は16番ジョバンニを最重視。能力側の相手に17番ダノンデサイルを残す。",
+        "manual": null,
+        "signal_board": {
+          "version": "chappy-signal-v1",
+          "horses": [
+            {
+              "num": 1,
+              "name": "クロワデュノール",
+              "odds": 2.5,
+              "signals": {
+                "win": 0.776286,
+                "top3": 0.825992,
+                "condition": 1.0,
+                "recent": 0.981042,
+                "market": 0.0,
+                "value": 0.0
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 1,
+                "same_dist_top3": 1,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.981042,
+                "runs": 3,
+                "top3": 3
+              },
+              "integrated": 0.78654,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.726589,
+                "support": 0.864169,
+                "top3_edge": 0.736253,
+                "long_edge": 0.554602,
+                "solid_depth": 0.808901
+              }
+            },
+            {
+              "num": 2,
+              "name": "エルトンバローズ",
+              "odds": 221.5,
+              "signals": {
+                "win": 0.363067,
+                "top3": 0.227257,
+                "condition": 0.0,
+                "recent": 0.399653,
+                "market": 1.0,
+                "value": 0.641326
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.399653,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.325682,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.37418,
+                "support": 0.261989,
+                "top3_edge": 0.321554,
+                "long_edge": 0.478846,
+                "solid_depth": 0.278645
+              }
+            },
+            {
+              "num": 3,
+              "name": "レガレイラ",
+              "odds": 8.4,
+              "signals": {
+                "win": 0.790794,
+                "top3": 0.319586,
+                "condition": 0.0,
+                "recent": 0.249467,
+                "market": 0.270273,
+                "value": 0.584215
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.249467,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.381582,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.645322,
+                "support": 0.433634,
+                "top3_edge": 0.219027,
+                "long_edge": 0.22865,
+                "solid_depth": 0.44279
+              }
+            },
+            {
+              "num": 4,
+              "name": "レディネス",
+              "odds": 61.4,
+              "signals": {
+                "win": 0.397186,
+                "top3": 0.626586,
+                "condition": 0.294118,
+                "recent": 0.73845,
+                "market": 0.713877,
+                "value": 0.624494
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.294118,
+                "same_dist_runs": 2,
+                "same_dist_top3": 1,
+                "same_dist_rate": 0.5,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.73845,
+                "runs": 3,
+                "top3": 2
+              },
+              "integrated": 0.516781,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.488454,
+                "support": 0.485112,
+                "top3_edge": 0.556614,
+                "long_edge": 0.585103,
+                "solid_depth": 0.507508
+              }
+            },
+            {
+              "num": 5,
+              "name": "シャンパンカラー",
+              "odds": 160.1,
+              "signals": {
+                "win": 0.0,
+                "top3": 0.0,
+                "condition": 0.0,
+                "recent": 0.122529,
+                "market": 0.927606,
+                "value": 0.593847
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.122529,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.11114,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.071638,
+                "support": 0.018379,
+                "top3_edge": 0.187213,
+                "long_edge": 0.366607,
+                "solid_depth": 0.041945
+              }
+            },
+            {
+              "num": 6,
+              "name": "セイウンハーデス",
+              "odds": 22.6,
+              "signals": {
+                "win": 0.469837,
+                "top3": 0.372364,
+                "condition": 0.0,
+                "recent": 0.566275,
+                "market": 0.490989,
+                "value": 0.585489
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 1,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.566275,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.368082,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.476425,
+                "support": 0.365967,
+                "top3_edge": 0.318192,
+                "long_edge": 0.350839,
+                "solid_depth": 0.380673
+              }
+            },
+            {
+              "num": 7,
+              "name": "マスカレードボール",
+              "odds": 2.9,
+              "signals": {
+                "win": 0.836934,
+                "top3": 0.661594,
+                "condition": 1.0,
+                "recent": 0.424183,
+                "market": 0.033099,
+                "value": 0.159875
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 2,
+                "same_dist_top3": 2,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 1,
+                "same_course_dist_rate": 1.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.424183,
+                "runs": 2,
+                "top3": 1
+              },
+              "integrated": 0.683416,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.701652,
+                "support": 0.7638,
+                "top3_edge": 0.608144,
+                "long_edge": 0.477395,
+                "solid_depth": 0.724897
+              }
+            },
+            {
+              "num": 8,
+              "name": "ジュンブロッサム",
+              "odds": 195.5,
+              "signals": {
+                "win": 0.165482,
+                "top3": 0.291976,
+                "condition": 0.705882,
+                "recent": 0.463943,
+                "market": 0.972155,
+                "value": 0.610382
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.705882,
+                "same_dist_runs": 2,
+                "same_dist_top3": 1,
+                "same_dist_rate": 0.5,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 1,
+                "same_course_dist_rate": 1.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.463943,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.430622,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.258793,
+                "support": 0.349955,
+                "top3_edge": 0.55989,
+                "long_edge": 0.666632,
+                "solid_depth": 0.342906
+              }
+            },
+            {
+              "num": 9,
+              "name": "ホウオウビスケッツ",
+              "odds": 61.8,
+              "signals": {
+                "win": 0.033941,
+                "top3": 0.292444,
+                "condition": 0.0,
+                "recent": 0.46682,
+                "market": 0.715325,
+                "value": 0.575922
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 2,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.46682,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.224849,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.170202,
+                "support": 0.15671,
+                "top3_edge": 0.308473,
+                "long_edge": 0.398953,
+                "solid_depth": 0.189713
+              }
+            },
+            {
+              "num": 10,
+              "name": "ネブラディスク",
+              "odds": 46.1,
+              "signals": {
+                "win": 1.0,
+                "top3": 1.0,
+                "condition": 1.0,
+                "recent": 0.981092,
+                "market": 0.649964,
+                "value": 1.0
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 1,
+                "same_dist_top3": 1,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.981092,
+                "runs": 3,
+                "top3": 3
+              },
+              "integrated": 0.96216,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.998109,
+                "support": 0.997164,
+                "top3_edge": 0.944658,
+                "long_edge": 0.875596,
+                "solid_depth": 0.998109
+              }
+            },
+            {
+              "num": 11,
+              "name": "シェイクユアハート",
+              "odds": 9.9,
+              "signals": {
+                "win": 0.40701,
+                "top3": 0.658292,
+                "condition": 1.0,
+                "recent": 0.688151,
+                "market": 0.306914,
+                "value": 0.453706
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 3,
+                "same_dist_top3": 3,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.688151,
+                "runs": 3,
+                "top3": 2
+              },
+              "integrated": 0.62059,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.477486,
+                "support": 0.6306,
+                "top3_edge": 0.702347,
+                "long_edge": 0.613493,
+                "solid_depth": 0.614356
+              }
+            },
+            {
+              "num": 12,
+              "name": "コスモキュランダ",
+              "odds": 103.5,
+              "signals": {
+                "win": 0.408342,
+                "top3": 0.215347,
+                "condition": 0.0,
+                "recent": 0.17161,
+                "market": 0.830324,
+                "value": 0.640545
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 0,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.17161,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.285113,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.37894,
+                "support": 0.242915,
+                "top3_edge": 0.257689,
+                "long_edge": 0.393638,
+                "solid_depth": 0.26748
+              }
+            },
+            {
+              "num": 13,
+              "name": "リアライズシリウス",
+              "odds": 29.7,
+              "signals": {
+                "win": 0.585543,
+                "top3": 0.515902,
+                "condition": 1.0,
+                "recent": 0.407319,
+                "market": 0.551914,
+                "value": 0.645634
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 1,
+                "same_dist_top3": 1,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.407319,
+                "runs": 3,
+                "top3": 1
+              },
+              "integrated": 0.620928,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.563283,
+                "support": 0.62429,
+                "top3_edge": 0.656732,
+                "long_edge": 0.645159,
+                "solid_depth": 0.608519
+              }
+            },
+            {
+              "num": 14,
+              "name": "タガノデュード",
+              "odds": 106.5,
+              "signals": {
+                "win": 0.300299,
+                "top3": 0.086546,
+                "condition": 0.0,
+                "recent": 0.193047,
+                "market": 0.836696,
+                "value": 0.619928
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.0,
+                "same_dist_runs": 2,
+                "same_dist_top3": 0,
+                "same_dist_rate": 0.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.193047,
+                "runs": 3,
+                "top3": 0
+              },
+              "integrated": 0.224353,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.289474,
+                "support": 0.170713,
+                "top3_edge": 0.215749,
+                "long_edge": 0.364781,
+                "solid_depth": 0.185697
+              }
+            },
+            {
+              "num": 15,
+              "name": "サクラファレル",
+              "odds": 95.6,
+              "signals": {
+                "win": 0.752928,
+                "top3": 0.615034,
+                "condition": 1.0,
+                "recent": 0.735654,
+                "market": 0.812617,
+                "value": 0.779466
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 2,
+                "same_dist_top3": 2,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 1,
+                "same_course_dist_top3": 1,
+                "same_course_dist_rate": 1.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.735654,
+                "runs": 3,
+                "top3": 2
+              },
+              "integrated": 0.771247,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.733171,
+                "support": 0.765278,
+                "top3_edge": 0.786476,
+                "long_edge": 0.800713,
+                "solid_depth": 0.741325
+              }
+            },
+            {
+              "num": 16,
+              "name": "ジョバンニ",
+              "odds": 50.9,
+              "signals": {
+                "win": 0.812788,
+                "top3": 0.848451,
+                "condition": 0.75,
+                "recent": 0.980961,
+                "market": 0.672053,
+                "value": 0.804042
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 0.75,
+                "same_dist_runs": 4,
+                "same_dist_top3": 3,
+                "same_dist_rate": 0.75,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.980961,
+                "runs": 2,
+                "top3": 2
+              },
+              "integrated": 0.820299,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.83408,
+                "support": 0.834372,
+                "top3_edge": 0.810112,
+                "long_edge": 0.773129,
+                "solid_depth": 0.832232
+              }
+            },
+            {
+              "num": 17,
+              "name": "ダノンデサイル",
+              "odds": 10.0,
+              "signals": {
+                "win": 0.794672,
+                "top3": 0.970123,
+                "condition": 1.0,
+                "recent": 0.946629,
+                "market": 0.309156,
+                "value": 0.626
+              },
+              "dynamic_weights": {
+                "win": 0.3,
+                "top3": 0.25,
+                "condition": 0.2,
+                "recent": 0.15,
+                "market": 0.1
+              },
+              "condition_boosted": false,
+              "condition": {
+                "score": 1.0,
+                "same_dist_runs": 1,
+                "same_dist_top3": 1,
+                "same_dist_rate": 1.0,
+                "same_course_dist_runs": 0,
+                "same_course_dist_top3": 0,
+                "same_course_dist_rate": 0.0,
+                "same_going_runs": 0,
+                "same_going_top3": 0,
+                "same_going_rate": 0.0
+              },
+              "recent": {
+                "score": 0.946629,
+                "runs": 3,
+                "top3": 3
+              },
+              "integrated": 0.853842,
+              "data_quality": 0.65,
+              "role_scores": {
+                "win_anchor": 0.819318,
+                "support": 0.902394,
+                "top3_edge": 0.859211,
+                "long_edge": 0.726698,
+                "solid_depth": 0.893641
+              }
+            }
+          ]
+        }
+      },
+      "otori_card_ev": null,
+      "card_ev_myomi": {
+        "myomi": 0.0,
+        "myomi_parts": {
+          "umami": 0.0,
+          "conf": 0.5
+        },
+        "legendary": false,
+        "myomi_source": "otori_market_card_ev_unavailable"
+      },
+      "model_disagreement_myomi": {
+        "myomi": 50.0,
+        "myomi_parts": {
+          "umami": 1.0,
+          "conf": 0.5
+        },
+        "legendary": false
+      },
+      "marks": [
+        {
+          "mk": "◎",
+          "hon": true,
+          "num": 10,
+          "waku": 5,
+          "name": "ネブラディスク",
+          "odds": 46.1,
+          "score": 84.7,
+          "top3_score": 0.9805,
+          "top3_rank": 1,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "○",
+          "num": 7,
+          "waku": 4,
+          "name": "マスカレードボール",
+          "odds": 2.9,
+          "score": 79.7,
+          "top3_score": 0.6835,
+          "top3_rank": 5,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "▲",
+          "num": 16,
+          "waku": 8,
+          "name": "ジョバンニ",
+          "odds": 50.9,
+          "score": 79.0,
+          "top3_score": 0.8475,
+          "top3_rank": 3,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 3
+        },
+        {
+          "mk": "△",
+          "num": 17,
+          "waku": 8,
+          "name": "ダノンデサイル",
+          "odds": 10.0,
+          "score": 78.4,
+          "top3_score": 0.9543,
+          "top3_rank": 2,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "△",
+          "num": 3,
+          "waku": 2,
+          "name": "レガレイラ",
+          "odds": 8.4,
+          "score": 78.3,
+          "top3_score": 0.3835,
+          "top3_rank": 11,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "✕",
+          "num": 1,
+          "waku": 1,
+          "name": "クロワデュノール",
+          "odds": 2.5,
+          "score": 77.9,
+          "top3_score": 0.8278,
+          "top3_rank": 4,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "",
+          "num": 15,
+          "waku": 8,
+          "name": "サクラファレル",
+          "odds": 95.6,
+          "score": 77.2,
+          "top3_score": 0.6427,
+          "top3_rank": 8,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 2
+        },
+        {
+          "mk": "",
+          "num": 13,
+          "waku": 7,
+          "name": "リアライズシリウス",
+          "odds": 29.7,
+          "score": 72.1,
+          "top3_score": 0.5557,
+          "top3_rank": 9,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "",
+          "num": 6,
+          "waku": 3,
+          "name": "セイウンハーデス",
+          "odds": 22.6,
+          "score": 68.5,
+          "top3_score": 0.4298,
+          "top3_rank": 10,
+          "top3_same_dist_runs": 1,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 12,
+          "waku": 6,
+          "name": "コスモキュランダ",
+          "odds": 103.5,
+          "score": 66.6,
+          "top3_score": 0.292,
+          "top3_rank": 15,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 11,
+          "waku": 6,
+          "name": "シェイクユアハート",
+          "odds": 9.9,
+          "score": 66.6,
+          "top3_score": 0.6807,
+          "top3_rank": 6,
+          "top3_same_dist_runs": 3,
+          "top3_same_dist_hits": 3
+        },
+        {
+          "mk": "",
+          "num": 4,
+          "waku": 2,
+          "name": "レディネス",
+          "odds": 61.4,
+          "score": 66.3,
+          "top3_score": 0.6528,
+          "top3_rank": 7,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "",
+          "num": 2,
+          "waku": 1,
+          "name": "エルトンバローズ",
+          "odds": 221.5,
+          "score": 65.3,
+          "top3_score": 0.3025,
+          "top3_rank": 14,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 14,
+          "waku": 7,
+          "name": "タガノデュード",
+          "odds": 106.5,
+          "score": 63.3,
+          "top3_score": 0.179,
+          "top3_rank": 16,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 8,
+          "waku": 4,
+          "name": "ジュンブロッサム",
+          "odds": 195.5,
+          "score": 59.2,
+          "top3_score": 0.3592,
+          "top3_rank": 13,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 1
+        },
+        {
+          "mk": "",
+          "num": 9,
+          "waku": 5,
+          "name": "ホウオウビスケッツ",
+          "odds": 61.8,
+          "score": 55.2,
+          "top3_score": 0.3597,
+          "top3_rank": 12,
+          "top3_same_dist_runs": 2,
+          "top3_same_dist_hits": 0
+        },
+        {
+          "mk": "",
+          "num": 5,
+          "waku": 3,
+          "name": "シャンパンカラー",
+          "odds": 160.1,
+          "score": 54.2,
+          "top3_score": 0.1031,
+          "top3_rank": 17,
+          "top3_same_dist_runs": 0,
+          "top3_same_dist_hits": 0
+        }
+      ],
+      "cards": [
+        {
+          "char": "kei",
+          "objective": "pq",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 27,
+          "payout_range": [
+            700,
+            5100
+          ],
+          "market_ev": {
+            "complete": true,
+            "coverage": 1.0,
+            "expected_payout": 4712.16,
+            "expected_roi": 9.424311,
+            "edge": 8.424311,
+            "bets": [
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  16
+                ],
+                "amt": 200,
+                "prob": 0.11569339,
+                "market_odds": 107.4,
+                "expected_payout": 2485.09
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  7
+                ],
+                "amt": 100,
+                "prob": 0.12283948,
+                "market_odds": 13.1,
+                "expected_payout": 160.92
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  16,
+                  7
+                ],
+                "amt": 100,
+                "prob": 0.07155976,
+                "market_odds": 16.4,
+                "expected_payout": 117.36
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  10,
+                  16
+                ],
+                "amt": 100,
+                "prob": 0.04170305,
+                "market_odds": 467.3,
+                "expected_payout": 1948.78
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.55,
+              "aptitude": 0.25,
+              "human": 0.2
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                16
+              ],
+              "amt": 200
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                7
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                16,
+                7
+              ],
+              "amt": 100
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                10,
+                16
+              ],
+              "amt": 100
+            }
+          ]
+        },
+        {
+          "char": "tetsu",
+          "objective": "pq",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 17,
+          "payout_range": [
+            800,
+            8900
+          ],
+          "market_ev": {
+            "complete": true,
+            "coverage": 1.0,
+            "expected_payout": 8040.89,
+            "expected_roi": 16.081772,
+            "edge": 15.081772,
+            "bets": [
+              {
+                "type": "馬連",
+                "horses": [
+                  10,
+                  16
+                ],
+                "amt": 200,
+                "prob": 0.04174134,
+                "market_odds": 467.3,
+                "expected_payout": 3901.15
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  10,
+                  17
+                ],
+                "amt": 100,
+                "prob": 0.03937999,
+                "market_odds": 205.5,
+                "expected_payout": 809.26
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  16,
+                  17
+                ],
+                "amt": 100,
+                "prob": 0.01565911,
+                "market_odds": 926.1,
+                "expected_payout": 1450.19
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  15
+                ],
+                "amt": 100,
+                "prob": 0.09702224,
+                "market_odds": 193.8,
+                "expected_payout": 1880.29
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.45,
+              "aptitude": 0.3,
+              "human": 0.25
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "馬連",
+              "horses": [
+                10,
+                16
+              ],
+              "amt": 200
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                10,
+                17
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                16,
+                17
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                15
+              ],
+              "amt": 100
+            }
+          ]
+        },
+        {
+          "char": "gen",
+          "objective": "ev",
+          "place_partner_mode": null,
+          "model_version": "race-regime-abstain-v1",
+          "model_role": "challenger",
+          "hit_pct": 10,
+          "payout_range": [
+            1700,
+            32500
+          ],
+          "market_ev": {
+            "complete": false,
+            "coverage": 0.25,
+            "expected_payout": null,
+            "expected_roi": null,
+            "edge": null,
+            "bets": [
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  15,
+                  16
+                ],
+                "amt": 100,
+                "prob": 0.01312507,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  15,
+                  2
+                ],
+                "amt": 100,
+                "prob": 0.00259945,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  16,
+                  2
+                ],
+                "amt": 100,
+                "prob": 0.00319479,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  15
+                ],
+                "amt": 200,
+                "prob": 0.09355764,
+                "market_odds": 193.8,
+                "expected_payout": 3626.29
+              }
+            ]
+          },
+          "probability_model": {
+            "temperature": 10,
+            "score_weights": {
+              "speed": 0.25,
+              "aptitude": 0.55,
+              "human": 0.2
+            }
+          },
+          "total": 500,
+          "bets": [
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                15,
+                16
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                15,
+                2
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                16,
+                2
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                15
+              ],
+              "amt": 200
+            }
+          ]
+        },
+        {
+          "char": "chappy",
+          "objective": "dynamic_signal_integration",
+          "place_partner_mode": "dynamic",
+          "model_version": "chappy-signal-v1",
+          "model_role": "challenger",
+          "portfolio_style": "balanced_edge_1000",
+          "source": "signal_engine",
+          "conviction": 0.809482,
+          "hit_pct": 33,
+          "payout_range": [
+            700,
+            13500
+          ],
+          "market_ev": {
+            "complete": false,
+            "coverage": 0.6667,
+            "expected_payout": null,
+            "expected_roi": null,
+            "edge": null,
+            "bets": [
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  16
+                ],
+                "amt": 200,
+                "prob": 0.11580945,
+                "market_odds": 107.4,
+                "expected_payout": 2487.59
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  17
+                ],
+                "amt": 100,
+                "prob": 0.10979465,
+                "market_odds": 41.8,
+                "expected_payout": 458.94
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  17,
+                  16
+                ],
+                "amt": 100,
+                "prob": 0.06366684,
+                "market_odds": 35.1,
+                "expected_payout": 223.47
+              },
+              {
+                "type": "ワイド",
+                "horses": [
+                  10,
+                  15
+                ],
+                "amt": 100,
+                "prob": 0.09702224,
+                "market_odds": 193.8,
+                "expected_payout": 1880.29
+              },
+              {
+                "type": "馬連",
+                "horses": [
+                  10,
+                  17
+                ],
+                "amt": 100,
+                "prob": 0.03937999,
+                "market_odds": 205.5,
+                "expected_payout": 809.26
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  17,
+                  16
+                ],
+                "amt": 100,
+                "prob": 0.01565911,
+                "market_odds": 926.1,
+                "expected_payout": 1450.19
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  16,
+                  15
+                ],
+                "amt": 100,
+                "prob": 0.01359811,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  17,
+                  16,
+                  15
+                ],
+                "amt": 100,
+                "prob": 0.00651824,
+                "market_odds": null,
+                "expected_payout": null
+              },
+              {
+                "type": "3連複",
+                "horses": [
+                  10,
+                  17,
+                  15
+                ],
+                "amt": 100,
+                "prob": 0.01278159,
+                "market_odds": null,
+                "expected_payout": null
+              }
+            ]
+          },
+          "probability_model": {
+            "source": "common_win_p_un-calibrated"
+          },
+          "total": 1000,
+          "bets": [
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                16
+              ],
+              "amt": 200
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                17
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                17,
+                16
+              ],
+              "amt": 100
+            },
+            {
+              "type": "ワイド",
+              "horses": [
+                10,
+                15
+              ],
+              "amt": 100
+            },
+            {
+              "type": "馬連",
+              "horses": [
+                10,
+                17
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                17,
+                16
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                16,
+                15
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                17,
+                16,
+                15
+              ],
+              "amt": 100
+            },
+            {
+              "type": "3連複",
+              "horses": [
+                10,
+                17,
+                15
+              ],
+              "amt": 100
+            }
+          ],
+          "decision_log": {
+            "engine": "chappy-signal-v1",
+            "source": "signal_engine",
+            "race_regime": {
+              "version": "race-regime-v1",
+              "label": "neutral",
+              "usable_horses": 17,
+              "field_size": 17,
+              "pair_coverage": 1.0,
+              "metrics": {
+                "market_top1_share": 0.316958,
+                "market_top3_share": 0.68453,
+                "market_entropy": 0.701488,
+                "model_market_tv": 0.446739,
+                "top3_overlap": 1,
+                "market_top3_indices": [
+                  0,
+                  6,
+                  2
+                ],
+                "model_top3_indices": [
+                  9,
+                  6,
+                  15
+                ]
+              },
+              "solid_checks": {
+                "market_top3_share": true,
+                "market_entropy": true,
+                "model_market_tv": false,
+                "top3_overlap": false
+              },
+              "open_checks": {
+                "market_top3_share": false,
+                "market_entropy": false,
+                "model_market_tv": true
+              },
+              "reason": "mixed_signals"
+            },
+            "role_policy": {
+              "long_edge_selector": "long_edge",
+              "manual_unconstrained": false
+            },
+            "roles": {
+              "win_anchor": {
+                "num": 10,
+                "name": "ネブラディスク",
+                "odds": 46.1
+              },
+              "support": {
+                "num": 17,
+                "name": "ダノンデサイル",
+                "odds": 10.0
+              },
+              "top3_edge": {
+                "num": 16,
+                "name": "ジョバンニ",
+                "odds": 50.9
+              },
+              "long_edge": {
+                "num": 15,
+                "name": "サクラファレル",
+                "odds": 95.6
+              }
+            },
+            "conviction": 0.809482,
+            "data_quality": 0.65,
+            "myomi": 50.0,
+            "otori_gate": {
+              "passed": false,
+              "checks": {
+                "myomi": false,
+                "conviction": true,
+                "data_quality": true,
+                "hit_pct_proxy": true,
+                "combo_odds": false,
+                "market_roi_veto": false
+              }
+            },
+            "summary": "勝ち軸は10番ネブラディスク。Top3妙味は16番ジョバンニを最重視。能力側の相手に17番ダノンデサイルを残す。",
+            "manual": null,
+            "signal_board": {
+              "version": "chappy-signal-v1",
+              "horses": [
+                {
+                  "num": 1,
+                  "name": "クロワデュノール",
+                  "odds": 2.5,
+                  "signals": {
+                    "win": 0.776286,
+                    "top3": 0.825992,
+                    "condition": 1.0,
+                    "recent": 0.981042,
+                    "market": 0.0,
+                    "value": 0.0
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 1,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.981042,
+                    "runs": 3,
+                    "top3": 3
+                  },
+                  "integrated": 0.78654,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.726589,
+                    "support": 0.864169,
+                    "top3_edge": 0.736253,
+                    "long_edge": 0.554602,
+                    "solid_depth": 0.808901
+                  }
+                },
+                {
+                  "num": 2,
+                  "name": "エルトンバローズ",
+                  "odds": 221.5,
+                  "signals": {
+                    "win": 0.363067,
+                    "top3": 0.227257,
+                    "condition": 0.0,
+                    "recent": 0.399653,
+                    "market": 1.0,
+                    "value": 0.641326
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.399653,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.325682,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.37418,
+                    "support": 0.261989,
+                    "top3_edge": 0.321554,
+                    "long_edge": 0.478846,
+                    "solid_depth": 0.278645
+                  }
+                },
+                {
+                  "num": 3,
+                  "name": "レガレイラ",
+                  "odds": 8.4,
+                  "signals": {
+                    "win": 0.790794,
+                    "top3": 0.319586,
+                    "condition": 0.0,
+                    "recent": 0.249467,
+                    "market": 0.270273,
+                    "value": 0.584215
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.249467,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.381582,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.645322,
+                    "support": 0.433634,
+                    "top3_edge": 0.219027,
+                    "long_edge": 0.22865,
+                    "solid_depth": 0.44279
+                  }
+                },
+                {
+                  "num": 4,
+                  "name": "レディネス",
+                  "odds": 61.4,
+                  "signals": {
+                    "win": 0.397186,
+                    "top3": 0.626586,
+                    "condition": 0.294118,
+                    "recent": 0.73845,
+                    "market": 0.713877,
+                    "value": 0.624494
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.294118,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 0.5,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.73845,
+                    "runs": 3,
+                    "top3": 2
+                  },
+                  "integrated": 0.516781,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.488454,
+                    "support": 0.485112,
+                    "top3_edge": 0.556614,
+                    "long_edge": 0.585103,
+                    "solid_depth": 0.507508
+                  }
+                },
+                {
+                  "num": 5,
+                  "name": "シャンパンカラー",
+                  "odds": 160.1,
+                  "signals": {
+                    "win": 0.0,
+                    "top3": 0.0,
+                    "condition": 0.0,
+                    "recent": 0.122529,
+                    "market": 0.927606,
+                    "value": 0.593847
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.122529,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.11114,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.071638,
+                    "support": 0.018379,
+                    "top3_edge": 0.187213,
+                    "long_edge": 0.366607,
+                    "solid_depth": 0.041945
+                  }
+                },
+                {
+                  "num": 6,
+                  "name": "セイウンハーデス",
+                  "odds": 22.6,
+                  "signals": {
+                    "win": 0.469837,
+                    "top3": 0.372364,
+                    "condition": 0.0,
+                    "recent": 0.566275,
+                    "market": 0.490989,
+                    "value": 0.585489
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 1,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.566275,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.368082,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.476425,
+                    "support": 0.365967,
+                    "top3_edge": 0.318192,
+                    "long_edge": 0.350839,
+                    "solid_depth": 0.380673
+                  }
+                },
+                {
+                  "num": 7,
+                  "name": "マスカレードボール",
+                  "odds": 2.9,
+                  "signals": {
+                    "win": 0.836934,
+                    "top3": 0.661594,
+                    "condition": 1.0,
+                    "recent": 0.424183,
+                    "market": 0.033099,
+                    "value": 0.159875
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 2,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 1,
+                    "same_course_dist_rate": 1.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.424183,
+                    "runs": 2,
+                    "top3": 1
+                  },
+                  "integrated": 0.683416,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.701652,
+                    "support": 0.7638,
+                    "top3_edge": 0.608144,
+                    "long_edge": 0.477395,
+                    "solid_depth": 0.724897
+                  }
+                },
+                {
+                  "num": 8,
+                  "name": "ジュンブロッサム",
+                  "odds": 195.5,
+                  "signals": {
+                    "win": 0.165482,
+                    "top3": 0.291976,
+                    "condition": 0.705882,
+                    "recent": 0.463943,
+                    "market": 0.972155,
+                    "value": 0.610382
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.705882,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 0.5,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 1,
+                    "same_course_dist_rate": 1.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.463943,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.430622,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.258793,
+                    "support": 0.349955,
+                    "top3_edge": 0.55989,
+                    "long_edge": 0.666632,
+                    "solid_depth": 0.342906
+                  }
+                },
+                {
+                  "num": 9,
+                  "name": "ホウオウビスケッツ",
+                  "odds": 61.8,
+                  "signals": {
+                    "win": 0.033941,
+                    "top3": 0.292444,
+                    "condition": 0.0,
+                    "recent": 0.46682,
+                    "market": 0.715325,
+                    "value": 0.575922
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.46682,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.224849,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.170202,
+                    "support": 0.15671,
+                    "top3_edge": 0.308473,
+                    "long_edge": 0.398953,
+                    "solid_depth": 0.189713
+                  }
+                },
+                {
+                  "num": 10,
+                  "name": "ネブラディスク",
+                  "odds": 46.1,
+                  "signals": {
+                    "win": 1.0,
+                    "top3": 1.0,
+                    "condition": 1.0,
+                    "recent": 0.981092,
+                    "market": 0.649964,
+                    "value": 1.0
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 1,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.981092,
+                    "runs": 3,
+                    "top3": 3
+                  },
+                  "integrated": 0.96216,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.998109,
+                    "support": 0.997164,
+                    "top3_edge": 0.944658,
+                    "long_edge": 0.875596,
+                    "solid_depth": 0.998109
+                  }
+                },
+                {
+                  "num": 11,
+                  "name": "シェイクユアハート",
+                  "odds": 9.9,
+                  "signals": {
+                    "win": 0.40701,
+                    "top3": 0.658292,
+                    "condition": 1.0,
+                    "recent": 0.688151,
+                    "market": 0.306914,
+                    "value": 0.453706
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 3,
+                    "same_dist_top3": 3,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.688151,
+                    "runs": 3,
+                    "top3": 2
+                  },
+                  "integrated": 0.62059,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.477486,
+                    "support": 0.6306,
+                    "top3_edge": 0.702347,
+                    "long_edge": 0.613493,
+                    "solid_depth": 0.614356
+                  }
+                },
+                {
+                  "num": 12,
+                  "name": "コスモキュランダ",
+                  "odds": 103.5,
+                  "signals": {
+                    "win": 0.408342,
+                    "top3": 0.215347,
+                    "condition": 0.0,
+                    "recent": 0.17161,
+                    "market": 0.830324,
+                    "value": 0.640545
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 0,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.17161,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.285113,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.37894,
+                    "support": 0.242915,
+                    "top3_edge": 0.257689,
+                    "long_edge": 0.393638,
+                    "solid_depth": 0.26748
+                  }
+                },
+                {
+                  "num": 13,
+                  "name": "リアライズシリウス",
+                  "odds": 29.7,
+                  "signals": {
+                    "win": 0.585543,
+                    "top3": 0.515902,
+                    "condition": 1.0,
+                    "recent": 0.407319,
+                    "market": 0.551914,
+                    "value": 0.645634
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 1,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.407319,
+                    "runs": 3,
+                    "top3": 1
+                  },
+                  "integrated": 0.620928,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.563283,
+                    "support": 0.62429,
+                    "top3_edge": 0.656732,
+                    "long_edge": 0.645159,
+                    "solid_depth": 0.608519
+                  }
+                },
+                {
+                  "num": 14,
+                  "name": "タガノデュード",
+                  "odds": 106.5,
+                  "signals": {
+                    "win": 0.300299,
+                    "top3": 0.086546,
+                    "condition": 0.0,
+                    "recent": 0.193047,
+                    "market": 0.836696,
+                    "value": 0.619928
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.0,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 0,
+                    "same_dist_rate": 0.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.193047,
+                    "runs": 3,
+                    "top3": 0
+                  },
+                  "integrated": 0.224353,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.289474,
+                    "support": 0.170713,
+                    "top3_edge": 0.215749,
+                    "long_edge": 0.364781,
+                    "solid_depth": 0.185697
+                  }
+                },
+                {
+                  "num": 15,
+                  "name": "サクラファレル",
+                  "odds": 95.6,
+                  "signals": {
+                    "win": 0.752928,
+                    "top3": 0.615034,
+                    "condition": 1.0,
+                    "recent": 0.735654,
+                    "market": 0.812617,
+                    "value": 0.779466
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 2,
+                    "same_dist_top3": 2,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 1,
+                    "same_course_dist_top3": 1,
+                    "same_course_dist_rate": 1.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.735654,
+                    "runs": 3,
+                    "top3": 2
+                  },
+                  "integrated": 0.771247,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.733171,
+                    "support": 0.765278,
+                    "top3_edge": 0.786476,
+                    "long_edge": 0.800713,
+                    "solid_depth": 0.741325
+                  }
+                },
+                {
+                  "num": 16,
+                  "name": "ジョバンニ",
+                  "odds": 50.9,
+                  "signals": {
+                    "win": 0.812788,
+                    "top3": 0.848451,
+                    "condition": 0.75,
+                    "recent": 0.980961,
+                    "market": 0.672053,
+                    "value": 0.804042
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 0.75,
+                    "same_dist_runs": 4,
+                    "same_dist_top3": 3,
+                    "same_dist_rate": 0.75,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.980961,
+                    "runs": 2,
+                    "top3": 2
+                  },
+                  "integrated": 0.820299,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.83408,
+                    "support": 0.834372,
+                    "top3_edge": 0.810112,
+                    "long_edge": 0.773129,
+                    "solid_depth": 0.832232
+                  }
+                },
+                {
+                  "num": 17,
+                  "name": "ダノンデサイル",
+                  "odds": 10.0,
+                  "signals": {
+                    "win": 0.794672,
+                    "top3": 0.970123,
+                    "condition": 1.0,
+                    "recent": 0.946629,
+                    "market": 0.309156,
+                    "value": 0.626
+                  },
+                  "dynamic_weights": {
+                    "win": 0.3,
+                    "top3": 0.25,
+                    "condition": 0.2,
+                    "recent": 0.15,
+                    "market": 0.1
+                  },
+                  "condition_boosted": false,
+                  "condition": {
+                    "score": 1.0,
+                    "same_dist_runs": 1,
+                    "same_dist_top3": 1,
+                    "same_dist_rate": 1.0,
+                    "same_course_dist_runs": 0,
+                    "same_course_dist_top3": 0,
+                    "same_course_dist_rate": 0.0,
+                    "same_going_runs": 0,
+                    "same_going_top3": 0,
+                    "same_going_rate": 0.0
+                  },
+                  "recent": {
+                    "score": 0.946629,
+                    "runs": 3,
+                    "top3": 3
+                  },
+                  "integrated": 0.853842,
+                  "data_quality": 0.65,
+                  "role_scores": {
+                    "win_anchor": 0.819318,
+                    "support": 0.902394,
+                    "top3_edge": 0.859211,
+                    "long_edge": 0.726698,
+                    "solid_depth": 0.893641
+                  }
+                }
+              ]
+            }
+          },
+          "say": "勝ち軸は10番ネブラディスク。Top3妙味は16番ジョバンニを最重視。能力側の相手に17番ダノンデサイルを残す。"
+        }
+      ]
     }
   ]
 }
