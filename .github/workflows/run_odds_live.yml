@@ -11,8 +11,10 @@ name: 全レースのオッズ記録（odds-live）
 #   1回の実行は最大約5時間半で終えて、予定が残っていれば次の実行を自分で起動して1日をつなぐ。
 #   同時に2つは走らせない（concurrency）。GitHub は待っている実行を1つしか残さず、新しく来た実行が
 #   前に待っていた実行と入れ替わる。どの実行も「その日の、まだ取っていない予定」を続けるだけなので、
-#   入れ替わっても1日はつながる（取り終えた予定は取り直さない）。途切れていないかは、実行ごとに
-#   {日付}/runs/ に残す記録（始まった時刻・終わり方）で確かめる。
+#   入れ替わっても1日はつながる（取り終えた予定は取り直さない）。自己起動が入れ替わって消えたときのために、
+#   午後にも枠を置いて、つなぎ直す。途切れていないかは、実行ごとに {日付}/runs/ に残す記録
+#   （始まった時刻・終わり方）と、取り逃した回（missed）の数で確かめる（docs/research/ODDS_LIVE.md）。
+#   定時実行の対象日は、実行した日ではなく枠の日付（遅れて日をまたいでも、枠の日のまま）。
 on:
   schedule:
     - cron: '40 21 * * 5,6'   # 土日 06:40 JST
@@ -20,6 +22,10 @@ on:
     - cron: '40 0 * * 6,0'    # 土日 09:40 JST
     - cron: '10 2 * * 6,0'    # 土日 11:10 JST
     - cron: '40 3 * * 6,0'    # 土日 12:40 JST
+    # 午後の枠：前の実行の自己起動が、待っている間に別の実行と入れ替わって消えても、1日をつなぎ直す
+    - cron: '10 5 * * 6,0'    # 土日 14:10 JST
+    - cron: '40 6 * * 6,0'    # 土日 15:40 JST
+    - cron: '10 8 * * 6,0'    # 土日 17:10 JST（最終レースの発走60分後の観測まで）
   workflow_dispatch:
     inputs:
       date:
@@ -57,8 +63,14 @@ jobs:
         id: target
         env:
           INPUT_DATE: ${{ github.event.inputs.date }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           DATE="$INPUT_DATE"
+          if [ -z "$DATE" ] && [ "$EVENT" = "schedule" ]; then
+            # 定時実行は、枠の日付（JST）を対象にする。遅れて日をまたいでも、翌日を取りに行かない
+            DATE=$(python -m scraper.capture_odds_live --scheduled-date "$SCHEDULE")
+          fi
           [ -z "$DATE" ] && DATE=$(TZ=Asia/Tokyo date +%Y-%m-%d)
           case "$DATE" in
             [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;

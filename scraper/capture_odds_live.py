@@ -9,7 +9,9 @@ edge-loop（docs/research/EDGE_LOOP.md §8）と lab（lab/research-design-v0 �
            中身は発走の約65分前の値になることが多い。60分前に取っても同じ値になるので取らない。
     close  発走3分前（締め切り直前の更新）。予定の時刻より早くは取らない。
     post1  発走25分後。発走後の観測で、これだけでは確定オッズとみなさない。
-    post2  発走60分後。post1 と中身がそろい、両方の時刻が締め切りの後なら、確定オッズと確かめられたとする（final_check）。
+    post2  発走60分後。post1 と中身がそろい、両方の時刻が締め切りの後なら、発走後の表が安定したとする（final_check）。
+           これは「締め切り後の同じ版を2回見た」という安定の判定で、取得元が確定と保証したことの証明ではない。
+           払戻との照合は、使う側で別に行う。
 
 券種ごとに、取得元が返した時刻（source_time、JST とみなす）と取得を終えた時刻（observed_at）を検証する。
 次のどれかに当たる券種は ok にしない：source_time が無い・読めない、observed_at より未来（時計のずれは60秒まで許す）、
@@ -18,8 +20,10 @@ pre・close で取得を終えたのが発走後、pre・close で source_time �
 
 1観測1ファイル（{日付}/{race_key}/{phase}.json.gz）で、上書きしない。取り逃した回も、理由を書いたファイルを残す。
 レース一覧は1時間ごとに取り直し、取った版を {日付}/races/{時刻}.json に残す（上書きしない）。予定は全部の版の和で、
-発走時刻は最新の版を使う。取得元のレスポンス本文・URL・リクエスト固有の値は残さない（数値と時刻だけ）。
-取得の間隔は scraper/common/http.py に従う。
+発走時刻は最新の版を使う。一覧に欠けの疑い（場の見出しがあるのにレースが無い、1場12レースに足りない、場が2つ未満、
+レース番号が抜けている）があれば partial_unverified とし、10分おきに取り直す。欠けの疑いが残ったままなら、
+その日の最後の予定の後にもう一度取り直してから終える。
+取得元のレスポンス本文・URL・リクエスト固有の値は残さない（数値と時刻だけ）。取得の間隔は scraper/common/http.py に従う。
 
 1回の実行は「次の予定まで待ち、その時刻に来ている予定を取る」だけをして終わる。workflow がこれを繰り返し、
 そのたびにコミットする。締め切り直前（close）を最優先にし、close がすぐ来るときは他の取得を始めない。
@@ -57,6 +61,9 @@ SOURCE_SKEW = datetime.timedelta(seconds=60)   # 取得元と runner の時計�
 SALES_CLOSE = datetime.timedelta(minutes=2)    # 締め切りは発走のおよそ2分前。確定オッズの時刻はこれより後のはず
 RACE_LIST_REFRESH = datetime.timedelta(minutes=60)
 RACE_LIST_RETRY = datetime.timedelta(minutes=10)  # 欠けている疑いのある一覧は、10分おきに取り直す
+# 一覧の欠けの目安。JRA は1場1日12レース、開催は普段2〜3場。本当に少ない日は、取り直しが増えるだけで害は無い
+EXPECTED_RACES_PER_VENUE = 12
+MIN_VENUES = 2
 # 取る順：締め切り直前に時間が足りなくなっても、単勝と3連複を先に確保する
 MARKETS = ("1", "7", "5", "4")
 MARKET_NAMES = {"1": ("win", "place"), "7": ("sanrenpuku",), "5": ("wide",), "4": ("umaren",)}
@@ -123,14 +130,34 @@ def race_rows(entries: list[a_race_list.RaceListEntry]) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda r: (r["post_time"], r["race_key"]))
 
 
-def list_check(entries: list[a_race_list.RaceListEntry]) -> dict[str, Any]:
-    """一覧が欠けていないかの目安：場ごとに、レース番号が1から抜けなく並んでいるか（障害戦も含めて数える）。"""
+def list_check(entries: list[a_race_list.RaceListEntry], venues: list[str] | None = None) -> dict[str, Any]:
+    """一覧が欠けていないかの目安（障害戦も含めて数える）。どれかに当たれば partial_unverified。
+
+    - no_races：レースが1つも無い
+    - venue_without_races：場の見出し（venues）はあるのに、その場のレースが1つも読めなかった
+    - gap_in_race_numbers：場ごとのレース番号が1から抜けなく並んでいない
+    - fewer_than_12_races：12レースに足りない場がある（後半が欠けた疑い）
+    - fewer_than_2_venues：場が2つ未満（場がまるごと欠けた疑い）
+    """
     by_venue: dict[str, list[int]] = {}
     for e in entries:
         by_venue.setdefault(e.venue, []).append(e.race_no)
     contiguous = {v: sorted(n) == list(range(1, max(n) + 1)) for v, n in by_venue.items()}
-    return {"status": "ok" if by_venue and all(contiguous.values()) else "partial_unverified",
-            "races_by_venue": {v: len(n) for v, n in sorted(by_venue.items())}, "contiguous": contiguous}
+    without = sorted(set(venues or []) - set(by_venue))
+    problems = []
+    if not by_venue:
+        problems.append("no_races")
+    if without:
+        problems.append("venue_without_races")
+    if not all(contiguous.values()):
+        problems.append("gap_in_race_numbers")
+    if any(len(set(n)) < EXPECTED_RACES_PER_VENUE for n in by_venue.values()):
+        problems.append("fewer_than_12_races")
+    if len(set(by_venue) | set(without)) < MIN_VENUES:
+        problems.append("fewer_than_2_venues")
+    return {"status": "partial_unverified" if problems else "ok", "problems": problems,
+            "races_by_venue": {v: len(n) for v, n in sorted(by_venue.items())}, "contiguous": contiguous,
+            "venue_headings": list(venues) if venues is not None else None, "venues_without_races": without}
 
 
 def _race_dir(out_dir: Path, date_str: str) -> Path:
@@ -142,30 +169,42 @@ def _list_versions(out_dir: Path, date_str: str) -> list[dict[str, Any]]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(d.glob("*.json"))] if d.exists() else []
 
 
+def _refresh_gap(version: dict[str, Any]) -> datetime.timedelta:
+    return RACE_LIST_REFRESH if version["check"]["status"] == "ok" else RACE_LIST_RETRY
+
+
+def list_refresh_at(out_dir: Path, date_str: str) -> datetime.datetime | None:
+    """次にレース一覧を取り直す時刻（最新の版の取得時刻＋1時間、欠けの疑いがあれば＋10分）。版が無ければ None。"""
+    versions = _list_versions(out_dir, date_str)
+    if not versions:
+        return None
+    return datetime.datetime.fromisoformat(versions[-1]["fetched_at"]) + _refresh_gap(versions[-1])
+
+
 def load_races(out_dir: Path, date_str: str, now: datetime.datetime,
-               fetch_list: Callable[[str], list[a_race_list.RaceListEntry]]) -> list[dict[str, Any]]:
+               fetch_list: Callable[[str], Any]) -> list[dict[str, Any]]:
     """予定に使うレース。最新の版が1時間より古いか、欠けている疑いがあって10分たてば取り直し、新しい版として残す。
 
+    fetch_list はレース一覧か、（レース一覧, 場の見出しの場名）の組を返す。
     予定は全部の版の和（一度でも載ったレースは消さない）で、発走時刻は、そのレースが載っている最新の版のものを使う。
     取り直しに失敗しても、前の版があればそれを使う。一度も取れていなければ RaceListUnavailable。
     """
     versions = _list_versions(out_dir, date_str)
     latest = versions[-1] if versions else None
-    age = now - datetime.datetime.fromisoformat(latest["fetched_at"]) if latest else None
-    stale = latest is None or age >= RACE_LIST_REFRESH or \
-        (latest["check"]["status"] != "ok" and age >= RACE_LIST_RETRY)
+    stale = latest is None or now >= datetime.datetime.fromisoformat(latest["fetched_at"]) + _refresh_gap(latest)
     if stale:
         try:
-            entries = fetch_list(date_str)
+            got = fetch_list(date_str)
         except RuntimeError as exc:
             if not versions:
                 raise RaceListUnavailable(type(exc).__name__) from exc
             logger.warning("レース一覧を取り直せませんでした（%s）。前の版を使います", type(exc).__name__)
         else:
+            entries, venues = got if isinstance(got, tuple) else (got, None)
             rows = race_rows(entries)
             if rows:
                 version = {"schema": SCHEMA, "date": date_str, "fetched_at": _iso(now),
-                           "check": list_check(entries), "races": rows}
+                           "check": list_check(entries, venues), "races": rows}
                 path = _race_dir(out_dir, date_str) / f"{now.astimezone(JST):%H%M%S}.json"
                 if not path.exists():
                     path.parent.mkdir(parents=True, exist_ok=True)
@@ -267,10 +306,17 @@ def observe(event: Event, clock: Callable[[], datetime.datetime],
     return record
 
 
+FINAL_CHECK_BASIS = "stable_after_close"  # verified の意味：締め切り後の同じ版を、発走後に2回見た
+
+
 def final_check(post1: dict[str, Any] | None, post2: dict[str, Any], post_at: datetime.datetime) -> dict[str, Any]:
-    """確定オッズと確かめられるか。券種ごとに、post1 と post2 の両方が ok で、両方の時刻が締め切りの後で、表が同じこと。"""
+    """発走後の表が安定したか。券種ごとに、post1 と post2 の両方が ok で、両方の時刻が締め切りの後で、表が同じこと。
+
+    verified は「締め切り後の同じ版を2回見た」という安定の判定（basis = stable_after_close）。取得元が確定と
+    保証したことの証明ではない。確定オッズとして使う側は、払戻との照合（当たり組のオッズ×100 と払戻）を別に行う。
+    """
     if post1 is None or post1.get("status") == "missed":
-        return {"verified": False, "reason": "single_observation", "markets": {}}
+        return {"verified": False, "basis": FINAL_CHECK_BASIS, "reason": "single_observation", "markets": {}}
     out: dict[str, Any] = {}
     for name, m2 in post2.get("markets", {}).items():
         m1 = post1.get("markets", {}).get(name) or {}
@@ -285,8 +331,8 @@ def final_check(post1: dict[str, Any] | None, post2: dict[str, Any], post_at: da
         else:
             out[name] = {"verified": True, "reason": "same_after_close"}
     verified = bool(out) and all(v["verified"] for v in out.values())
-    return {"verified": verified, "reason": "all_markets_verified" if verified else "some_markets_unverified",
-            "markets": out}
+    return {"verified": verified, "basis": FINAL_CHECK_BASIS,
+            "reason": "all_markets_verified" if verified else "some_markets_unverified", "markets": out}
 
 
 def _read_record(path: Path) -> dict[str, Any] | None:
@@ -325,11 +371,36 @@ def next_wake(pending: list[Event], out_dir: Path, now: datetime.datetime) -> da
     return min(e.when for e in pending)  # 早めには起きない
 
 
+def _day_finished(out_dir: Path, date_str: str, races: list[dict[str, Any]], deadline: datetime.datetime,
+                  clock: Callable[[], datetime.datetime], sleep: Callable[[float], None], just_loaded: bool) -> int:
+    """予定をすべて取り終えたときの終わり方。
+
+    最新の一覧に欠けの疑いがあり、その一覧をその日の最後の予定より前に取っていたら、すぐには終えない。
+    次の取り直しの時刻まで待って EXIT_MORE を返し、次の実行でもう一度取り直す（見つからなかった場やレースを拾う）。
+    just_loaded（この実行の最初に一覧を読んだ直後）で取り直しの時刻が過ぎているのは、取り直しに失敗したときだけ
+    （成功すれば新しい版ができる）なので、待たずに終える。
+    """
+    versions = _list_versions(out_dir, date_str)
+    if versions and versions[-1]["check"]["status"] != "ok" and races:
+        fetched = datetime.datetime.fromisoformat(versions[-1]["fetched_at"])
+        last_event = max(e.when for e in schedule(races))
+        refresh = fetched + _refresh_gap(versions[-1])
+        if fetched < last_event:
+            if refresh > clock():
+                if refresh >= deadline:
+                    return EXIT_TIMEOUT
+                sleep((refresh - clock()).total_seconds())
+                return EXIT_MORE
+            if not just_loaded:
+                return EXIT_MORE  # 取り直しの時刻が来ている。次の実行の最初に取り直す
+    return EXIT_DONE
+
+
 def run_once(date_str: str, out_dir: Path, deadline: datetime.datetime, *,
              clock: Callable[[], datetime.datetime] = _now,
              sleep: Callable[[float], None] = time.sleep,
              fetch_body: Callable[[str, str], dict[str, Any]] = b2_odds.fetch_type_body,
-             fetch_list: Callable[[str], list[a_race_list.RaceListEntry]] = a_race_list.fetch_race_list) -> int:
+             fetch_list: Callable[[str], Any] = a_race_list.fetch_race_list_with_venues) -> int:
     try:
         races = load_races(out_dir, date_str, clock(), fetch_list)
     except RaceListUnavailable as exc:
@@ -337,8 +408,15 @@ def run_once(date_str: str, out_dir: Path, deadline: datetime.datetime, *,
         return EXIT_ERROR
     pending = [e for e in schedule(races) if not record_path(out_dir, e).exists()]
     if not pending:
-        return EXIT_DONE
+        return _day_finished(out_dir, date_str, races, deadline, clock, sleep, just_loaded=True)
     wake = next_wake(pending, out_dir, clock())
+    refresh = list_refresh_at(out_dir, date_str)
+    if refresh is not None and clock() < refresh < wake:
+        # 一覧の取り直しが先に来る。そこまで待って終わり、次の実行で取り直す（取り直しに失敗した直後は待たない）
+        if refresh >= deadline:
+            return EXIT_TIMEOUT
+        sleep((refresh - clock()).total_seconds())
+        return EXIT_MORE
     if wake > clock():
         if wake >= deadline:
             return EXIT_TIMEOUT
@@ -355,16 +433,44 @@ def run_once(date_str: str, out_dir: Path, deadline: datetime.datetime, *,
         write_record(record_path(out_dir, event), record)
         logger.info("%s %s: %s", event.race["race_key"], event.phase, record["status"])
     if all(record_path(out_dir, e).exists() for e in pending):
-        return EXIT_DONE
+        return _day_finished(out_dir, date_str, races, deadline, clock, sleep, just_loaded=False)
     return EXIT_MORE if clock() < deadline else EXIT_TIMEOUT
+
+
+# ------------------------------------------------------------------ 定時実行の対象日
+
+def scheduled_date(cron: str, now: datetime.datetime) -> str:
+    """定時実行の枠（cron の5項目、UTC）から、対象日（JST の YYYY-MM-DD）を出す。
+
+    now 以前で最も近い、その枠の時刻の JST の日付。実行が数時間遅れて日をまたいでも、枠の日付のままになる
+    （日曜の枠の実行が月曜に動いても、月曜を取りに行かない）。分・時・曜日だけを使い、日・月は "*" に限る。
+    """
+    minute, hour, dom, month, dow = cron.split()
+    if dom != "*" or month != "*":
+        raise ValueError(f"日・月を指定した枠には対応していない: {cron}")
+    days = {int(d) % 7 for d in dow.split(",")}  # cron の曜日：0＝日〜6＝土（7 も日）
+    utc = now.astimezone(datetime.timezone.utc)
+    for back in range(8):
+        cand = (utc - datetime.timedelta(days=back)).replace(hour=int(hour), minute=int(minute), second=0,
+                                                              microsecond=0)
+        if cand <= utc and cand.isoweekday() % 7 in days:
+            return cand.astimezone(JST).date().isoformat()
+    raise ValueError(f"直近の枠が見つからない: {cron}")
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="全JRAレースのオッズ記録（odds-live-v1）")
-    ap.add_argument("--date", required=True, help="YYYY-MM-DD（JST）")
-    ap.add_argument("--out", type=Path, required=True, help="odds-live ブランチを置いたディレクトリ")
-    ap.add_argument("--deadline", required=True, help="この時刻（ISO 8601）より後の予定は次の実行に回す")
+    ap.add_argument("--date", help="YYYY-MM-DD（JST）")
+    ap.add_argument("--out", type=Path, help="odds-live ブランチを置いたディレクトリ")
+    ap.add_argument("--deadline", help="この時刻（ISO 8601）より後の予定は次の実行に回す")
+    ap.add_argument("--scheduled-date", metavar="CRON",
+                    help="定時実行の枠（cron）から対象日を出して表示するだけ（記録はしない）")
     args = ap.parse_args(argv)
+    if args.scheduled_date:
+        print(scheduled_date(args.scheduled_date, datetime.datetime.now(datetime.timezone.utc)))
+        return 0
+    if not (args.date and args.out and args.deadline):
+        ap.error("--date・--out・--deadline が要る")
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     deadline = datetime.datetime.fromisoformat(args.deadline.replace("Z", "+00:00"))
     return run_once(args.date, args.out, deadline)
