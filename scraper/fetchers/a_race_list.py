@@ -284,6 +284,22 @@ def parse_race_list_sub_html(html: str, date_str: str) -> list[RaceListEntry]:
     return entries
 
 
+def parse_race_list_venues(html: str) -> list[str]:
+    """
+    ステップ2（race_list_sub.html）のレスポンスから、場の見出し（"3回 東京 5日目" など）の場名だけを、
+    出てきた順に返す。レースの行が読めたかどうかは問わない（odds-live の一覧の検査で、
+    見出しはあるのにレースが1つも読めなかった場を見つけるため）。
+    """
+    soup = BeautifulSoup(html, "lxml")
+    venues: list[str] = []
+    for dl in soup.select("dl.RaceList_DataList"):
+        title_el = dl.select_one("p.RaceList_DataTitle")
+        venue = _parse_venue(title_el.get_text()) if title_el is not None else None
+        if venue is not None and venue not in venues:
+            venues.append(venue)
+    return venues
+
+
 def _fetch_current_group(date_compact: str) -> str:
     """ステップ1を叩いて current_group を取得する。取れなければ例外。"""
     headers = {
@@ -326,3 +342,25 @@ def fetch_race_list(date_str: str) -> list[RaceListEntry]:
         raise RuntimeError(f"レース一覧本体の取得に失敗しました: kaisai_date={date_compact}")
 
     return parse_race_list_sub_html(resp.text, date_str)
+
+
+def fetch_race_list_with_venues(date_str: str) -> tuple[list[RaceListEntry], list[str]]:
+    """
+    fetch_race_list と同じ取得で、レース一覧と場の見出しの場名の両方を返す（odds-live の一覧の検査用）。
+
+    取得の手順・回数は fetch_race_list と同じ（2回）。fetch_race_list 自体は変えていない
+    （予想パイプラインの build_raw は今までどおり fetch_race_list を使う）。
+    """
+    date_compact = date_str.replace("-", "")
+    group = _fetch_current_group(date_compact)
+
+    headers = {
+        "X-Requested-With": "XMLHttpRequest",  # 【要確認】本番未検証（fetch_race_list と同じ）
+        "Referer": TOP_PAGE_URL_TMPL.format(date=date_compact),
+    }
+    params = {"kaisai_date": date_compact, "current_group": group}
+    resp = http_get(RACE_LIST_SUB_URL, params=params, headers=headers)
+    if resp is None:
+        raise RuntimeError(f"レース一覧本体の取得に失敗しました: kaisai_date={date_compact}")
+
+    return parse_race_list_sub_html(resp.text, date_str), parse_race_list_venues(resp.text)

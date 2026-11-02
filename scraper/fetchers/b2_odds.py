@@ -373,6 +373,10 @@ def _fetch_type_body(race_source_ref: str, odds_type: str) -> dict[str, Any]:
     return parse_odds_response(resp.text)
 
 
+def fetch_type_body(race_source_ref: str, odds_type: str) -> dict[str, Any]:
+    """券種1つの本体JSON（official_datetime と odds）。全レースのオッズ記録（scraper/capture_odds_live.py）用。"""
+    return _fetch_type_body(race_source_ref, odds_type)
+
 
 def _win_rows(by_num: dict[int, dict[str, Any]]) -> int:
     return sum(1 for v in by_num.values() if v.get("win_odds") is not None)
