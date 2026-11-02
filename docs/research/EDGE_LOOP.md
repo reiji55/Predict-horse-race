@@ -155,7 +155,7 @@
 | 比較：`top_prob` | 市場の確率の和が最大の5組（10/17〜18 のチャットの参考券と同じ考え方） | 2026-10-21（portfolio-shadow-v1） | 比較用 | portfolio-shadow-v1 の `top_prob` | 記録中 |
 | 比較：`exposure_cap_3` | 1頭が入る組を最大3点 | 2026-10-21（portfolio-shadow-v1） | 比較用 | portfolio-shadow-v1 の `exposure_cap_3` | 記録中 |
 | 参考：合成 | 市場と別チャットの式の混合（w = 0.3） | 未登録（§1） | 参考の提示だけ | 無し | 成績を数えない |
-| `edge-v1`（印の中の5組） | 発走前の最終凍結版の印の6頭の中で、市場の確率が高い5組（[EDGE_V1_PREREG.md](EDGE_V1_PREREG.md)。根拠は H-027） | `config/edge_v1.json` が main に初めて現れたコミット（PR #53 のマージ） | 試験の版（経路1、`p_pre` で判定） | `data/research/edge_loop/edge-v1/` | 登録待ち |
+| `edge-v1`（印の中の5組） | 発走前の最終凍結版の印の6頭の中で、市場の確率が高い5組（[EDGE_V1_PREREG.md](EDGE_V1_PREREG.md)。根拠は H-027） | 2026-11-03（PR #53 のマージコミット `3ef2714`。`config/edge_v1.json` が main に初めて現れたコミット） | 試験の版（経路1、`p_pre` で判定） | `data/research/edge_loop/edge-v1/` | 登録済み（最初の対象は 2026-11-07 のレース） |
 
 **試した作り方の記録**
 
