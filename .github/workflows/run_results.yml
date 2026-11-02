@@ -40,7 +40,7 @@ jobs:
       # netkeibaを叩く前に落とす（無駄なリクエストを投げないため）
       - name: テスト
         run: |
-          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py tests/test_portfolio_shadow.py tests/test_edge_trial.py -q
+          python -m pytest tests/test_build_results.py tests/test_build_shadow_results.py tests/test_fetch_week_results.py tests/test_model_compare.py tests/test_model_registry.py tests/test_anomaly_review.py tests/test_audit_manifest.py tests/test_shadow_research.py tests/test_forward_diagnostics.py tests/test_speed_v2_challenger.py tests/test_model_evaluation.py tests/test_race_performance.py tests/test_race_performance_evaluation.py tests/test_chat_experiment.py tests/test_market_audit.py tests/test_market_baseline.py tests/test_market_mix.py tests/test_portfolio.py tests/test_portfolio_shadow.py tests/test_edge_trial.py tests/test_chat_tickets.py -q
 
       - name: 対象の週を決める
         id: target
@@ -305,3 +305,36 @@ jobs:
           echo "::warning title=edge-v1::記録が失敗、または警告で終了しました（data/research/edge_loop/edge-v1/summary.json の status・warnings を確認）"
           echo "### ⚠️ edge-v1 の記録が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
           echo "data/research/edge_loop/edge-v1/summary.json の status・warnings を確認してください。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: チャットで出した券の記録の確認（observe-only）
+        id: chat_tickets
+        # data/chat_tickets/ の記録（チャットで出した本線 edge-v0 の参考券）が、発走前にコミットされ、その後に変えられておらず、
+        # 記録が見た main の版から portfolio-shadow-v1 の engine で計算し直した券と同じかを確かめる。結果の出たレースは
+        # 本線の記録（portfolio-shadow-v1 の x_out_2）と比べる。本線の記録をコミット済みの版から読むので、その後に走らせる。
+        # data/research/chat_tickets/ にだけ書く。予想・正式成績・UI・判定には使わない。
+        # 規約に合わない記録・本線との食い違いは終了コード 1（出力はコミットしてから失敗にする）。
+        continue-on-error: true
+        run: |
+          set +e
+          python -m research.chat_tickets audit
+          rc=$?
+          set -e
+          git add data/research/chat_tickets/
+          if ! git diff --cached --quiet; then
+            git commit -m "auto: ${{ steps.target.outputs.week }} チャットの券の記録の確認"
+            pushed=0
+            for i in 1 2 3 4; do
+              if git push; then pushed=1; break; fi
+              sleep $((i * 5))
+              git pull --rebase origin "${GITHUB_REF_NAME}"
+            done
+            [ "$pushed" = 1 ] || exit 1
+          fi
+          exit $rc
+
+      - name: チャットの券の記録の確認の失敗を知らせる
+        if: steps.chat_tickets.outcome == 'failure'
+        run: |
+          echo "::warning title=chat-tickets::確認が失敗、または警告で終了しました（data/research/chat_tickets/summary.json の warnings・invalid_records を確認）"
+          echo "### ⚠️ チャットで出した券の記録の確認が失敗、または警告で終了しました" >> "$GITHUB_STEP_SUMMARY"
+          echo "data/research/chat_tickets/summary.json の warnings・invalid_records を確認してください。" >> "$GITHUB_STEP_SUMMARY"

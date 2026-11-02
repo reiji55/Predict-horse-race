@@ -44,3 +44,8 @@ jobs:
         # 発走前性（Git のコミット時刻・ルールの不変）は run_results で全履歴を取って検証する。
         # ここでは形式・出走馬の網羅・ルールにある枠のラベル・置き場所・URL のトークンなどの規約だけを確かめる。
         run: python -m research.chat_experiment validate
+
+      - name: チャットで出した券の記録（構造と規約の検証）
+        # 発走前のコミット・コミット後に変えていない・決め方どおりかは、run_results で全履歴を取って確かめる。
+        # ここでは形式・置き場所・券の並び・URL が無いことなどの規約だけを確かめる。
+        run: python -m research.chat_tickets validate
