@@ -1,0 +1,145 @@
+name: 全レースのオッズ記録（odds-live）
+
+# edge-loop（docs/research/EDGE_LOOP.md §8）と lab（lab/research-design-v0 の DATA_ACQUISITION_v0.md §6）で
+# 共通に使う記録。予想・正式成績・UI・snapshot・raw には使わない。
+# 記録は main ではなく odds-live ブランチに書く（main の予想・成績集計の push とぶつからず、Pages にも載らない）。
+#
+# 1レースにつき発走30分前・3分前・25分後・60分後の4回、単勝と複勝・3連複・ワイド・馬連を取る（scraper/capture_odds_live.py）。
+# 取得の間隔は scraper/common/http.py のマナー（3秒以上＋ゆらぎ、UA を偽らない、リトライ1回）に従う。
+#
+# ★ 定時実行は数時間遅れることがある（run_late_odds.yml の注記）。そこで朝に複数の枠を置き、
+#   1回の実行は最大約5時間半で終えて、予定が残っていれば次の実行を自分で起動して1日をつなぐ。
+#   同時に2つは走らせない（concurrency）。GitHub は待っている実行を1つしか残さず、新しく来た実行が
+#   前に待っていた実行と入れ替わる。どの実行も「その日の、まだ取っていない予定」を続けるだけなので、
+#   入れ替わっても1日はつながる（取り終えた予定は取り直さない）。自己起動が入れ替わって消えたときのために、
+#   午後にも枠を置いて、つなぎ直す。途切れていないかは、実行ごとに {日付}/runs/ に残す記録
+#   （始まった時刻・終わり方）と、取り逃した回（missed）の数で確かめる（docs/research/ODDS_LIVE.md）。
+#   定時実行の対象日は、実行した日ではなく枠の日付（遅れて日をまたいでも、枠の日のまま）。
+on:
+  schedule:
+    - cron: '40 21 * * 5,6'   # 土日 06:40 JST
+    - cron: '10 23 * * 5,6'   # 土日 08:10 JST
+    - cron: '40 0 * * 6,0'    # 土日 09:40 JST
+    - cron: '10 2 * * 6,0'    # 土日 11:10 JST
+    - cron: '40 3 * * 6,0'    # 土日 12:40 JST
+    # 午後の枠：前の実行の自己起動が、待っている間に別の実行と入れ替わって消えても、1日をつなぎ直す
+    - cron: '10 5 * * 6,0'    # 土日 14:10 JST
+    - cron: '40 6 * * 6,0'    # 土日 15:40 JST
+    - cron: '10 8 * * 6,0'    # 土日 17:10 JST（最終レースの発走60分後の観測まで）
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '対象日 YYYY-MM-DD（空なら JST の今日。祝日の開催は手動で）'
+        required: false
+
+permissions:
+  contents: write  # odds-live ブランチへの push
+  actions: write   # 時間切れのとき、次の実行を起動する
+
+concurrency:
+  group: odds-live
+  cancel-in-progress: false
+
+jobs:
+  capture:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+
+      - name: 記録まわりのテスト
+        run: python -m pytest -q tests/test_capture_odds_live.py
+
+      - name: 対象日と区切りの時刻を決める
+        id: target
+        env:
+          INPUT_DATE: ${{ github.event.inputs.date }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          DATE="$INPUT_DATE"
+          if [ -z "$DATE" ] && [ "$EVENT" = "schedule" ]; then
+            # 定時実行は、枠の日付（JST）を対象にする。遅れて日をまたいでも、翌日を取りに行かない
+            DATE=$(python -m scraper.capture_odds_live --scheduled-date "$SCHEDULE")
+          fi
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Tokyo date +%Y-%m-%d)
+          case "$DATE" in
+            [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+            *) echo "date の形式が違います: $DATE"; exit 1 ;;
+          esac
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          # 6時間の上限より前に区切る。区切りより後の予定は次の実行に回す
+          echo "deadline=$(date -u -d '+325 minutes' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: 記録用ブランチを用意する
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin odds-live >/dev/null 2>&1; then
+            git fetch -q --depth=1 origin odds-live:odds-live
+            git worktree add -q odds-live odds-live
+          else
+            # 初回だけ、main の履歴を持たない空のブランチを作る
+            git worktree add -q --orphan -b odds-live odds-live
+            printf '%s\n' "# odds-live" "" \
+              "全JRAレースのオッズ記録（scraper/capture_odds_live.py、odds-live-v1）。" \
+              "予想・正式成績・UI には使わない。1観測1ファイルで、上書きしない。" > odds-live/README.md
+            git -C odds-live add README.md
+            git -C odds-live commit -q -m "odds-live: 記録用ブランチを作る"
+            git -C odds-live push -q -u origin odds-live
+          fi
+
+      - name: 記録する（予定ごとに待って取り、そのたびにコミット）
+        id: loop
+        env:
+          DATE: ${{ steps.target.outputs.date }}
+          DEADLINE: ${{ steps.target.outputs.deadline }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set +e
+          started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          commit_push() {
+            [ -n "$(git -C odds-live status --porcelain)" ] || return 0
+            git -C odds-live add -A
+            git -C odds-live commit -q -m "odds-live: $DATE の記録"
+            for i in 1 2 3 4; do
+              git -C odds-live push -q origin odds-live && return 0
+              sleep $((i * 5))
+              git -C odds-live pull -q --rebase origin odds-live
+            done
+            echo "odds-live への push に失敗しました"
+            return 1
+          }
+          while true; do
+            python -m scraper.capture_odds_live --date "$DATE" --out odds-live --deadline "$DEADLINE"
+            rc=$?
+            commit_push || exit 1
+            [ "$rc" -eq 0 ] || break
+          done
+          # 実行ごとの記録（1日が途切れずにつながったかを、後から確かめるため）。上書きしない
+          day="${DATE//-/}"
+          mkdir -p "odds-live/$day/runs"
+          printf '{"run_id": "%s", "run_attempt": "%s", "event": "%s", "started_at": "%s", "ended_at": "%s", "exit_code": %s}\n' \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$EVENT" "$started_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$rc" \
+            > "odds-live/$day/runs/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.json"
+          commit_push || exit 1
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          # 3＝その日の予定が終わった、4＝時間切れ（次の実行を起動する）。それ以外は失敗
+          [ "$rc" -eq 3 ] || [ "$rc" -eq 4 ]
+
+      - name: 時間切れなら次の実行を起動する
+        if: steps.loop.outputs.rc == '4'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DATE: ${{ steps.target.outputs.date }}
+        run: gh workflow run run_odds_live.yml --repo "$REPO" --ref main -f "date=$DATE"
