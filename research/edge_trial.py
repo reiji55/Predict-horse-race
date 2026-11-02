@@ -24,7 +24,7 @@ import random
 import sys
 import types
 from pathlib import Path
-from typing import Any
+from typing import Any, Collection
 
 from research import common
 from research import portfolio_shadow as ps
@@ -53,6 +53,7 @@ UNIT_YEN = 100
 MAIN_STRATEGY = "x_out_2"
 CHECKPOINTS = (60, 120, 240, 480)
 RESULT_WAIT_DAYS = 14
+RESULT_UNAVAILABLE_DAYS = 14
 BOOT_SEED = 20261101
 BOOT_REPS = 10000
 BOOT_LOWER_RANK = 50
@@ -209,10 +210,37 @@ def _payout_known(hit: Any, dividend_found: Any) -> bool:
     return (not hit) or bool(dividend_found)
 
 
-def is_common(r: dict[str, Any]) -> bool:
-    """§5 の共通のレース：この版が evaluated で、本線の記録が使え、同じ凍結版を見ている。"""
+def resolution(r: dict[str, Any], unavailable: Collection[str] = ()) -> tuple[str, str | None]:
+    """§5 のレースの解決：common（共通）・not_common（対象外）・awaiting（結果か本線の記録を待っている）・error。
+
+    台帳で result_unavailable と確定したレースは、後から結果や本線の記録が来ても not_common のまま。
+    """
+    if r["race_id"] in unavailable:
+        return "not_common", "result_unavailable"
+    status = r.get("status")
+    if status == "error":
+        return "error", "v1_error"
+    if status == "excluded":
+        return "not_common", r.get("reason")
+    if status == "pending_result":
+        return "awaiting", "v1_pending_result"
+    if status != "evaluated":
+        return "awaiting", f"v1_{status}"
     m = r.get("main") or {}
-    return r.get("status") == "evaluated" and bool(m.get("usable")) and bool(m.get("same_pinned"))
+    if m.get("usable") and m.get("same_pinned"):
+        return "common", None
+    if m.get("status") == "error":
+        return "error", "main_error"
+    if m.get("status") in (None, "missing", "pending_result"):
+        return "awaiting", f"main_{m.get('status') or 'missing'}"
+    if m.get("usable"):
+        return "not_common", "main_pinned_differs"
+    return "not_common", "main_not_usable"
+
+
+def is_common(r: dict[str, Any], unavailable: Collection[str] = ()) -> bool:
+    """§5 の共通のレース：この版が evaluated で、本線の記録が使え、同じ凍結版を見ている（台帳で外したものを除く）。"""
+    return resolution(r, unavailable)[0] == "common"
 
 
 def _block(hits: list[int], ps_: list[float], stakes: list[int], pays: list[int | None]) -> dict[str, Any]:
@@ -237,11 +265,11 @@ def _v0_values(r: dict[str, Any]) -> tuple[int, float, int, int | None]:
     return hit, m["p_pre"], m["stake"], m["payout"] if _payout_known(m["hit"], m["dividend_found"]) else None
 
 
-def report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def report(rows: list[dict[str, Any]], unavailable: Collection[str] = ()) -> dict[str, Any]:
     ev = sorted((r for r in rows if r.get("role") == "eligible" and r["status"] == "evaluated"),
                 key=lambda r: r["race_id"])
     v1 = [_v1_values(r) for r in ev]
-    both = [r for r in ev if is_common(r)]
+    both = [r for r in ev if is_common(r, unavailable)]
     c1, c0 = [_v1_values(r) for r in both], [_v0_values(r) for r in both]
     d = [(a[0] - a[1]) - (b[0] - b[1]) for a, b in zip(c1, c0)]
     return {
@@ -259,7 +287,7 @@ def report(rows: list[dict[str, Any]]) -> dict[str, Any]:
                             "v0_only": sum(1 for a, b in zip(c1, c0) if b[0] and not a[0]),
                             "neither": sum(1 for a, b in zip(c1, c0) if not a[0] and not b[0])},
         },
-        "not_common": sorted(r["race_id"] for r in ev if not is_common(r)),
+        "not_common": sorted(r["race_id"] for r in ev if not is_common(r, unavailable)),
     }
 
 
@@ -290,20 +318,45 @@ def _date(day: str) -> datetime.date:
     return datetime.date(int(day[:4]), int(day[4:6]), int(day[6:8]))
 
 
-def checkpoint_state(rows: list[dict[str, Any]], as_of: datetime.date) -> dict[str, Any]:
+def load_ledger(out_dir: Path) -> dict[str, Any]:
+    """§5 の台帳。開催日から14日たっても結果がそろわず、判定から外すと確定したレース（result_unavailable）。"""
+    ledger = common.read_json(out_dir / "ledger.json") or {}
+    ledger.setdefault("result_unavailable", {})
+    ledger["note"] = ("開催日から14日たっても、この版の結果か本線の記録がそろわなかったレース。判定から外すことを"
+                      "確定した日と理由を残し、後から結果が来ても共通のレースに戻さない（§5）。上書きしない。")
+    return ledger
+
+
+def apply_cutoff(rows: list[dict[str, Any]], ledger: dict[str, Any], as_of: datetime.date) -> list[str]:
+    """§5：開催日から14日たっても awaiting のレースを、台帳で result_unavailable に確定する。計算の失敗は外さない。"""
+    newly = []
+    for r in rows:
+        if r.get("role") != "eligible":
+            continue
+        state, reason = resolution(r, ledger["result_unavailable"])
+        if state == "awaiting" and as_of >= _date(r["race_day"]) + datetime.timedelta(days=RESULT_UNAVAILABLE_DAYS):
+            ledger["result_unavailable"][r["race_id"]] = {"fixed_on": as_of.isoformat(), "reason": reason}
+            newly.append(r["race_id"])
+    return newly
+
+
+def checkpoint_state(rows: list[dict[str, Any]], as_of: datetime.date,
+                     unavailable: Collection[str] = ()) -> dict[str, Any]:
     """共通のレースの数が 60・120・240・480 に初めて達した開催日を求め、14日たったものを判定する（§5）。
 
-    計算に失敗したレースのある開催日から先では、到達日を決めない。結果待ちのレースは、14日たっても結果が無ければ
-    数えない（portfolio-shadow-v1 と同じ）。判定の対象は、その開催日までの共通のレース。
+    未解決のレース（結果か本線の記録を待っているもの、計算の失敗）が1つでもある開催日から先では、到達日を決めない。
+    そのため、到達日までのレースは、すべて共通か対象外に決まっている（結果がそろってから判定する）。
+    結果がそろわないレースは、開催日から14日で台帳により対象外に確定する（apply_cutoff）。計算の失敗は直るまで止める。
     """
     eligible = [r for r in rows if r.get("role") == "eligible"]
-    unresolved = sorted({r["race_day"] for r in eligible if r["status"] == "error"})
-    common_rows = sorted((r for r in eligible if is_common(r)), key=lambda r: r["race_id"])
+    res = {r["race_id"]: resolution(r, unavailable) for r in eligible}
+    unresolved = sorted({r["race_day"] for r in eligible if res[r["race_id"]][0] in ("awaiting", "error")})
+    common_rows = sorted((r for r in eligible if res[r["race_id"]][0] == "common"), key=lambda r: r["race_id"])
     per_day: dict[str, int] = {}
     for r in common_rows:
         per_day[r["race_day"]] = per_day.get(r["race_day"], 0) + 1
     cum, reached, resolved_through = 0, {}, None
-    for day in sorted(set(per_day) | set(unresolved)):
+    for day in sorted({r["race_day"] for r in eligible}):
         if unresolved and day >= unresolved[0]:
             break
         resolved_through = day
@@ -311,14 +364,17 @@ def checkpoint_state(rows: list[dict[str, Any]], as_of: datetime.date) -> dict[s
         for target in CHECKPOINTS:
             if cum >= target and target not in reached:
                 reached[target] = day
-    state: dict[str, Any] = {"common_races": len(common_rows), "reached": {str(k): v for k, v in reached.items()},
-                             "resolved_through": resolved_through, "unresolved_days": unresolved, "checkpoints": {}}
+    state: dict[str, Any] = {
+        "common_races": len(common_rows), "reached": {str(k): v for k, v in reached.items()},
+        "resolved_through": resolved_through, "unresolved_days": unresolved,
+        "awaiting": sorted(rid for rid, (st, _) in res.items() if st == "awaiting"),
+        "errors": sorted(rid for rid, (st, _) in res.items() if st == "error"),
+        "checkpoints": {}}
     for target, end_day in reached.items():
         wait_until = _date(end_day) + datetime.timedelta(days=RESULT_WAIT_DAYS)
         cp: dict[str, Any] = {"end_day": end_day, "result_wait_until": wait_until.isoformat()}
-        pending = sorted(r["race_id"] for r in eligible if r["status"] == "pending_result" and r["race_day"] <= end_day)
         if as_of < wait_until:
-            state["checkpoints"][str(target)] = {**cp, "status": "awaiting_results", "pending_result": pending}
+            state["checkpoints"][str(target)] = {**cp, "status": "awaiting_results"}
             continue
         window = [r for r in common_rows if r["race_day"] <= end_day]
         by_day: dict[str, list[float]] = {}
@@ -326,13 +382,15 @@ def checkpoint_state(rows: list[dict[str, Any]], as_of: datetime.date) -> dict[s
             a, b = _v1_values(r), _v0_values(r)
             by_day.setdefault(r["race_day"], []).append((a[0] - a[1]) - (b[0] - b[1]))
         boot = bootstrap([by_day[d] for d in sorted(by_day)])
-        rep = report(window)["common"]
+        rep = report(window, unavailable)["common"]
         roi1, roi0 = rep["v1"]["roi"], rep["v0"]["roi"]
         met = (boot["lower"] is not None and boot["lower"] > 0 and roi1 is not None and roi0 is not None
                and roi1 >= roi0)
-        state["checkpoints"][str(target)] = {**cp, "status": "final", "result_unavailable": pending,
-                                             "races": [r["race_id"] for r in window], "bootstrap": boot,
-                                             "report": rep, "criterion_met": met}
+        resolutions = {r["race_id"]: list(res[r["race_id"]]) for r in sorted(eligible, key=lambda r: r["race_id"])
+                       if r["race_day"] <= end_day}
+        state["checkpoints"][str(target)] = {**cp, "status": "final", "races": [r["race_id"] for r in window],
+                                             "resolutions": resolutions, "bootstrap": boot, "report": rep,
+                                             "criterion_met": met}
     return state
 
 
@@ -352,10 +410,11 @@ def _digest(obj: Any) -> str:
 
 def checkpoint_record(cp: dict[str, Any], rows: list[dict[str, Any]], reg: dict[str, Any]) -> dict[str, Any]:
     by_id = {r["race_id"]: r for r in rows}
-    inputs = {rid: {"pinned_commit": (by_id[rid].get("pinned") or {}).get("commit"),
-                    "tickets": by_id[rid].get("tickets"), "result_used": by_id[rid].get("result_used"),
-                    "main": {k: (by_id[rid].get("main") or {}).get(k) for k in ("tickets", "hit", "p_pre")}}
-              for rid in cp["races"]}
+    inputs = {"races": {rid: {"pinned_commit": (by_id[rid].get("pinned") or {}).get("commit"),
+                              "tickets": by_id[rid].get("tickets"), "result_used": by_id[rid].get("result_used"),
+                              "main": {k: (by_id[rid].get("main") or {}).get(k) for k in ("tickets", "hit", "p_pre")}}
+                        for rid in cp["races"]},
+              "resolutions": cp["resolutions"]}
     outputs = _round({k: cp[k] for k in ("end_day", "bootstrap", "report", "criterion_met")})
     return {"registration_commit": reg["commit"], "config_sha256": reg["config_sha256"], "inputs": inputs,
             "outputs": outputs, "inputs_digest": _digest(inputs), "outputs_digest": _digest(outputs),
@@ -367,7 +426,7 @@ def checkpoint_record(cp: dict[str, Any], rows: list[dict[str, Any]], reg: dict[
 def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.date | None = None,
         reference: dict[str, Any] | None = None, rule: types.ModuleType | None = None,
         simulate: bool = False) -> dict[str, Any]:
-    """simulate=True は今の入力のまま日付だけを変えた計算。本番の出力先には書けず、checkpoints.json は書かない。"""
+    """simulate=True は今の入力のまま日付だけを変えた計算。本番の出力先には書けず、checkpoints.json・ledger.json は書かない。"""
     repo = repo or common.ROOT
     out_dir = out_dir or OUT_DIR
     if simulate and out_dir.resolve() == OUT_DIR.resolve():
@@ -402,7 +461,15 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
                    else "before_registration"}
         rows.append(row)
 
-    state = checkpoint_state(rows, as_of)
+    ledger = load_ledger(out_dir)
+    newly_unavailable = apply_cutoff(rows, ledger, as_of)
+    unavailable = set(ledger["result_unavailable"])
+    if not simulate:
+        common.write_json(out_dir / "ledger.json", ledger)
+    for r in rows:
+        if r["race_id"] in unavailable:
+            r["ledger"] = {"state": "result_unavailable", **ledger["result_unavailable"][r["race_id"]]}
+    state = checkpoint_state(rows, as_of, unavailable)
     path = out_dir / "checkpoints.json"
     fixed = common.read_json(path) or {}
     mismatched = []
@@ -457,13 +524,15 @@ def run(repo: Path | None = None, out_dir: Path | None = None, as_of: datetime.d
         "checkpoints_fixed": sorted(fixed, key=int),
         "checkpoints_mismatched": mismatched,
         "criterion_met_at": met,
-        "to_date": _round(report(eligible)),
+        "result_unavailable": sorted(unavailable),
+        "result_unavailable_newly_fixed": newly_unavailable,
+        "to_date": _round(report(eligible, unavailable)),
         "note": ("edge-v1（印の中の5組）の前向きの記録（observe-only）。p は p_pre。判定は §5 の見る時点でだけ行い、"
                  "途中の数値は報告だけ。的中・払戻は shadow で、正式成績・ROI・チャットの参考券には入れない。"),
     }
     if simulate:
         summary["simulation_note"] = ("今の入力（HEAD の結果）のまま判定の日付だけを変えた計算。その日時点に存在した入力の再生ではない。"
-                                      "checkpoints.json は書かない。")
+                                      "checkpoints.json・ledger.json は書かない。")
     common.write_json(out_dir / "summary.json", summary)
     return summary
 

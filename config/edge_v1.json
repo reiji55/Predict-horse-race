@@ -52,7 +52,15 @@
     "route": 1,
     "d": "(hit − p_pre)_v1 − (hit − p_pre)_v0（共通のレース）",
     "checkpoints": [60, 120, 240, 480],
-    "checkpoint_rule": "共通のレースの数がその値に初めて達した開催日の終わり。その開催日のレースは全部入れる",
+    "resolution": {
+      "common": "この版が evaluated で、本線の記録が使えて、同じ凍結版を見ている",
+      "not_common": "この版が excluded、または本線の記録が評価済みで使えない（excluded・x_out_2 が chosen でない・proven_optimal でない・凍結版が違う）、または ledger.json で result_unavailable と確定した",
+      "awaiting": "この版が pending_result、または本線の記録が無い・pending_result",
+      "error": "この版か本線の計算の失敗"
+    },
+    "result_unavailable_after_days": 14,
+    "result_unavailable_rule": "開催日から14日たっても awaiting のレースを result_unavailable として not_common に確定し、確定した日と理由を ledger.json に残す。後から結果が来ても戻さない。error は not_common にしない",
+    "checkpoint_rule": "awaiting か error のレースのある開催日から先では到達日を決めない。共通のレースの累計がその値に初めて達した開催日の終わり。その開催日のレースは全部入れる",
     "result_wait_days": 14,
     "bootstrap": {"cluster": "race_day", "weight": "レースに等しい重み", "rng": "Python random.Random(20261101)",
                   "seed": 20261101, "replicates": 10000, "level": 0.99, "lower_rank": 50, "upper_rank": 9950},

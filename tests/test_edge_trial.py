@@ -72,6 +72,8 @@ def test_constants_match_registered_config() -> None:
     assert cfg["main"]["strategy"] == et.MAIN_STRATEGY
     dec = cfg["decision"]
     assert tuple(dec["checkpoints"]) == et.CHECKPOINTS and dec["result_wait_days"] == et.RESULT_WAIT_DAYS
+    assert dec["result_unavailable_after_days"] == et.RESULT_UNAVAILABLE_DAYS
+    assert set(dec["resolution"]) == {"common", "not_common", "awaiting", "error"}
     boot = dec["bootstrap"]
     assert (boot["seed"], boot["replicates"], boot["lower_rank"], boot["upper_rank"]) == (
         et.BOOT_SEED, et.BOOT_REPS, et.BOOT_LOWER_RANK, et.BOOT_UPPER_RANK)
@@ -213,6 +215,90 @@ def test_error_race_blocks_the_checkpoint_boundary() -> None:
     rows.append({"race_id": "20261114-zz-11", "race_day": "20261114", "role": "eligible", "status": "error"})
     st = et.checkpoint_state(rows, datetime.date(2027, 6, 1))
     assert st["reached"] == {} and st["resolved_through"] == "20261107" and st["unresolved_days"] == ["20261114"]
+
+
+def _days(n_days: int) -> list[str]:
+    start = datetime.date(2026, 11, 7)
+    return [(start + datetime.timedelta(days=7 * k)).strftime("%Y%m%d") for k in range(n_days)]
+
+
+def _pending(day: str, k: int = 9, main_status: str | None = None) -> dict:
+    r = _row(day, k, False, 0.1, False, 0.2)
+    if main_status is None:
+        r["status"] = "pending_result"
+        r.pop("realized")
+    else:
+        r["main"].update(usable=False, status=main_status)
+    return r
+
+
+def test_resolution_states() -> None:
+    day = _days(1)[0]
+    assert et.resolution(_row(day, 1, True, 0.1, False, 0.2)) == ("common", None)
+    assert et.resolution(_pending(day)) == ("awaiting", "v1_pending_result")
+    assert et.resolution(_pending(day, main_status="pending_result")) == ("awaiting", "main_pending_result")
+    assert et.resolution(_pending(day, main_status="missing")) == ("awaiting", "main_missing")
+    assert et.resolution(_pending(day, main_status="error")) == ("error", "main_error")
+    assert et.resolution(_pending(day, main_status="evaluated")) == ("not_common", "main_not_usable")
+    assert et.resolution(_pending(day, main_status="excluded")) == ("not_common", "main_not_usable")
+    excluded = {**_row(day, 2, False, 0.1, False, 0.2), "status": "excluded", "reason": "dead_heat_top3"}
+    assert et.resolution(excluded) == ("not_common", "dead_heat_top3")
+    err = {"race_id": f"{day}-zz-11", "race_day": day, "role": "eligible", "status": "error"}
+    assert et.resolution(err) == ("error", "v1_error")
+    # 台帳で外したレースは、後から共通の条件を満たしても戻さない
+    late = _row(day, 3, True, 0.1, False, 0.2)
+    assert et.resolution(late, {late["race_id"]}) == ("not_common", "result_unavailable")
+
+
+@pytest.mark.parametrize("same_day", [True, False])
+def test_pending_race_on_or_before_the_end_day_keeps_the_checkpoint_open(same_day: bool) -> None:
+    rows = _season(15, 4, v1_hits=True)            # 60 レースは15開催日目に達する
+    days = _days(15)
+    pend = _pending(days[14] if same_day else days[13])
+    rows.append(pend)
+    long_after = datetime.date(2027, 12, 31)
+    st = et.checkpoint_state(rows, long_after)     # 台帳が無ければ、何日たっても到達日を決めない
+    assert st["reached"] == {} and st["checkpoints"] == {} and st["awaiting"] == [pend["race_id"]]
+    assert st["unresolved_days"] == [pend["race_day"]]
+    # 台帳で result_unavailable と確定すれば、そのレースを外して到達日が決まる
+    st = et.checkpoint_state(rows, long_after, {pend["race_id"]})
+    cp = st["checkpoints"]["60"]
+    assert st["reached"] == {"60": days[14]} and cp["status"] == "final" and pend["race_id"] not in cp["races"]
+    assert cp["resolutions"][pend["race_id"]] == ["not_common", "result_unavailable"]
+
+
+def test_late_result_makes_the_race_common_and_moves_the_boundary() -> None:
+    days = _days(15)
+    rows = [r for r in _season(15, 4, v1_hits=True) if not (r["race_day"] == days[14] and r["race_id"].endswith("r03-11"))]
+    rows.append(_pending(days[13]))                # 14開催日目に結果待ちが1つ
+    st = et.checkpoint_state(rows, datetime.date(2027, 6, 1))
+    assert st["reached"] == {} and st["resolved_through"] == days[12]
+    # 結果が来て共通のレースになると、14開催日目までで 56＋1、15開催日目で 60 に達する
+    rows[-1] = _row(days[13], 9, False, 0.1, False, 0.2)
+    st = et.checkpoint_state(rows, datetime.date(2027, 6, 1))
+    assert st["reached"] == {"60": days[14]} and len(st["checkpoints"]["60"]["races"]) == 60
+
+
+def test_main_not_yet_evaluated_keeps_the_checkpoint_open() -> None:
+    rows = _season(15, 4, v1_hits=True)
+    rows[0]["main"].update(usable=False, status="pending_result")
+    st = et.checkpoint_state(rows, datetime.date(2027, 6, 1))
+    assert st["reached"] == {} and st["awaiting"] == [rows[0]["race_id"]] and st["resolved_through"] is None
+
+
+def test_cutoff_fixes_only_awaiting_races_after_14_days() -> None:
+    days = _days(2)
+    pend, err = _pending(days[0]), {"race_id": f"{days[0]}-zz-11", "race_day": days[0], "role": "eligible",
+                                    "status": "error"}
+    rows = [pend, err, _row(days[0], 1, True, 0.1, False, 0.2)]
+    ledger = {"result_unavailable": {}}
+    first = datetime.date(int(days[0][:4]), int(days[0][4:6]), int(days[0][6:]))
+    assert et.apply_cutoff(rows, ledger, first + datetime.timedelta(days=13)) == []
+    assert et.apply_cutoff(rows, ledger, first + datetime.timedelta(days=14)) == [pend["race_id"]]
+    assert ledger["result_unavailable"][pend["race_id"]]["reason"] == "v1_pending_result"
+    assert et.apply_cutoff(rows, ledger, first + datetime.timedelta(days=60)) == []   # 失敗は外さない・二重に入れない
+    st = et.checkpoint_state(rows, first + datetime.timedelta(days=60), set(ledger["result_unavailable"]))
+    assert st["errors"] == [err["race_id"]] and st["unresolved_days"] == [days[0]]   # 失敗は直るまで止める
 
 
 def test_checkpoint_record_detects_changes() -> None:
@@ -380,6 +466,31 @@ def test_fixed_checkpoint_is_not_overwritten(repo: Path, monkeypatch: pytest.Mon
     s3 = et.run(repo, out, datetime.date(2026, 12, 2), reference=_ref())
     assert s3["warnings"] == ["checkpoint_recomputed_differs_from_fixed"] and s3["checkpoints_mismatched"] == ["2"]
     assert json.loads((out / "checkpoints.json").read_text(encoding="utf-8")) == fixed
+
+
+def test_pending_race_is_fixed_in_the_ledger_and_not_brought_back(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(et, "CHECKPOINTS", (2, 4))
+    out = repo / "out"
+    s1 = et.run(repo, out, datetime.date(2026, 11, 20), reference=_ref())
+    # 新潟は結果待ち。14日たつまでは、その開催日で到達日を決めない
+    assert s1["checkpoints"]["awaiting"] == ["20261107-niigata-11"] and s1["checkpoints"]["reached"] == {}
+    assert json.loads((out / "ledger.json").read_text(encoding="utf-8"))["result_unavailable"] == {}
+    s2 = et.run(repo, out, datetime.date(2026, 11, 21), reference=_ref())
+    assert s2["result_unavailable_newly_fixed"] == ["20261107-niigata-11"]
+    assert s2["checkpoints"]["reached"] == {"2": "20261107"} and s2["checkpoints_fixed"] == ["2"]
+    # 後から新潟の結果と本線の記録が来ても、外したまま（固定した判定とも一致する）
+    results = json.loads((repo / et.RESULTS_REL).read_text(encoding="utf-8"))
+    results["20261107-niigata-11"] = {"finish": [3, 4, 5, 1, 2, 6, 7],
+                                      "dividends": {"3連複": [{"horses": [3, 4, 5], "pay": 990}]}}
+    _write(repo, et.RESULTS_REL, results)
+    pinned = json.loads((repo / f"{et.MAIN_RACES_REL}/20261107-tokyo-11.json").read_text(encoding="utf-8"))["pinned"]["commit"]
+    _write(repo, f"{et.MAIN_RACES_REL}/20261107-niigata-11.json", _main_record("20261107-niigata-11", pinned, False))
+    _commit(repo, "late result", "2026-11-22T10:00:00+09:00")
+    s3 = et.run(repo, out, datetime.date(2026, 11, 22), reference=_ref())
+    niigata = json.loads((out / "races/20261107-niigata-11.json").read_text(encoding="utf-8"))
+    assert niigata["status"] == "evaluated" and niigata["ledger"]["state"] == "result_unavailable"
+    assert s3["warnings"] == [] and s3["result_unavailable"] == ["20261107-niigata-11"]
+    assert "20261107-niigata-11" in s3["to_date"]["not_common"]
 
 
 def test_simulation_cannot_write_to_the_live_output() -> None:
