@@ -254,3 +254,73 @@ def test_audit_without_engine_registration(tmp_path: Path) -> None:
 def test_repository_records_are_valid() -> None:
     assert ct.validate_all(ROOT) == 0
     assert common.ROOT == ROOT
+
+# ------------------------------------------------------------------ main の first-parent 履歴（ChatGPT レビュー PR #54 の P0）
+
+def _branch_ticket(repo: Path, commit_at: str) -> str:
+    _git(repo, "checkout", "-q", "-b", "feature")
+    rel, _ = _make(repo)
+    _commit(repo, "chat ticket on a branch", commit_at)
+    _git(repo, "checkout", "-q", "main")
+    return rel
+
+
+def _merge(repo: Path, date: str) -> None:
+    _git(repo, "merge", "-q", "--no-ff", "-m", "merge feature", "feature", date=date)
+
+
+def test_audit_rejects_a_branch_record_merged_into_main_after_post(repo: Path) -> None:
+    rel = _branch_ticket(repo, "2026-11-07T14:25:00+09:00")
+    _merge(repo, "2026-11-07T16:30:00+09:00")
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    bad = s["invalid_records"][0]
+    assert bad["record"] == rel and "committed_after_post" in bad["problems"]
+    race = json.loads((repo / f"out/races/{RID}.json").read_text(encoding="utf-8"))
+    assert race["records"][0]["committed_at"] == "2026-11-07T16:30:00+09:00"   # main に入った時刻で判定
+
+
+def test_audit_accepts_a_branch_record_merged_into_main_before_post(repo: Path) -> None:
+    _branch_ticket(repo, "2026-11-07T14:25:00+09:00")
+    _merge(repo, "2026-11-07T14:40:00+09:00")
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    assert s["warnings"] == [] and s["valid_records"] == 1
+
+
+def test_audit_rejects_a_record_only_on_a_branch(repo: Path) -> None:
+    _branch_ticket(repo, "2026-11-07T14:25:00+09:00")
+    _git(repo, "checkout", "-q", "feature")      # 作業ツリーにはあるが main には無い
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    assert s["invalid_records"][0]["problems"] == ["not_in_main"]
+
+
+def test_audit_flags_a_deleted_record(repo: Path) -> None:
+    rel, _ = _make(repo)
+    _commit(repo, "chat ticket", "2026-11-07T14:25:00+09:00")
+    (repo / rel).unlink()
+    _commit(repo, "delete", "2026-11-07T18:00:00+09:00")
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    assert s["records"] == 1 and "invalid_records" in s["warnings"]
+    assert "deleted_after_commit" in s["invalid_records"][0]["problems"]
+
+
+def test_audit_flags_an_edit_that_was_reverted(repo: Path) -> None:
+    rel, rec = _make(repo)
+    _commit(repo, "chat ticket", "2026-11-07T14:25:00+09:00")
+    original = (repo / rel).read_bytes()
+    _write(repo, rel, {**rec, "note": "edited"})
+    _commit(repo, "edit", "2026-11-07T14:30:00+09:00")
+    _write(repo, rel, original)
+    _commit(repo, "revert", "2026-11-07T14:35:00+09:00")
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    assert "modified_after_commit" in s["invalid_records"][0]["problems"]
+
+
+@pytest.mark.parametrize("field, value", [("p_hit", 0.95), ("proven_optimal", False), ("x", {"horse": 7, "p_top3": 0.5})])
+def test_audit_checks_the_numbers_against_the_recomputation(repo: Path, field: str, value) -> None:
+    rel, rec = _make(repo)
+    _write(repo, rel, {**rec, field: value})
+    _commit(repo, "chat ticket with a wrong number", "2026-11-07T14:25:00+09:00")
+    s = ct.audit(repo, repo / "out", reference=_ref())
+    assert "rule_mismatch" in s["invalid_records"][0]["problems"]
+    race = json.loads((repo / f"out/races/{RID}.json").read_text(encoding="utf-8"))
+    assert race["records"][0]["rule_differs"] == [field]

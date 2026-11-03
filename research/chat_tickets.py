@@ -111,8 +111,10 @@ def decide(base: dict[str, Any]) -> dict[str, Any]:
         return {**out, "action": "pass", "reason": f"{STRATEGY}:{s.get('status')}", "tickets": [], "stake": 0,
                 "p_hit": None}
     p_hit = s.get("p_hit")
-    return {**out, "action": "bet", "x": base.get("x"), "tickets": tickets, "stake": UNIT_YEN * len(tickets),
-            "p_hit": round(p_hit, 6) if isinstance(p_hit, (int, float)) else None,
+    x = base.get("x")
+    x = {k: _round6(v) for k, v in x.items()} if isinstance(x, dict) else x
+    return {**out, "action": "bet", "x": x, "tickets": tickets, "stake": UNIT_YEN * len(tickets),
+            "p_hit": _round6(float(p_hit)) if isinstance(p_hit, (int, float)) else None,
             "proven_optimal": s.get("proven_optimal")}
 
 
@@ -260,37 +262,80 @@ def validate_all(repo: Path | None = None) -> int:
 
 # ------------------------------------------------------------------ 全履歴での確認（run_results）
 
-def _history(rel: str, repo: Path) -> list[tuple[str, datetime.datetime]]:
-    out = _git(["log", "--format=%H %cI", "--", rel], repo)
+def _main_history(rel: str, ref: str, repo: Path) -> list[tuple[str, datetime.datetime, str | None]]:
+    """main の first-parent 履歴で、rel を変えたコミット（古い順）と、そのコミットでの blob（消したなら None）。
+
+    登録と同じく main の first-parent だけを見る。ブランチで発走前にコミットしても、main に入ったのが
+    発走後なら、main に初めて現れた時刻（マージコミット）で判定する。
+    """
+    out = _git(["log", "--first-parent", "--format=%H %cI", ref, "--", rel], repo)
     rows = []
     for line in out.stdout.decode().splitlines() if out.returncode == 0 else []:
         sha, _, stamp = line.partition(" ")
         when = common.parse_dt(stamp)
         if sha and when:
-            rows.append((sha, when))
+            rows.append((sha, when, ps._blob(sha, rel, repo)))
     return sorted(rows, key=lambda r: r[1])
+
+
+def _is_record_rel(rel: str) -> bool:
+    parts = rel.split("/")
+    return rel.startswith(RECORDS_REL + "/") and len(parts) == len(RECORDS_REL.split("/")) + 2 \
+        and parts[-1].endswith(".json")
+
+
+def main_record_paths(ref: str, repo: Path) -> list[str]:
+    """main の first-parent 履歴に一度でも現れた記録のパス（消したものも含む）と、今の作業ツリーにあるもの。"""
+    out = _git(["log", "--first-parent", "--format=", "--name-only", ref, "--", RECORDS_REL], repo)
+    rels = {ln.strip() for ln in out.stdout.decode().splitlines() if ln.strip()} if out.returncode == 0 else set()
+    rels |= {p.relative_to(repo).as_posix() for p in record_paths(repo)}
+    return sorted(r for r in rels if _is_record_rel(r))
 
 
 def _is_ancestor(a: str, b: str, repo: Path) -> bool:
     return _git(["merge-base", "--is-ancestor", a, b], repo).returncode == 0
 
 
-def check_record(path: Path, repo: Path, verified: dict[str, Any], engine_commit: str,
+def _round6(value: Any) -> Any:
+    return round(value, 6) if isinstance(value, float) else value
+
+
+def _checked_values(src: dict[str, Any]) -> dict[str, Any]:
+    """計算し直して一致を確かめる値（券・見送り・見た版・的中確率・軸 X・最適か）。小数は 6 桁で比べる。"""
+    x = src.get("x")
+    return {"action": src.get("action"), "tickets": src.get("tickets"),
+            "pinned_commit": (src.get("pinned") or {}).get("commit"), "p_hit": _round6(src.get("p_hit")),
+            "x": {k: _round6(v) for k, v in x.items()} if isinstance(x, dict) else x,
+            "proven_optimal": src.get("proven_optimal")}
+
+
+def check_record(rel: str, ref: str, repo: Path, verified: dict[str, Any], engine_commit: str,
                  reference: dict[str, Any] | None, as_of: datetime.date) -> dict[str, Any]:
-    rel = path.relative_to(repo).as_posix()
-    rec = _load(path)
-    problems = validate(rec, rel)
     info: dict[str, Any] = {"record": rel}
-    if problems:
-        return {**info, "valid": False, "problems": problems}
-    hist = _history(rel, repo)
-    if not hist:
-        return {**info, "valid": False, "problems": ["not_committed"]}
-    first_sha, first_at = hist[0]
-    info.update(commit=first_sha, committed_at=ma._iso(first_at), created_at=rec["created_at"],
-                action=rec["action"], tickets=rec["tickets"], pinned_commit=rec["pinned"]["commit"])
-    if ps._blob(first_sha, rel, repo) != ps._blob("HEAD", rel, repo):
+    hist = _main_history(rel, ref, repo)
+    if not hist or hist[0][2] is None:
+        # 作業ツリーにだけあって main に無い記録は、発走前に main に出ていたと言えない
+        return {**info, "valid": False, "problems": ["not_in_main"]}
+    first_sha, first_at, first_blob = hist[0]
+    problems: list[str] = []
+    # 中身は main に初めて現れた版で見る。その後に main で一度でも変えた（消した・書き換えた・元に戻した）なら失格
+    if any(blob is None for _, _, blob in hist[1:]) or ps._blob(ref, rel, repo) is None:
+        problems.append("deleted_after_commit")
+    if any(blob is not None for _, _, blob in hist[1:]):
         problems.append("modified_after_commit")
+    data = ps._git_bytes(first_sha, rel, repo)
+    try:
+        rec = json.loads(data.decode("utf-8")) if data is not None else None
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        rec = None
+    structural = validate(rec, rel)
+    if structural:
+        return {**info, "commit": first_sha, "committed_at": ma._iso(first_at), "valid": False,
+                "problems": problems + structural}
+    created = common.parse_dt(rec["created_at"])
+    info.update(commit=first_sha, committed_at=ma._iso(first_at), created_at=rec["created_at"],
+                created_to_main_seconds=int((first_at - created).total_seconds()) if created else None,
+                action=rec["action"], tickets=rec["tickets"], pinned_commit=rec["pinned"]["commit"])
     found = ma.prerace_versions(rec["race_id"], repo)
     post = found["post"]
     if post is None:
@@ -307,10 +352,10 @@ def check_record(path: Path, repo: Path, verified: dict[str, Any], engine_commit
         problems.append("computed_from_not_before_commit")
     if rec["computed_from"]["engine_commit"] != engine_commit:
         problems.append("engine_commit_differs")
-    # 決め方どおりか：記録が見た版から計算し直す。記録と見た版は変わらないので、一度確かめた結果は台帳から使う
-    blob = ps._blob("HEAD", rel, repo)
+    # 決め方どおりか：記録が見た版から計算し直す。main に初めて現れた版の中身は変わらないので、一度確かめた結果は台帳から使う
     cached = verified.get(rel)
-    if not (isinstance(cached, dict) and cached.get("blob") == blob and cached.get("engine_commit") == engine_commit):
+    if not (isinstance(cached, dict) and cached.get("blob") == first_blob and cached.get("engine_commit") == engine_commit
+            and cached.get("rev") == rev):
         try:
             c = compute(rec["race_id"], rev, repo, reference)
         except Exception as exc:  # 計算の失敗は台帳に入れない（直れば次の実行で確かめる）
@@ -318,16 +363,17 @@ def check_record(path: Path, repo: Path, verified: dict[str, Any], engine_commit
             problems.append(f"recompute_error:{type(exc).__name__}")
             cached = None
         else:
-            recomputed = {"action": c["action"], "tickets": c["tickets"],
-                          "pinned_commit": (c.get("pinned") or {}).get("commit")}
-            recorded = {"action": rec["action"], "tickets": rec["tickets"], "pinned_commit": rec["pinned"]["commit"]}
-            cached = {"blob": blob, "engine_commit": engine_commit, "rev": rev, "recomputed": recomputed,
-                      "rule_match": recomputed == recorded, "verified_on": as_of.isoformat()}
+            recomputed, recorded = _checked_values(c), _checked_values(rec)
+            cached = {"blob": first_blob, "engine_commit": engine_commit, "rev": rev, "recomputed": recomputed,
+                      "rule_match": recomputed == recorded,
+                      "differs": sorted(k for k in recomputed if recomputed[k] != recorded[k]),
+                      "verified_on": as_of.isoformat()}
             verified[rel] = cached
     if cached is not None:
         info["rule_match"] = cached["rule_match"]
         if not cached["rule_match"]:
             problems.append("rule_mismatch")
+            info["rule_differs"] = cached.get("differs")
     return {**info, "valid": not problems, "problems": problems}
 
 
@@ -372,16 +418,17 @@ def audit(repo: Path | None = None, out_dir: Path | None = None, reference: dict
     results = ps._head_json(RESULTS_REL, repo) or {}
     by_race: dict[str, list[dict[str, Any]]] = {}
     checked = []
-    for path in record_paths(repo):
-        info = check_record(path, repo, verified, reg["commit"], reference, as_of)
+    ref = ps._main_ref(repo) or "HEAD"
+    for rel in main_record_paths(ref, repo):
+        info = check_record(rel, ref, repo, verified, reg["commit"], reference, as_of)
         checked.append(info)
-        by_race.setdefault(path.parent.name, []).append(info)
+        by_race.setdefault(rel.split("/")[-2], []).append(info)
     common.write_json(verified_path, dict(sorted(verified.items())))
 
     warnings = []
     rows = []
     for race_id, infos in sorted(by_race.items()):
-        valid = sorted((i for i in infos if i["valid"]), key=lambda i: i["committed_at"])
+        valid = sorted((i for i in infos if i["valid"]), key=lambda i: (i["committed_at"], i["record"]))
         row: dict[str, Any] = {"schema": RACE_SCHEMA, "race_id": race_id, "race_day": race_id[:8],
                                "records": infos, "used_for_prediction": False, "official_results_untouched": True}
         if not valid:
