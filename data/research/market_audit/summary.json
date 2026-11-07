@@ -1,12 +1,12 @@
 {
   "schema": "market-audit-summary-v1",
-  "generated_at": "2026-11-02T01:50:02+09:00",
+  "generated_at": "2026-11-07T18:29:02+09:00",
   "note": "発走前の市場オッズ監査（observe-only）。raw は snapshot を発走前に最後に更新したコミットに固定して読む。3連複の確率は 0.75/オッズ の近似（approx）で、未収録の組は不明として扱う。全組で正規化した分布ではないので、和や条件付きの値を精密な確率として扱わない。予想・正式成績・UI には使わない。",
   "used_for_prediction": false,
   "official_results_untouched": true,
   "trio_payout_assumed": 0.75,
-  "races": 35,
-  "audited": 32,
+  "races": 38,
+  "audited": 35,
   "not_audited": [
     {
       "race_id": "20260919-hanshin-11",
@@ -45,7 +45,10 @@
       "20261031-kyoto-11",
       "20261031-tokyo-11",
       "20261101-kyoto-11",
-      "20261101-tokyo-11"
+      "20261101-tokyo-11",
+      "20261107-fukushima-11",
+      "20261107-kyoto-11",
+      "20261107-tokyo-11"
     ],
     "unknown": [
       "20260920-hanshin-11",
@@ -84,65 +87,68 @@
     "20261031-kyoto-11",
     "20261031-tokyo-11",
     "20261101-kyoto-11",
-    "20261101-tokyo-11"
+    "20261101-tokyo-11",
+    "20261107-fukushima-11",
+    "20261107-tokyo-11"
   ],
   "races_without_trio_odds": [],
   "trio_mass_listed_approx": {
     "min": 0.8441,
-    "median": 0.9165,
-    "max": 0.9944
+    "median": 0.9149,
+    "max": 1.0001
   },
   "concentration": {
     "kei": {
-      "n": 32,
+      "n": 35,
       "mean_max_exposure_share": 0.75,
       "tickets_left_if_axis_out_counts": {
-        "1": 32
+        "1": 35
       },
       "trio_hit_prob_approx_n": 0,
       "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
       "mean_trio_hit_prob_approx": null
     },
     "tetsu": {
-      "n": 32,
+      "n": 35,
       "mean_max_exposure_share": 1.0,
       "tickets_left_if_axis_out_counts": {
-        "0": 32
+        "0": 35
       },
-      "trio_hit_prob_approx_n": 27,
+      "trio_hit_prob_approx_n": 30,
       "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
-      "mean_trio_hit_prob_approx": 0.0076
+      "mean_trio_hit_prob_approx": 0.0072
     },
     "gen": {
-      "n": 32,
+      "n": 35,
       "mean_max_exposure_share": 1.0,
       "tickets_left_if_axis_out_counts": {
-        "0": 32
+        "0": 35
       },
-      "trio_hit_prob_approx_n": 5,
+      "trio_hit_prob_approx_n": 6,
       "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
-      "mean_trio_hit_prob_approx": 0.0094
+      "mean_trio_hit_prob_approx": 0.0086
     },
     "chappy": {
-      "n": 29,
+      "n": 32,
       "mean_max_exposure_share": 0.7778,
       "tickets_left_if_axis_out_counts": {
-        "2": 29
+        "2": 32
       },
-      "trio_hit_prob_approx_n": 19,
+      "trio_hit_prob_approx_n": 22,
       "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
-      "mean_trio_hit_prob_approx": 0.0421
+      "mean_trio_hit_prob_approx": 0.0457
     },
     "scenario_frame": {
-      "n": 15,
-      "mean_max_exposure_share": 0.8286,
+      "n": 17,
+      "mean_max_exposure_share": 0.825,
       "tickets_left_if_axis_out_counts": {
-        "0": 2,
-        "1": 12
+        "0": 3,
+        "1": 12,
+        "2": 1
       },
-      "trio_hit_prob_approx_n": 13,
+      "trio_hit_prob_approx_n": 14,
       "trio_hit_prob_note": "3連複の券だけの近似（ワイド・馬連を含むカード全体の的中確率ではない）",
-      "mean_trio_hit_prob_approx": 0.0509
+      "mean_trio_hit_prob_approx": 0.0512
     }
   }
 }
