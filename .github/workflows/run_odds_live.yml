@@ -84,8 +84,9 @@ jobs:
         run: |
           git config user.name "weekend3cards-bot"
           git config user.email "actions@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin odds-live >/dev/null 2>&1; then
-            git fetch -q --depth=1 origin odds-live:odds-live
+          # 名前の末尾で一致させると claude/odds-live なども当たるので、完全な ref の名前で確かめる
+          if git ls-remote --exit-code origin refs/heads/odds-live >/dev/null 2>&1; then
+            git fetch -q --depth=1 origin refs/heads/odds-live:refs/heads/odds-live
             git worktree add -q odds-live odds-live
           else
             # 初回だけ、main の履歴を持たない空のブランチを作る
@@ -114,7 +115,7 @@ jobs:
             for i in 1 2 3 4; do
               git -C odds-live push -q origin odds-live && return 0
               sleep $((i * 5))
-              git -C odds-live pull -q --rebase origin odds-live
+              git -C odds-live pull -q --rebase origin refs/heads/odds-live
             done
             echo "odds-live への push に失敗しました"
             return 1
