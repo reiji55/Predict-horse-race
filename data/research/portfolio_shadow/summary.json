@@ -1,8 +1,8 @@
 {
   "schema": "portfolio-shadow-summary-v1",
   "version": "portfolio-shadow-v1",
-  "generated_at": "2026-11-02T01:50:12+09:00",
-  "as_of": "2026-11-02",
+  "generated_at": "2026-11-07T18:29:12+09:00",
+  "as_of": "2026-11-07",
   "as_of_mode": "live",
   "used_for_prediction": false,
   "official_results_untouched": true,
@@ -15,9 +15,9 @@
   "status": "collecting",
   "warnings": [],
   "errors": [],
-  "races": 35,
-  "eligible": 10,
-  "evaluated": 9,
+  "races": 38,
+  "eligible": 13,
+  "evaluated": 12,
   "pending_result": [],
   "excluded": {
     "dead_heat_top3": [
@@ -25,9 +25,9 @@
     ]
   },
   "decision": {
-    "counted_races": 10,
+    "counted_races": 13,
     "reached": {},
-    "resolved_through": "20261101",
+    "resolved_through": "20261107",
     "unresolved_days": [],
     "checkpoints": {},
     "status": "collecting"
@@ -38,31 +38,31 @@
   "late_correction": [],
   "live_dependency_changed": [],
   "to_date": {
-    "races_in_window": 10,
-    "evaluated": 9,
-    "primary_races": 9,
-    "n_day": 4,
+    "races_in_window": 13,
+    "evaluated": 12,
+    "primary_races": 12,
+    "n_day": 5,
     "pending_result": [],
     "excluded_by_result_contract": [
       "20261025-niigata-11"
     ],
     "strategies": {
       "top_prob": {
-        "races": 9,
+        "races": 12,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": 0.012364,
-        "C_with_variant_min": 0.027981,
-        "C_with_variant_max": 0.006844,
-        "mean_p_hit": 0.209859,
-        "hit_rate": 0.222222,
-        "hits": 2,
-        "mean_variant_width": 0.021137,
+        "C": 0.042659,
+        "C_with_variant_min": 0.056016,
+        "C_with_variant_max": 0.037554,
+        "mean_p_hit": 0.207341,
+        "hit_rate": 0.25,
+        "hits": 3,
+        "mean_variant_width": 0.018462,
         "diagnostics": {
-          "brier": 0.195337,
-          "log_score": 0.597183,
+          "brier": 0.198227,
+          "log_score": 0.59473,
           "reliability_bins": [
             {
               "p_range": [
@@ -78,18 +78,18 @@
                 0.1,
                 0.2
               ],
-              "n": 4,
-              "mean_p": 0.165739,
-              "hit_rate": 0.5
+              "n": 6,
+              "mean_p": 0.168456,
+              "hit_rate": 0.333333
             },
             {
               "p_range": [
                 0.2,
                 0.3
               ],
-              "n": 4,
-              "mean_p": 0.221458,
-              "hit_rate": 0.0
+              "n": 5,
+              "mean_p": 0.227483,
+              "hit_rate": 0.2
             },
             {
               "p_range": [
@@ -103,35 +103,35 @@
           ]
         },
         "x_out": {
-          "races": 5,
+          "races": 6,
           "hit_rate": 0.0,
           "mean_p_hit_given_x_out": 0.0
         },
         "return": {
-          "races_payout_known": 9,
+          "races_payout_known": 12,
           "races_payout_unknown": [],
-          "stake": 4500,
-          "payout": 4900,
-          "roi": 1.088889,
-          "payout_sd": 1025.910015
+          "stake": 6000,
+          "payout": 7490,
+          "roi": 1.248333,
+          "payout_sd": 1086.787762
         }
       },
       "x_out_2": {
-        "races": 9,
+        "races": 12,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": 0.035531,
-        "C_with_variant_min": 0.049854,
-        "C_with_variant_max": 0.030683,
-        "mean_p_hit": 0.186692,
-        "hit_rate": 0.222222,
+        "C": -0.014997,
+        "C_with_variant_min": -0.002884,
+        "C_with_variant_max": -0.019435,
+        "mean_p_hit": 0.181664,
+        "hit_rate": 0.166667,
         "hits": 2,
-        "mean_variant_width": 0.019171,
+        "mean_variant_width": 0.016551,
         "diagnostics": {
-          "brier": 0.197112,
-          "log_score": 0.610963,
+          "brier": 0.155026,
+          "log_score": 0.503963,
           "reliability_bins": [
             {
               "p_range": [
@@ -147,17 +147,17 @@
                 0.1,
                 0.2
               ],
-              "n": 5,
-              "mean_p": 0.148991,
-              "hit_rate": 0.4
+              "n": 7,
+              "mean_p": 0.147693,
+              "hit_rate": 0.285714
             },
             {
               "p_range": [
                 0.2,
                 0.3
               ],
-              "n": 3,
-              "mean_p": 0.205225,
+              "n": 4,
+              "mean_p": 0.20663,
               "hit_rate": 0.0
             },
             {
@@ -172,35 +172,35 @@
           ]
         },
         "x_out": {
-          "races": 5,
-          "hit_rate": 0.2,
-          "mean_p_hit_given_x_out": 0.098192
+          "races": 6,
+          "hit_rate": 0.166667,
+          "mean_p_hit_given_x_out": 0.091425
         },
         "return": {
-          "races_payout_known": 9,
+          "races_payout_known": 12,
           "races_payout_unknown": [],
-          "stake": 4500,
+          "stake": 6000,
           "payout": 9090,
-          "roi": 2.02,
-          "payout_sd": 2191.529147
+          "roi": 1.515,
+          "payout_sd": 1947.657247
         }
       },
       "exposure_cap_3": {
-        "races": 9,
+        "races": 12,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": -0.053367,
-        "C_with_variant_min": -0.040723,
-        "C_with_variant_max": -0.057639,
-        "mean_p_hit": 0.164478,
-        "hit_rate": 0.111111,
+        "C": -0.078387,
+        "C_with_variant_min": -0.067641,
+        "C_with_variant_max": -0.082333,
+        "mean_p_hit": 0.16172,
+        "hit_rate": 0.083333,
         "hits": 1,
-        "mean_variant_width": 0.016916,
+        "mean_variant_width": 0.014691,
         "diagnostics": {
-          "brier": 0.110406,
-          "log_score": 0.387119,
+          "brier": 0.088892,
+          "log_score": 0.332127,
           "reliability_bins": [
             {
               "p_range": [
@@ -216,9 +216,9 @@
                 0.1,
                 0.2
               ],
-              "n": 8,
-              "mean_p": 0.149375,
-              "hit_rate": 0.125
+              "n": 11,
+              "mean_p": 0.150486,
+              "hit_rate": 0.090909
             },
             {
               "p_range": [
@@ -241,29 +241,29 @@
           ]
         },
         "x_out": {
-          "races": 5,
+          "races": 6,
           "hit_rate": 0.0,
-          "mean_p_hit_given_x_out": 0.048515
+          "mean_p_hit_given_x_out": 0.046617
         },
         "return": {
-          "races_payout_known": 9,
+          "races_payout_known": 12,
           "races_payout_unknown": [],
-          "stake": 4500,
+          "stake": 6000,
           "payout": 2190,
-          "roi": 0.486667,
-          "payout_sd": 688.2506
+          "roi": 0.365,
+          "payout_sd": 605.284024
         }
       }
     },
-    "x_calibration": -0.141006,
+    "x_calibration": -0.092792,
     "v1_comparison": {
-      "races": 8,
+      "races": 10,
       "both": 0,
-      "top_prob_only": 2,
-      "v1_only": 1,
+      "top_prob_only": 3,
+      "v1_only": 2,
       "neither": 5
     },
-    "primary_C": 0.012364
+    "primary_C": 0.042659
   },
   "note": "portfolio-shadow-v1 の前向き評価（observe-only）。判定は §5 の判定の時点でだけ決め、途中の数値は報告だけ。engine は市場だけの確率で、期待回収で組み方の優劣は決まらない。的中・払戻は shadow で、正式成績・ROI には入れない。"
 }
