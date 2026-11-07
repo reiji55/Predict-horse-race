@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-07T13:28:44+09:00",
+  "generated_at": "2026-11-07T15:42:05+09:00",
   "week_id": "2026-W45",
   "status": "warning",
   "publish_blocked": false,
@@ -20,7 +20,7 @@
     "entry_coverage": {
       "past_runs": 1.0,
       "win_odds": 1.0,
-      "jockey_stats": 0.4524,
+      "jockey_stats": 0.7857,
       "trainer_stats": 0.1905
     }
   },
@@ -85,7 +85,7 @@
         "entries": 16,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.25,
+        "jockey_stats_coverage": 0.75,
         "trainer_stats_coverage": 0.125,
         "combo_type_coverage": 1.0
       },
@@ -100,11 +100,6 @@
         "model_id": "win-v1-speed-guard"
       },
       "issues": [
-        {
-          "severity": "warning",
-          "code": "low_jockey_stats_coverage",
-          "message": "騎手成績カバレッジが 25% です"
-        },
         {
           "severity": "warning",
           "code": "low_trainer_stats_coverage",
@@ -127,16 +122,14 @@
         "entries": 16,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.5625,
+        "jockey_stats_coverage": 0.875,
         "trainer_stats_coverage": 0.1875,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 15,
-        "marks_coverage": 0.9375,
-        "unscored_runner_nums": [
-          16
-        ],
+        "marks": 16,
+        "marks_coverage": 1.0,
+        "unscored_runner_nums": [],
         "extra_mark_nums": [],
         "cards": 4,
         "speed_used": false,
@@ -148,11 +141,6 @@
           "severity": "warning",
           "code": "low_trainer_stats_coverage",
           "message": "厩舎成績カバレッジが 19% です"
-        },
-        {
-          "severity": "warning",
-          "code": "unscored_runners",
-          "message": "raw 出走馬のうち 1 頭が marks に存在しません: [16]"
         },
         {
           "severity": "warning",
@@ -171,7 +159,7 @@
         "entries": 10,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.6,
+        "jockey_stats_coverage": 0.7,
         "trainer_stats_coverage": 0.3,
         "combo_type_coverage": 1.0
       },
