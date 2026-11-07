@@ -47,6 +47,7 @@ import argparse
 import datetime
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -191,6 +192,88 @@ def fetch_leading_stats(venues: list[str], period: str) -> tuple[dict[str, Any],
     return jockey_stats, trainer_stats
 
 
+# リーディング表が途中のページで切れることがある（2026-11-07 13:28 の実行で、調教師は 1 ページ目の
+# 勝利数 26 以上だけ、騎手も一部だけが返り、メインの出走馬の大半で成績が抜けた）。行数が足りなければ
+# 少し待って取り直し、取れた行を合わせる。それでも抜ける人は、同じ週の前の実行の成績で補う（§2.6）。
+LEADING_ATTEMPTS = 3
+LEADING_RETRY_SLEEP = 20.0          # 秒。取得元に続けて当たらないよう間を空ける
+LEADING_MIN_ROWS = {"jockey": 30, "trainer": 150}
+LEADING_BASELINE_SHARE = 0.9        # 前の実行の行数のこの割合に届けば足りたとみなす
+
+
+def _leading_enough(rows: dict[str, int], baseline: dict[str, Any] | None) -> bool:
+    for kind, minimum in LEADING_MIN_ROWS.items():
+        need = minimum
+        prev = (baseline or {}).get(f"{kind}_rows")
+        if isinstance(prev, int) and prev > 0:
+            need = max(1, int(prev * LEADING_BASELINE_SHARE))
+        if rows[kind] < need:
+            return False
+    return True
+
+
+def complete_leading_stats(venues: list[str], period: str, baseline: dict[str, Any] | None = None
+                           ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """fetch_leading_stats を、行数が足りるまで最大 LEADING_ATTEMPTS 回呼び、取れた行を合わせる。
+
+    baseline: 同じ週の前の実行の collection_report["leading"]（行数の目安）。無ければ LEADING_MIN_ROWS。
+    戻り値: (fetch_leading_stats と同じ形の騎手・調教師のマップ, 取得の記録)
+    """
+    jockeys: dict[str, Any] = {}
+    trainers: dict[str, Any] = {}
+    attempts = []
+    for i in range(LEADING_ATTEMPTS):
+        by_venue, trainer = fetch_leading_stats(venues, period)
+        overall = next(iter(by_venue.values()), {}) if by_venue else {}
+        jockeys.update(overall)
+        trainers.update(trainer)
+        attempts.append({"jockey_rows": len(overall), "trainer_rows": len(trainer)})
+        rows = {"jockey": len(jockeys), "trainer": len(trainers)}
+        if _leading_enough(rows, baseline):
+            break
+        if i + 1 < LEADING_ATTEMPTS:
+            logger.warning("リーディングの行数が足りません（騎手 %d・調教師 %d）。%.0f 秒後に取り直します（%d/%d）",
+                           rows["jockey"], rows["trainer"], LEADING_RETRY_SLEEP, i + 2, LEADING_ATTEMPTS)
+            time.sleep(LEADING_RETRY_SLEEP)
+    rows = {"jockey": len(jockeys), "trainer": len(trainers)}
+    report = {"period": period, "jockey_rows": rows["jockey"], "trainer_rows": rows["trainer"],
+              "attempts": attempts, "complete": _leading_enough(rows, baseline),
+              "baseline": {k: (baseline or {}).get(f"{k}_rows") for k in LEADING_MIN_ROWS}}
+    if not report["complete"]:
+        logger.warning("リーディングの行数が %d 回取っても足りません（騎手 %d・調教師 %d）。前の実行の成績で補います",
+                       LEADING_ATTEMPTS, rows["jockey"], rows["trainer"])
+    return {venue: jockeys for venue in venues}, trainers, report
+
+
+def previous_stats(existing_races: list[dict[str, Any]], period: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    """同じ週の前の実行の raw から、騎手・調教師の ref ごとの成績を集める（同じ集計期間のものだけ）。"""
+    jockeys: dict[str, Any] = {}
+    trainers: dict[str, Any] = {}
+    for race in existing_races:
+        for entry in race.get("entries", []):
+            for key, person, out in (("jockey_stats", "jockey", jockeys), ("trainer_stats", "trainer", trainers)):
+                stats = entry.get(key)
+                ref = ((entry.get(person) or {}).get("ref") or {}).get("netkeiba")
+                if ref and isinstance(stats, dict) and stats.get("period") == period:
+                    out.setdefault(ref, stats)
+    return jockeys, trainers
+
+
+def carry_forward_stats(race: dict[str, Any], prev_jockeys: dict[str, Any], prev_trainers: dict[str, Any],
+                        prev_fetched_at: str | None) -> dict[str, int]:
+    """今回の表で成績が付かなかった馬に、同じ週の前の実行の成績を入れる。入れたものには carried_from を付ける。"""
+    counts = {"jockey": 0, "trainer": 0}
+    for entry in race.get("entries", []):
+        for key, person, prev in (("jockey_stats", "jockey", prev_jockeys), ("trainer_stats", "trainer", prev_trainers)):
+            if entry.get(key):
+                continue
+            ref = ((entry.get(person) or {}).get("ref") or {}).get("netkeiba")
+            if ref and ref in prev:
+                entry[key] = {**prev[ref], "carried_from": prev[ref].get("carried_from") or prev_fetched_at}
+                counts[person] += 1
+    return counts
+
+
 def attach_stats(race: dict[str, Any], jockey_stats_by_venue: dict[str, Any],
                  trainer_stats: dict[str, Any]) -> None:
     """出走馬の jockey_ref / trainer_ref を使って、リーディング表の着度数を振り分ける（§2.6）。"""
@@ -305,6 +388,20 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
     cache = load_week_cache(week_id)          # 土曜ぶんの past_runs を再利用する
     n_runs = config.get("past_runs", 5)
 
+    period = config.get("leading_period", "2026")
+    existing_data: dict[str, Any] = {}
+    existing_path = OUTPUT_DIR / f"{week_id}.json"
+    if existing_path.exists():
+        try:
+            with existing_path.open(encoding="utf-8") as f:
+                existing_data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            logger.warning("既存の %s を読めなかったため、新規作成として扱います", existing_path.name)
+    existing_races: list[dict[str, Any]] = existing_data.get("races", []) if isinstance(existing_data, dict) else []
+    previous_report = (existing_data.get("collection_report") or {}) if isinstance(existing_data, dict) else {}
+    prev_jockeys, prev_trainers = previous_stats(existing_races, period)
+    prev_fetched_at = existing_data.get("fetched_at") if isinstance(existing_data, dict) else None
+
     races: list[dict[str, Any]] = []
     # この実行で「何レースを対象にして、何レース作れたか」を残す。
     # raw の races[] だけでは、取得途中で消えたレースを後から検知できないため。
@@ -338,7 +435,10 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
                     len(targets), ", ".join(f"{e.venue}{e.race_no}R" for e in targets))
 
         venues = sorted({e.venue for e in targets})
-        jockey_stats, trainer_stats = fetch_leading_stats(venues, config.get("leading_period", "2026"))
+        jockey_stats, trainer_stats, leading = complete_leading_stats(
+            venues, period, baseline=previous_report.get("leading"))
+        collection_report["leading"] = leading
+        leading["carried_forward"] = {"jockey": 0, "trainer": 0}
 
         for list_entry in targets:
             try:
@@ -355,6 +455,8 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
                 })
                 continue
             attach_stats(race, jockey_stats, trainer_stats)
+            for person, n in carry_forward_stats(race, prev_jockeys, prev_trainers, prev_fetched_at).items():
+                leading["carried_forward"][person] += n
             races.append(race)
             collection_report["built"].append({
                 "date": date_str,
@@ -363,15 +465,6 @@ def build_week(week_id: str, dates: list[str], config: dict[str, Any] | None = N
                 "source_ref": list_entry.source_ref,
                 "race_id": race.get("id"),
             })
-
-    existing_races: list[dict[str, Any]] = []
-    existing_path = OUTPUT_DIR / f"{week_id}.json"
-    if existing_path.exists():
-        try:
-            with existing_path.open(encoding="utf-8") as f:
-                existing_races = json.load(f).get("races", [])
-        except (OSError, json.JSONDecodeError):
-            logger.warning("既存の %s を読めなかったため、新規作成として扱います", existing_path.name)
 
     return {
         "fetched_at": datetime.datetime.now(JST).isoformat(timespec="seconds"),
