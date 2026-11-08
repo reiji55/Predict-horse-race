@@ -1,6 +1,6 @@
 {
   "schema": "model-eval-summary-v1",
-  "generated_at": "2026-11-08T01:29:34+09:00",
+  "generated_at": "2026-11-09T01:42:48+09:00",
   "evaluation_version": "speed-v2-forward-eval-v2",
   "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
   "spec": "docs/audit/SPEED_V2_FORWARD_EVALUATION_SPEC_20261002.md",
@@ -24,13 +24,25 @@
   },
   "note": "Champion と speed-v2 Challenger を同じレース・同じ発走前情報で対にした比較。昇格の判定はしない。Secondary（成績）は判定に使わない。",
   "coverage": {
-    "forward_races_with_result": 29,
+    "forward_races_with_result": 32,
     "evaluated_pairs": 28,
-    "coverage_rate": 0.9655,
+    "coverage_rate": 0.875,
     "not_evaluated": [
       {
         "race_id": "20261012-kyoto-11",
         "reason": "prerace_inputs_differ"
+      },
+      {
+        "race_id": "20261108-fukushima-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
+      },
+      {
+        "race_id": "20261108-kyoto-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
+      },
+      {
+        "race_id": "20261108-tokyo-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
       }
     ],
     "excluded_pre_registration": [

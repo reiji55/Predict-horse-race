@@ -1,6 +1,6 @@
 {
   "schema": "model-eval-summary-v1",
-  "generated_at": "2026-11-08T01:29:34+09:00",
+  "generated_at": "2026-11-09T01:42:48+09:00",
   "evaluation_version": "race-performance-v1-forward-eval-v1",
   "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
   "spec": "docs/research/RACE_PERFORMANCE_PREREG_V1.md",
@@ -16,10 +16,23 @@
   },
   "note": "Champion と race-performance-v1 Challenger を、同じレース・同じ発走前入力で対にした比較（事前登録 §7）。主指標は paired log loss、主要な副指標は paired Brier。昇格の判定はしない（採否の基準は別の事前登録で決める）。Secondary（成績・ROI）は判定に使わない。通常の shadow 採点（data/challengers/race-performance-v1/results.json・data/model_comparison.json の ROI など）とは別物で、報告でも分けて扱う。",
   "coverage": {
-    "forward_races_with_result": 25,
+    "forward_races_with_result": 28,
     "evaluated_pairs": 25,
-    "coverage_rate": 1.0,
-    "not_evaluated": [],
+    "coverage_rate": 0.8929,
+    "not_evaluated": [
+      {
+        "race_id": "20261108-fukushima-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
+      },
+      {
+        "race_id": "20261108-kyoto-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
+      },
+      {
+        "race_id": "20261108-tokyo-11",
+        "reason": "champion_snapshot_missing_or_not_prerace"
+      }
+    ],
     "excluded_pre_registration": [
       "20260919-hanshin-11",
       "20260919-nakayama-11",
@@ -697,11 +710,11 @@
       "version": "race-performance-v1-summary-v1"
     },
     "always_report": {
-      "forward_races_with_result": 25,
+      "forward_races_with_result": 28,
       "evaluated_pairs": 25,
       "probability_pairs": 25,
-      "paired_valid_race_rate": 1.0,
-      "probability_paired_valid_race_rate": 1.0,
+      "paired_valid_race_rate": 0.8929,
+      "probability_paired_valid_race_rate": 0.8929,
       "probability_evaluated_rate": 1.0,
       "rate_definitions": {
         "paired_valid_race_rate": "evaluated_pairs / forward_races_with_result（順位・カード・Secondary を含む比較が成立した率）",

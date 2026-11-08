@@ -1,11 +1,11 @@
 {
   "schema": "market-audit-summary-v1",
-  "generated_at": "2026-11-08T01:29:30+09:00",
+  "generated_at": "2026-11-09T01:42:44+09:00",
   "note": "発走前の市場オッズ監査（observe-only）。raw は snapshot を発走前に最後に更新したコミットに固定して読む。3連複の確率は 0.75/オッズ の近似（approx）で、未収録の組は不明として扱う。全組で正規化した分布ではないので、和や条件付きの値を精密な確率として扱わない。予想・正式成績・UI には使わない。",
   "used_for_prediction": false,
   "official_results_untouched": true,
   "trio_payout_assumed": 0.75,
-  "races": 38,
+  "races": 41,
   "audited": 35,
   "not_audited": [
     {
@@ -18,6 +18,18 @@
     },
     {
       "race_id": "20260921-hanshin-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20261108-fukushima-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20261108-kyoto-11",
+      "status": "no_prerace_commit"
+    },
+    {
+      "race_id": "20261108-tokyo-11",
       "status": "no_prerace_commit"
     }
   ],
