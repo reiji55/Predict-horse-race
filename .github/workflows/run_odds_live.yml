@@ -80,6 +80,17 @@ jobs:
           # 6時間の上限より前に区切る。区切りより後の予定は次の実行に回す
           echo "deadline=$(date -u -d '+325 minutes' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
+      - name: 予想パイプラインの起動と確認を始める（別のワークフロー、待たない）
+        # run_pipeline_kick.yml が 9:50・12:50 に予想パイプラインを起動し、発走前の凍結版ができたかを確かめる。
+        # odds-live とは別の concurrency にするため、別のワークフローとして起動する（この実行は待たない）。
+        # 同じ日に何度起動しても、向こうの concurrency で1つずつ動き、済んだ時刻は飛ばす。
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DATE: ${{ steps.target.outputs.date }}
+        run: gh workflow run run_pipeline_kick.yml --repo "$REPO" --ref main -f "date=$DATE"
+
       - name: 記録用ブランチを用意する
         run: |
           git config user.name "weekend3cards-bot"
@@ -144,39 +155,3 @@ jobs:
           REPO: ${{ github.repository }}
           DATE: ${{ steps.target.outputs.date }}
         run: gh workflow run run_odds_live.yml --repo "$REPO" --ref main -f "date=$DATE"
-
-  # 開催日の予想パイプラインを 9:50・12:50（JST）に起動する（scripts/kick_pipeline.py）。
-  # 予想の定時（schedule）は大きく遅れたり動かなかったりする（11/8 は発走前の凍結版が1つも無かった）。
-  # odds-live は開催日を通して自分で次の実行を起動しながら動くので、その実行の中から起動する。
-  # 直前 20 分に予想パイプラインが動いていれば起動しない（odds-live の実行がつながっても1回だけ）。
-  kick_pipeline:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 340
-    permissions:
-      contents: read
-      actions: write   # gh run list と gh workflow run
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: 予想パイプラインを決めた時刻に起動する
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          INPUT_DATE: ${{ github.event.inputs.date }}
-          EVENT: ${{ github.event_name }}
-          SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          DATE="$INPUT_DATE"
-          if [ -z "$DATE" ] && [ "$EVENT" = "schedule" ]; then
-            pip install -q -r requirements.txt
-            DATE=$(python -m scraper.capture_odds_live --scheduled-date "$SCHEDULE")
-          fi
-          [ -z "$DATE" ] && DATE=$(TZ=Asia/Tokyo date +%Y-%m-%d)
-          # capture と同じく、6時間の上限より前に区切る。区切りより後の時刻の分は次の実行に任せる
-          python scripts/kick_pipeline.py --date "$DATE" --repo "$REPO" \
-            --deadline "$(date -u -d '+325 minutes' +%Y-%m-%dT%H:%M:%SZ)"
