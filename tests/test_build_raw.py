@@ -149,9 +149,12 @@ def test_build_week_records_collection_completeness():
         build_raw.build_race = fake_build_race
         build_raw.fetch_leading_stats = lambda venues, period: ({}, {})
         build_raw.OUTPUT_DIR = Path(tmp)
+        sleep = build_raw.LEADING_RETRY_SLEEP
+        build_raw.LEADING_RETRY_SLEEP = 0
         try:
             data = build_raw.build_week("2026-W27", ["2026-07-05"])
         finally:
+            build_raw.LEADING_RETRY_SLEEP = sleep
             (
                 build_raw.a_race_list.fetch_race_list,
                 build_raw.build_race,
@@ -354,6 +357,113 @@ def test_attach_stats_matches_by_ref():
     assert race["entries"][1]["jockey_stats"] is None        # 05002 は表に無い
     assert race["entries"][1]["trainer_stats"]["starts"] == 180
     print("test_attach_stats_matches_by_ref: OK")
+
+
+# --- リーディングが途中で切れたときの取り直しと、前の実行からの補い（2026-11-07 の件） ---------
+
+def _rows(prefix: str, n: int, period: str = "2026") -> dict:
+    return {f"{prefix}{i:03d}": {"scope": "overall", "period": period, "starts": 100, "wins": n - i,
+                                  "seconds": 5, "thirds": None} for i in range(n)}
+
+
+def test_complete_leading_stats_retries_until_enough_and_merges():
+    calls = []
+    answers = [({"小倉": _rows("j", 20)}, _rows("t", 20)),            # 1回目：途中で切れた
+               ({"小倉": _rows("j", 40)}, _rows("t", 221))]           # 2回目：そろった
+    original, sleep = build_raw.fetch_leading_stats, build_raw.LEADING_RETRY_SLEEP
+    build_raw.fetch_leading_stats = lambda venues, period: (calls.append(1), answers[len(calls) - 1])[1]
+    build_raw.LEADING_RETRY_SLEEP = 0
+    try:
+        jockeys, trainers, report = build_raw.complete_leading_stats(["小倉", "福島"], "2026")
+    finally:
+        build_raw.fetch_leading_stats, build_raw.LEADING_RETRY_SLEEP = original, sleep
+    assert len(calls) == 2 and report["complete"] is True
+    assert report["jockey_rows"] == 40 and report["trainer_rows"] == 221
+    assert report["attempts"] == [{"jockey_rows": 20, "trainer_rows": 20}, {"jockey_rows": 40, "trainer_rows": 221}]
+    assert jockeys["小倉"] is jockeys["福島"] and len(trainers) == 221
+
+
+def test_complete_leading_stats_uses_the_previous_row_count_and_stops_early():
+    calls = []
+    original = build_raw.fetch_leading_stats
+    build_raw.fetch_leading_stats = lambda venues, period: (calls.append(1), ({"小倉": _rows("j", 38)}, _rows("t", 200)))[1]
+    try:
+        _, _, report = build_raw.complete_leading_stats(["小倉"], "2026", baseline={"jockey_rows": 40, "trainer_rows": 221})
+    finally:
+        build_raw.fetch_leading_stats = original
+    assert len(calls) == 1 and report["complete"] is True      # 前の実行の 9 割以上なら取り直さない
+
+
+def test_complete_leading_stats_gives_up_after_the_last_attempt():
+    calls = []
+    original, sleep = build_raw.fetch_leading_stats, build_raw.LEADING_RETRY_SLEEP
+    build_raw.fetch_leading_stats = lambda venues, period: (calls.append(1), ({}, {}))[1]
+    build_raw.LEADING_RETRY_SLEEP = 0
+    try:
+        jockeys, trainers, report = build_raw.complete_leading_stats(["小倉"], "2026")
+    finally:
+        build_raw.fetch_leading_stats, build_raw.LEADING_RETRY_SLEEP = original, sleep
+    assert len(calls) == build_raw.LEADING_ATTEMPTS and report["complete"] is False
+    assert jockeys == {"小倉": {}} and trainers == {}
+
+
+def _person(ref: str) -> dict:
+    return {"name": ref, "ref": {"netkeiba": ref}}
+
+
+def test_carry_forward_fills_only_missing_stats_and_marks_them():
+    prev_j, prev_t = build_raw.previous_stats([{"entries": [
+        {"jockey": _person("j1"), "trainer": _person("t1"),
+         "jockey_stats": {"period": "2026", "wins": 9}, "trainer_stats": {"period": "2026", "wins": 3}},
+        {"jockey": _person("j9"), "trainer": _person("t9"),
+         "jockey_stats": {"period": "2025", "wins": 1}, "trainer_stats": None}]}], "2026")
+    assert set(prev_j) == {"j1"} and set(prev_t) == {"t1"}           # 別の集計期間は使わない
+    race = {"entries": [
+        {"jockey": _person("j1"), "trainer": _person("t1"), "jockey_stats": None, "trainer_stats": None},
+        {"jockey": _person("j1"), "trainer": _person("t2"), "jockey_stats": {"period": "2026", "wins": 10},
+         "trainer_stats": None},
+        {"jockey": _person("j9"), "trainer": _person("t9"), "jockey_stats": None, "trainer_stats": None}]}
+    counts = build_raw.carry_forward_stats(race, prev_j, prev_t, "2026-11-07T10:31:00+09:00")
+    assert counts == {"jockey": 1, "trainer": 1}
+    e0, e1, e2 = race["entries"]
+    assert e0["jockey_stats"] == {"period": "2026", "wins": 9, "carried_from": "2026-11-07T10:31:00+09:00"}
+    assert e0["trainer_stats"]["carried_from"] == "2026-11-07T10:31:00+09:00"
+    assert e1["jockey_stats"] == {"period": "2026", "wins": 10}       # 今回取れたものは上書きしない
+    assert e1["trainer_stats"] is None and e2["jockey_stats"] is None
+
+
+def test_build_week_carries_stats_from_the_previous_build_when_the_table_is_short():
+    entries = [_entry("小倉", 11)]
+    prev = {"fetched_at": "2026-07-05T10:31:00+09:00", "collection_report": {"leading": {"jockey_rows": 40, "trainer_rows": 221}},
+            "races": [{"id": "20260705-kokura-11", "entries": [
+                {"num": 1, "jockey": _person("j1"), "trainer": _person("t1"),
+                 "jockey_stats": {"period": "2026", "wins": 9}, "trainer_stats": {"period": "2026", "wins": 3}}]}]}
+
+    def fake_build_race(entry, cache, n_runs):
+        return {"id": "20260705-kokura-11", "venue": entry.venue, "race_no": entry.race_no,
+                "entries": [{"num": 1, "jockey": _person("j1"), "trainer": _person("t1"),
+                             "jockey_stats": None, "trainer_stats": None}]}
+
+    original = (build_raw.a_race_list.fetch_race_list, build_raw.build_race, build_raw.fetch_leading_stats,
+                build_raw.OUTPUT_DIR, build_raw.LEADING_RETRY_SLEEP)
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "2026-W27.json").write_text(json.dumps(prev, ensure_ascii=False), encoding="utf-8")
+        build_raw.a_race_list.fetch_race_list = lambda _date: entries
+        build_raw.build_race = fake_build_race
+        build_raw.fetch_leading_stats = lambda venues, period: ({v: _rows("x", 5) for v in venues}, _rows("y", 5))
+        build_raw.OUTPUT_DIR = Path(tmp)
+        build_raw.LEADING_RETRY_SLEEP = 0
+        try:
+            data = build_raw.build_week("2026-W27", ["2026-07-05"], config={**build_raw.load_config(), "leading_period": "2026"})
+        finally:
+            (build_raw.a_race_list.fetch_race_list, build_raw.build_race, build_raw.fetch_leading_stats,
+             build_raw.OUTPUT_DIR, build_raw.LEADING_RETRY_SLEEP) = original
+    leading = data["collection_report"]["leading"]
+    assert leading["complete"] is False and len(leading["attempts"]) == build_raw.LEADING_ATTEMPTS
+    assert leading["baseline"] == {"jockey": 40, "trainer": 221}
+    assert leading["carried_forward"] == {"jockey": 1, "trainer": 1}
+    entry = data["races"][0]["entries"][0]
+    assert entry["jockey_stats"]["wins"] == 9 and entry["jockey_stats"]["carried_from"] == "2026-07-05T10:31:00+09:00"
 
 
 ALL_TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
