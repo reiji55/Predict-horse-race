@@ -1,0 +1,331 @@
+{
+  "schema": "independent-prob-stage0-v1",
+  "issue": 57,
+  "generated_at": "2026-11-12T11:58:11+09:00",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "inputs": {
+    "evaluation": "data/shadow/model_evaluation/race-performance-v1/races",
+    "results": "data/race_results.json",
+    "odds_live": "origin/odds-live"
+  },
+  "races": 25,
+  "horses": 367,
+  "missing_horses": {
+    "jockey_stats": 133,
+    "trainer_stats": 118,
+    "past_runs_zero": 0
+  },
+  "flagged_races": {
+    "20261010-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261012-kyoto-11": [
+      "leading_stats_partial",
+      "early_freeze",
+      "market:market_field_incomplete"
+    ],
+    "20261012-tokyo-11": [
+      "leading_stats_partial",
+      "early_freeze"
+    ],
+    "20261017-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261017-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261017-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261025-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261025-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261031-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261031-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261101-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261101-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-fukushima-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-tokyo-11": [
+      "leading_stats_partial"
+    ]
+  },
+  "strata": [
+    {
+      "excluded_flags": [],
+      "races": 24,
+      "horses": 350,
+      "mean_log_loss": {
+        "champion": 2.3364,
+        "market": 2.1642,
+        "champion_minus_market": 0.1722
+      },
+      "races_model_better": 12,
+      "p_over_q_bins": [
+        {
+          "p_over_q": "0.0–0.5",
+          "horses": 52,
+          "expected_wins_market": 6.919,
+          "expected_wins_model": 2.428,
+          "actual_wins": 4
+        },
+        {
+          "p_over_q": "0.5–0.8",
+          "horses": 58,
+          "expected_wins_market": 5.369,
+          "expected_wins_model": 3.508,
+          "actual_wins": 6
+        },
+        {
+          "p_over_q": "0.8–1.25",
+          "horses": 90,
+          "expected_wins_market": 6.191,
+          "expected_wins_model": 6.371,
+          "actual_wins": 9
+        },
+        {
+          "p_over_q": "1.25–2.0",
+          "horses": 73,
+          "expected_wins_market": 3.405,
+          "expected_wins_model": 5.349,
+          "actual_wins": 4
+        },
+        {
+          "p_over_q": "2.0–∞",
+          "horses": 77,
+          "expected_wins_market": 2.117,
+          "expected_wins_model": 6.344,
+          "actual_wins": 1
+        }
+      ]
+    },
+    {
+      "excluded_flags": [
+        "leading_stats_partial"
+      ],
+      "races": 4,
+      "horses": 59,
+      "mean_log_loss": {
+        "champion": 2.9247,
+        "market": 2.4029,
+        "champion_minus_market": 0.5218
+      },
+      "races_model_better": 1,
+      "p_over_q_bins": [
+        {
+          "p_over_q": "0.0–0.5",
+          "horses": 7,
+          "expected_wins_market": 1.368,
+          "expected_wins_model": 0.498,
+          "actual_wins": 1
+        },
+        {
+          "p_over_q": "0.5–0.8",
+          "horses": 9,
+          "expected_wins_market": 0.974,
+          "expected_wins_model": 0.656,
+          "actual_wins": 2
+        },
+        {
+          "p_over_q": "0.8–1.25",
+          "horses": 13,
+          "expected_wins_market": 0.681,
+          "expected_wins_model": 0.755,
+          "actual_wins": 1
+        },
+        {
+          "p_over_q": "1.25–2.0",
+          "horses": 11,
+          "expected_wins_market": 0.525,
+          "expected_wins_model": 0.775,
+          "actual_wins": 0
+        },
+        {
+          "p_over_q": "2.0–∞",
+          "horses": 19,
+          "expected_wins_market": 0.452,
+          "expected_wins_model": 1.316,
+          "actual_wins": 0
+        }
+      ]
+    },
+    {
+      "excluded_flags": [
+        "early_freeze"
+      ],
+      "races": 23,
+      "horses": 332,
+      "mean_log_loss": {
+        "champion": 2.371,
+        "market": 2.1904,
+        "champion_minus_market": 0.1807
+      },
+      "races_model_better": 11,
+      "p_over_q_bins": [
+        {
+          "p_over_q": "0.0–0.5",
+          "horses": 49,
+          "expected_wins_market": 6.705,
+          "expected_wins_model": 2.346,
+          "actual_wins": 4
+        },
+        {
+          "p_over_q": "0.5–0.8",
+          "horses": 56,
+          "expected_wins_market": 5.287,
+          "expected_wins_model": 3.462,
+          "actual_wins": 6
+        },
+        {
+          "p_over_q": "0.8–1.25",
+          "horses": 86,
+          "expected_wins_market": 5.767,
+          "expected_wins_model": 5.943,
+          "actual_wins": 8
+        },
+        {
+          "p_over_q": "1.25–2.0",
+          "horses": 65,
+          "expected_wins_market": 3.142,
+          "expected_wins_model": 4.942,
+          "actual_wins": 4
+        },
+        {
+          "p_over_q": "2.0–∞",
+          "horses": 76,
+          "expected_wins_market": 2.099,
+          "expected_wins_model": 6.306,
+          "actual_wins": 1
+        }
+      ]
+    },
+    {
+      "excluded_flags": [
+        "early_freeze",
+        "leading_stats_partial"
+      ],
+      "races": 4,
+      "horses": 59,
+      "mean_log_loss": {
+        "champion": 2.9247,
+        "market": 2.4029,
+        "champion_minus_market": 0.5218
+      },
+      "races_model_better": 1,
+      "p_over_q_bins": [
+        {
+          "p_over_q": "0.0–0.5",
+          "horses": 7,
+          "expected_wins_market": 1.368,
+          "expected_wins_model": 0.498,
+          "actual_wins": 1
+        },
+        {
+          "p_over_q": "0.5–0.8",
+          "horses": 9,
+          "expected_wins_market": 0.974,
+          "expected_wins_model": 0.656,
+          "actual_wins": 2
+        },
+        {
+          "p_over_q": "0.8–1.25",
+          "horses": 13,
+          "expected_wins_market": 0.681,
+          "expected_wins_model": 0.755,
+          "actual_wins": 1
+        },
+        {
+          "p_over_q": "1.25–2.0",
+          "horses": 11,
+          "expected_wins_market": 0.525,
+          "expected_wins_model": 0.775,
+          "actual_wins": 0
+        },
+        {
+          "p_over_q": "2.0–∞",
+          "horses": 19,
+          "expected_wins_market": 0.452,
+          "expected_wins_model": 1.316,
+          "actual_wins": 0
+        }
+      ]
+    }
+  ],
+  "odds_live": {
+    "20261107": {
+      "races": 35,
+      "phase_status": {
+        "close": {
+          "missed:started_too_late": 6,
+          "ok": 29
+        },
+        "post1": {
+          "ok": 35
+        },
+        "post2": {
+          "ok": 35
+        },
+        "pre": {
+          "missed:started_too_late": 7,
+          "ok": 28
+        }
+      },
+      "problems": []
+    },
+    "20261108": {
+      "races": 34,
+      "phase_status": {
+        "close": {
+          "missed:started_too_late": 1,
+          "ok": 33
+        },
+        "post1": {
+          "ok": 34
+        },
+        "post2": {
+          "ok": 34
+        },
+        "pre": {
+          "missed:started_too_late": 2,
+          "ok": 32
+        }
+      },
+      "problems": []
+    }
+  },
+  "note": "探索的な記述（Issue #57 Stage 0）。勝率の比較で、3連複の確率ではない。旗は記録を直すためではなく層別のため。優位性・有意性の結論は出さない。"
+}
