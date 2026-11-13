@@ -1,0 +1,77 @@
+name: 開催日の予想パイプラインの起動と確認
+
+# 予想パイプライン（run_pipeline.yml）の定時は大きく遅れたり動かなかったりする（11/8 は発走前の凍結版が無かった）。
+# このワークフローが 9:50・12:50（JST）に予想パイプラインを workflow_dispatch で起動し、main に発走前の凍結版
+# （data/snapshots/{その日}-*.json の pre_race: true・frozen_at がその時刻の20分前より後）ができたかを確かめる。
+# 対象は odds-live の一覧（検査 ok）から予想パイプラインと同じ規則で選んだ全レースで、1レースでも足りなければ
+# できていない。予想パイプラインの実行が待ち・実行中なら重ねずに待ち、無ければ対象日・週を指定して起動する
+# （この監視の実行1回の中で、1時刻3回まで。次の時刻、最後は 14:45 まで）。
+# 手順と判断は scripts/kick_pipeline.py。予想・カード・成績には触れない。
+#
+# 起動のされ方：odds-live（run_odds_live.yml）が実行の初めに起動する（待たない）。odds-live が動かない日に
+# 備えて、土日 06:50 JST の定時も置く。odds-live とは別の concurrency なので、こちらの待ちが odds-live の
+# 次の実行を止めない。同じ日に何度起動されても、1つずつ動き、済んだ時刻（凍結版がある時刻）は飛ばす。
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '対象日 YYYY-MM-DD（空なら JST の今日）'
+        required: false
+  schedule:
+    - cron: '50 21 * * 5,6'   # 土日 06:50 JST（odds-live が動かない日の保険）
+
+permissions:
+  contents: read
+  actions: write   # gh run list・gh workflow run
+
+concurrency:
+  group: pipeline-kick
+  cancel-in-progress: false
+
+jobs:
+  kick:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 予想パイプラインを起動し、凍結版ができたか確かめる
+        id: kick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          INPUT_DATE: ${{ github.event.inputs.date }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          DATE="$INPUT_DATE"
+          if [ -z "$DATE" ] && [ "$EVENT" = "schedule" ]; then
+            # 定時は、実行した時刻ではなく枠の日付（JST）を対象にする（odds-live と同じ）。遅れて日をまたいでも翌日にしない
+            pip install -q -r requirements.txt
+            DATE=$(python -m scraper.capture_odds_live --scheduled-date "$SCHEDULE")
+          fi
+          [ -z "$DATE" ] && DATE=$(TZ=Asia/Tokyo date +%Y-%m-%d)
+          case "$DATE" in
+            [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+            *) echo "date の形式が違います: $DATE"; exit 1 ;;
+          esac
+          echo "date=$DATE" >> "$GITHUB_OUTPUT"
+          set +e
+          # 6時間の上限より前に区切る。残りの時刻は次の実行に任せる（終了コード 4）
+          python3 scripts/kick_pipeline.py --date "$DATE" --repo "$REPO" \
+            --deadline "$(date -u -d '+330 minutes' +%Y-%m-%dT%H:%M:%SZ)"
+          rc=$?
+          set -e
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          # 0＝すべてできた、4＝区切り（次を起動する）。1＝できなかった時刻がある（警告を出して失敗にする）
+          [ "$rc" -eq 0 ] || [ "$rc" -eq 4 ]
+
+      - name: 区切りなら次の実行を起動する
+        if: steps.kick.outputs.rc == '4'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DATE: ${{ steps.kick.outputs.date }}
+        run: gh workflow run run_pipeline_kick.yml --repo "$REPO" --ref main -f "date=$DATE"
