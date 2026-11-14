@@ -1,0 +1,903 @@
+{
+  "schema": "independent-prob-stage0-v2",
+  "issue": 57,
+  "run_id": "stage0-r1",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "inputs": {
+    "main_commit": "050117a4357a9e0fc9002572a819b356621a1864",
+    "odds_live_commit": "ef15aac78df7bf436774a7213957dd82e5a1b0f4",
+    "race_days": [
+      "20261010",
+      "20261108"
+    ],
+    "odds_live_days": [
+      "20261107",
+      "20261108"
+    ],
+    "evaluation": "data/shadow/model_evaluation/race-performance-v1/races",
+    "evaluation_records": 25,
+    "evaluation_inputs_sha256": "d3e3c902aa7ba78c12deff2290bf8afcbb0640cbf19d1100aa6e9be90bcc458b",
+    "results": "data/race_results.json",
+    "results_sha256": "9d780c48c0eab89f060eb5965f9c73408fa15141b351ee55c934b78d815faf27"
+  },
+  "provenance": {
+    "audit_status": {
+      "verified": 25
+    },
+    "not_verified": {}
+  },
+  "denominators": {
+    "races": 25,
+    "input_quality_horses": 368,
+    "probability_horses": 367,
+    "market_horses": 350,
+    "not_evaluated": [
+      {
+        "race_id": "20261012-kyoto-11",
+        "num": 7,
+        "reason": "not_in_snapshot_marks",
+        "in_result_finish": true
+      }
+    ]
+  },
+  "missing_horses_of_raw": {
+    "jockey_stats": 134,
+    "trainer_stats": 118,
+    "jockey_or_trainer": 205,
+    "past_runs_zero": 0
+  },
+  "flagged_races": {
+    "20261010-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261012-kyoto-11": [
+      "leading_stats_partial",
+      "early_freeze",
+      "market:market_field_incomplete"
+    ],
+    "20261012-tokyo-11": [
+      "leading_stats_partial",
+      "early_freeze"
+    ],
+    "20261017-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261017-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261017-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261018-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261024-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261025-niigata-11": [
+      "leading_stats_partial"
+    ],
+    "20261025-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261031-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261031-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261101-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261101-tokyo-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-fukushima-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-kyoto-11": [
+      "leading_stats_partial"
+    ],
+    "20261107-tokyo-11": [
+      "leading_stats_partial"
+    ]
+  },
+  "strata": [
+    {
+      "basis": "as_recorded",
+      "excluded_flags": [],
+      "races": 24,
+      "horses": 350,
+      "mean_log_loss": {
+        "champion": 2.3364,
+        "market": 2.1642,
+        "champion_minus_market": 0.1722
+      },
+      "races_model_better": 12,
+      "p_over_q_bins": [
+        {
+          "bin": "0.0–0.5",
+          "horses": 52,
+          "expected_wins_market": 6.919,
+          "expected_wins_model": 2.428,
+          "actual_wins": 4,
+          "jockey_stats_missing": 17,
+          "jockey_stats_known": 52
+        },
+        {
+          "bin": "0.5–0.8",
+          "horses": 58,
+          "expected_wins_market": 5.369,
+          "expected_wins_model": 3.508,
+          "actual_wins": 6,
+          "jockey_stats_missing": 17,
+          "jockey_stats_known": 58
+        },
+        {
+          "bin": "0.8–1.25",
+          "horses": 90,
+          "expected_wins_market": 6.191,
+          "expected_wins_model": 6.371,
+          "actual_wins": 9,
+          "jockey_stats_missing": 31,
+          "jockey_stats_known": 90
+        },
+        {
+          "bin": "1.25–2.0",
+          "horses": 73,
+          "expected_wins_market": 3.405,
+          "expected_wins_model": 5.349,
+          "actual_wins": 4,
+          "jockey_stats_missing": 35,
+          "jockey_stats_known": 73
+        },
+        {
+          "bin": "2.0–∞",
+          "horses": 77,
+          "expected_wins_market": 2.117,
+          "expected_wins_model": 6.344,
+          "actual_wins": 1,
+          "jockey_stats_missing": 28,
+          "jockey_stats_known": 77
+        }
+      ],
+      "q_bins": [
+        {
+          "bin": "0.0–0.02",
+          "horses": 80,
+          "expected_wins_market": 0.957,
+          "expected_wins_model": 2.638,
+          "actual_wins": 1,
+          "jockey_stats_missing": 40,
+          "jockey_stats_known": 80
+        },
+        {
+          "bin": "0.02–0.05",
+          "horses": 115,
+          "expected_wins_market": 3.828,
+          "expected_wins_model": 5.737,
+          "actual_wins": 0,
+          "jockey_stats_missing": 49,
+          "jockey_stats_known": 115
+        },
+        {
+          "bin": "0.05–0.1",
+          "horses": 80,
+          "expected_wins_market": 5.746,
+          "expected_wins_model": 5.81,
+          "actual_wins": 11,
+          "jockey_stats_missing": 25,
+          "jockey_stats_known": 80
+        },
+        {
+          "bin": "0.1–0.2",
+          "horses": 54,
+          "expected_wins_market": 7.562,
+          "expected_wins_model": 6.462,
+          "actual_wins": 7,
+          "jockey_stats_missing": 10,
+          "jockey_stats_known": 54
+        },
+        {
+          "bin": "0.2–∞",
+          "horses": 21,
+          "expected_wins_market": 5.907,
+          "expected_wins_model": 3.354,
+          "actual_wins": 5,
+          "jockey_stats_missing": 4,
+          "jockey_stats_known": 21
+        }
+      ],
+      "temperature_sensitivity": {
+        "k=0.5": 2.423847,
+        "k=0.8": 2.354343,
+        "k=0.9": 2.342642,
+        "k=1.0": 2.336399,
+        "k=1.05": 2.335269,
+        "k=1.1": 2.335437,
+        "k=1.25": 2.343487,
+        "k=1.5": 2.380515,
+        "k=2.0": 2.530531,
+        "uniform": 2.664088
+      },
+      "winner_rank": {
+        "model": {
+          "races": 24,
+          "mean_rank": 4.375,
+          "top3": 12
+        },
+        "market": {
+          "races": 24,
+          "mean_rank": 3.438,
+          "top3": 13
+        }
+      }
+    },
+    {
+      "basis": "audited",
+      "excluded_flags": [],
+      "races": 24,
+      "horses": 350,
+      "mean_log_loss": {
+        "champion": 2.3364,
+        "market": 2.1642,
+        "champion_minus_market": 0.1722
+      },
+      "races_model_better": 12,
+      "p_over_q_bins": [
+        {
+          "bin": "0.0–0.5",
+          "horses": 52,
+          "expected_wins_market": 6.919,
+          "expected_wins_model": 2.428,
+          "actual_wins": 4,
+          "jockey_stats_missing": 17,
+          "jockey_stats_known": 52
+        },
+        {
+          "bin": "0.5–0.8",
+          "horses": 58,
+          "expected_wins_market": 5.369,
+          "expected_wins_model": 3.508,
+          "actual_wins": 6,
+          "jockey_stats_missing": 17,
+          "jockey_stats_known": 58
+        },
+        {
+          "bin": "0.8–1.25",
+          "horses": 90,
+          "expected_wins_market": 6.191,
+          "expected_wins_model": 6.371,
+          "actual_wins": 9,
+          "jockey_stats_missing": 31,
+          "jockey_stats_known": 90
+        },
+        {
+          "bin": "1.25–2.0",
+          "horses": 73,
+          "expected_wins_market": 3.405,
+          "expected_wins_model": 5.349,
+          "actual_wins": 4,
+          "jockey_stats_missing": 35,
+          "jockey_stats_known": 73
+        },
+        {
+          "bin": "2.0–∞",
+          "horses": 77,
+          "expected_wins_market": 2.117,
+          "expected_wins_model": 6.344,
+          "actual_wins": 1,
+          "jockey_stats_missing": 28,
+          "jockey_stats_known": 77
+        }
+      ],
+      "q_bins": [
+        {
+          "bin": "0.0–0.02",
+          "horses": 80,
+          "expected_wins_market": 0.957,
+          "expected_wins_model": 2.638,
+          "actual_wins": 1,
+          "jockey_stats_missing": 40,
+          "jockey_stats_known": 80
+        },
+        {
+          "bin": "0.02–0.05",
+          "horses": 115,
+          "expected_wins_market": 3.828,
+          "expected_wins_model": 5.737,
+          "actual_wins": 0,
+          "jockey_stats_missing": 49,
+          "jockey_stats_known": 115
+        },
+        {
+          "bin": "0.05–0.1",
+          "horses": 80,
+          "expected_wins_market": 5.746,
+          "expected_wins_model": 5.81,
+          "actual_wins": 11,
+          "jockey_stats_missing": 25,
+          "jockey_stats_known": 80
+        },
+        {
+          "bin": "0.1–0.2",
+          "horses": 54,
+          "expected_wins_market": 7.562,
+          "expected_wins_model": 6.462,
+          "actual_wins": 7,
+          "jockey_stats_missing": 10,
+          "jockey_stats_known": 54
+        },
+        {
+          "bin": "0.2–∞",
+          "horses": 21,
+          "expected_wins_market": 5.907,
+          "expected_wins_model": 3.354,
+          "actual_wins": 5,
+          "jockey_stats_missing": 4,
+          "jockey_stats_known": 21
+        }
+      ],
+      "temperature_sensitivity": {
+        "k=0.5": 2.423847,
+        "k=0.8": 2.354343,
+        "k=0.9": 2.342642,
+        "k=1.0": 2.336399,
+        "k=1.05": 2.335269,
+        "k=1.1": 2.335437,
+        "k=1.25": 2.343487,
+        "k=1.5": 2.380515,
+        "k=2.0": 2.530531,
+        "uniform": 2.664088
+      },
+      "winner_rank": {
+        "model": {
+          "races": 24,
+          "mean_rank": 4.375,
+          "top3": 12
+        },
+        "market": {
+          "races": 24,
+          "mean_rank": 3.438,
+          "top3": 13
+        }
+      }
+    },
+    {
+      "basis": "as_recorded",
+      "excluded_flags": [
+        "leading_stats_partial"
+      ],
+      "races": 4,
+      "horses": 59,
+      "mean_log_loss": {
+        "champion": 2.9247,
+        "market": 2.4029,
+        "champion_minus_market": 0.5218
+      },
+      "races_model_better": 1,
+      "p_over_q_bins": [
+        {
+          "bin": "0.0–0.5",
+          "horses": 7,
+          "expected_wins_market": 1.368,
+          "expected_wins_model": 0.498,
+          "actual_wins": 1,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 7
+        },
+        {
+          "bin": "0.5–0.8",
+          "horses": 9,
+          "expected_wins_market": 0.974,
+          "expected_wins_model": 0.656,
+          "actual_wins": 2,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 9
+        },
+        {
+          "bin": "0.8–1.25",
+          "horses": 13,
+          "expected_wins_market": 0.681,
+          "expected_wins_model": 0.755,
+          "actual_wins": 1,
+          "jockey_stats_missing": 3,
+          "jockey_stats_known": 13
+        },
+        {
+          "bin": "1.25–2.0",
+          "horses": 11,
+          "expected_wins_market": 0.525,
+          "expected_wins_model": 0.775,
+          "actual_wins": 0,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 11
+        },
+        {
+          "bin": "2.0–∞",
+          "horses": 19,
+          "expected_wins_market": 0.452,
+          "expected_wins_model": 1.316,
+          "actual_wins": 0,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 19
+        }
+      ],
+      "q_bins": [
+        {
+          "bin": "0.0–0.02",
+          "horses": 19,
+          "expected_wins_market": 0.223,
+          "expected_wins_model": 0.66,
+          "actual_wins": 0,
+          "jockey_stats_missing": 3,
+          "jockey_stats_known": 19
+        },
+        {
+          "bin": "0.02–0.05",
+          "horses": 18,
+          "expected_wins_market": 0.597,
+          "expected_wins_model": 0.891,
+          "actual_wins": 0,
+          "jockey_stats_missing": 5,
+          "jockey_stats_known": 18
+        },
+        {
+          "bin": "0.05–0.1",
+          "horses": 10,
+          "expected_wins_market": 0.691,
+          "expected_wins_model": 0.664,
+          "actual_wins": 3,
+          "jockey_stats_missing": 1,
+          "jockey_stats_known": 10
+        },
+        {
+          "bin": "0.1–0.2",
+          "horses": 8,
+          "expected_wins_market": 1.109,
+          "expected_wins_model": 1.104,
+          "actual_wins": 0,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 8
+        },
+        {
+          "bin": "0.2–∞",
+          "horses": 4,
+          "expected_wins_market": 1.38,
+          "expected_wins_model": 0.681,
+          "actual_wins": 1,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 4
+        }
+      ],
+      "temperature_sensitivity": {
+        "k=0.5": 2.722788,
+        "k=0.8": 2.826152,
+        "k=0.9": 2.872525,
+        "k=1.0": 2.924703,
+        "k=1.05": 2.952933,
+        "k=1.1": 2.982568,
+        "k=1.25": 3.079719,
+        "k=1.5": 3.267773,
+        "k=2.0": 3.729261,
+        "uniform": 2.674978
+      },
+      "winner_rank": {
+        "model": {
+          "races": 4,
+          "mean_rank": 6.75,
+          "top3": 1
+        },
+        "market": {
+          "races": 4,
+          "mean_rank": 3.625,
+          "top3": 2
+        }
+      }
+    },
+    {
+      "basis": "as_recorded",
+      "excluded_flags": [
+        "early_freeze"
+      ],
+      "races": 23,
+      "horses": 332,
+      "mean_log_loss": {
+        "champion": 2.371,
+        "market": 2.1904,
+        "champion_minus_market": 0.1807
+      },
+      "races_model_better": 11,
+      "p_over_q_bins": [
+        {
+          "bin": "0.0–0.5",
+          "horses": 49,
+          "expected_wins_market": 6.705,
+          "expected_wins_model": 2.346,
+          "actual_wins": 4,
+          "jockey_stats_missing": 15,
+          "jockey_stats_known": 49
+        },
+        {
+          "bin": "0.5–0.8",
+          "horses": 56,
+          "expected_wins_market": 5.287,
+          "expected_wins_model": 3.462,
+          "actual_wins": 6,
+          "jockey_stats_missing": 15,
+          "jockey_stats_known": 56
+        },
+        {
+          "bin": "0.8–1.25",
+          "horses": 86,
+          "expected_wins_market": 5.767,
+          "expected_wins_model": 5.943,
+          "actual_wins": 8,
+          "jockey_stats_missing": 28,
+          "jockey_stats_known": 86
+        },
+        {
+          "bin": "1.25–2.0",
+          "horses": 65,
+          "expected_wins_market": 3.142,
+          "expected_wins_model": 4.942,
+          "actual_wins": 4,
+          "jockey_stats_missing": 31,
+          "jockey_stats_known": 65
+        },
+        {
+          "bin": "2.0–∞",
+          "horses": 76,
+          "expected_wins_market": 2.099,
+          "expected_wins_model": 6.306,
+          "actual_wins": 1,
+          "jockey_stats_missing": 27,
+          "jockey_stats_known": 76
+        }
+      ],
+      "q_bins": [
+        {
+          "bin": "0.0–0.02",
+          "horses": 75,
+          "expected_wins_market": 0.897,
+          "expected_wins_model": 2.54,
+          "actual_wins": 1,
+          "jockey_stats_missing": 35,
+          "jockey_stats_known": 75
+        },
+        {
+          "bin": "0.02–0.05",
+          "horses": 110,
+          "expected_wins_market": 3.626,
+          "expected_wins_model": 5.464,
+          "actual_wins": 0,
+          "jockey_stats_missing": 46,
+          "jockey_stats_known": 110
+        },
+        {
+          "bin": "0.05–0.1",
+          "horses": 74,
+          "expected_wins_market": 5.342,
+          "expected_wins_model": 5.525,
+          "actual_wins": 11,
+          "jockey_stats_missing": 22,
+          "jockey_stats_known": 74
+        },
+        {
+          "bin": "0.1–0.2",
+          "horses": 53,
+          "expected_wins_market": 7.438,
+          "expected_wins_model": 6.331,
+          "actual_wins": 7,
+          "jockey_stats_missing": 10,
+          "jockey_stats_known": 53
+        },
+        {
+          "bin": "0.2–∞",
+          "horses": 20,
+          "expected_wins_market": 5.698,
+          "expected_wins_model": 3.14,
+          "actual_wins": 4,
+          "jockey_stats_missing": 3,
+          "jockey_stats_known": 20
+        }
+      ],
+      "temperature_sensitivity": {
+        "k=0.5": 2.4364,
+        "k=0.8": 2.3802,
+        "k=0.9": 2.372892,
+        "k=1.0": 2.371016,
+        "k=1.05": 2.37206,
+        "k=1.1": 2.374396,
+        "k=1.25": 2.388905,
+        "k=1.5": 2.436551,
+        "k=2.0": 2.607208,
+        "uniform": 2.65425
+      },
+      "winner_rank": {
+        "model": {
+          "races": 23,
+          "mean_rank": 4.522,
+          "top3": 11
+        },
+        "market": {
+          "races": 23,
+          "mean_rank": 3.543,
+          "top3": 12
+        }
+      }
+    },
+    {
+      "basis": "as_recorded",
+      "excluded_flags": [
+        "early_freeze",
+        "leading_stats_partial"
+      ],
+      "races": 4,
+      "horses": 59,
+      "mean_log_loss": {
+        "champion": 2.9247,
+        "market": 2.4029,
+        "champion_minus_market": 0.5218
+      },
+      "races_model_better": 1,
+      "p_over_q_bins": [
+        {
+          "bin": "0.0–0.5",
+          "horses": 7,
+          "expected_wins_market": 1.368,
+          "expected_wins_model": 0.498,
+          "actual_wins": 1,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 7
+        },
+        {
+          "bin": "0.5–0.8",
+          "horses": 9,
+          "expected_wins_market": 0.974,
+          "expected_wins_model": 0.656,
+          "actual_wins": 2,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 9
+        },
+        {
+          "bin": "0.8–1.25",
+          "horses": 13,
+          "expected_wins_market": 0.681,
+          "expected_wins_model": 0.755,
+          "actual_wins": 1,
+          "jockey_stats_missing": 3,
+          "jockey_stats_known": 13
+        },
+        {
+          "bin": "1.25–2.0",
+          "horses": 11,
+          "expected_wins_market": 0.525,
+          "expected_wins_model": 0.775,
+          "actual_wins": 0,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 11
+        },
+        {
+          "bin": "2.0–∞",
+          "horses": 19,
+          "expected_wins_market": 0.452,
+          "expected_wins_model": 1.316,
+          "actual_wins": 0,
+          "jockey_stats_missing": 2,
+          "jockey_stats_known": 19
+        }
+      ],
+      "q_bins": [
+        {
+          "bin": "0.0–0.02",
+          "horses": 19,
+          "expected_wins_market": 0.223,
+          "expected_wins_model": 0.66,
+          "actual_wins": 0,
+          "jockey_stats_missing": 3,
+          "jockey_stats_known": 19
+        },
+        {
+          "bin": "0.02–0.05",
+          "horses": 18,
+          "expected_wins_market": 0.597,
+          "expected_wins_model": 0.891,
+          "actual_wins": 0,
+          "jockey_stats_missing": 5,
+          "jockey_stats_known": 18
+        },
+        {
+          "bin": "0.05–0.1",
+          "horses": 10,
+          "expected_wins_market": 0.691,
+          "expected_wins_model": 0.664,
+          "actual_wins": 3,
+          "jockey_stats_missing": 1,
+          "jockey_stats_known": 10
+        },
+        {
+          "bin": "0.1–0.2",
+          "horses": 8,
+          "expected_wins_market": 1.109,
+          "expected_wins_model": 1.104,
+          "actual_wins": 0,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 8
+        },
+        {
+          "bin": "0.2–∞",
+          "horses": 4,
+          "expected_wins_market": 1.38,
+          "expected_wins_model": 0.681,
+          "actual_wins": 1,
+          "jockey_stats_missing": 0,
+          "jockey_stats_known": 4
+        }
+      ],
+      "temperature_sensitivity": {
+        "k=0.5": 2.722788,
+        "k=0.8": 2.826152,
+        "k=0.9": 2.872525,
+        "k=1.0": 2.924703,
+        "k=1.05": 2.952933,
+        "k=1.1": 2.982568,
+        "k=1.25": 3.079719,
+        "k=1.5": 3.267773,
+        "k=2.0": 3.729261,
+        "uniform": 2.674978
+      },
+      "winner_rank": {
+        "model": {
+          "races": 4,
+          "mean_rank": 6.75,
+          "top3": 1
+        },
+        "market": {
+          "races": 4,
+          "mean_rank": 3.625,
+          "top3": 2
+        }
+      }
+    }
+  ],
+  "odds_live": {
+    "20261107": {
+      "race_list": {
+        "file": "20261107/races/235245.json",
+        "status": "ok",
+        "races": 35,
+        "races_by_venue_total": 36,
+        "not_in_list": 1
+      },
+      "phase_collection": {
+        "pre": {
+          "missed:started_too_late": 7,
+          "ok": 28
+        },
+        "close": {
+          "missed:started_too_late": 6,
+          "ok": 29
+        },
+        "post1": {
+          "ok": 35
+        },
+        "post2": {
+          "ok": 35
+        }
+      },
+      "phase_audit": {
+        "pre": {
+          "problem": 7,
+          "ok": 28
+        },
+        "close": {
+          "problem": 6,
+          "ok": 29
+        },
+        "post1": {
+          "ok": 35
+        },
+        "post2": {
+          "ok": 35
+        }
+      },
+      "problem_counts": {
+        "started_too_late": 13
+      },
+      "problems": [
+        "20261107-fukushima-01:pre:missed:started_too_late",
+        "20261107-fukushima-01:close:missed:started_too_late",
+        "20261107-tokyo-01:pre:missed:started_too_late",
+        "20261107-tokyo-01:close:missed:started_too_late",
+        "20261107-kyoto-01:pre:missed:started_too_late",
+        "20261107-kyoto-01:close:missed:started_too_late",
+        "20261107-fukushima-02:pre:missed:started_too_late",
+        "20261107-fukushima-02:close:missed:started_too_late",
+        "20261107-tokyo-02:pre:missed:started_too_late",
+        "20261107-tokyo-02:close:missed:started_too_late",
+        "20261107-kyoto-02:pre:missed:started_too_late",
+        "20261107-kyoto-02:close:missed:started_too_late",
+        "20261107-fukushima-03:pre:missed:started_too_late"
+      ],
+      "payout": {
+        "races": 3,
+        "problem_counts": {},
+        "problems": []
+      }
+    },
+    "20261108": {
+      "race_list": {
+        "file": "20261108/races/224936.json",
+        "status": "ok",
+        "races": 34,
+        "races_by_venue_total": 36,
+        "not_in_list": 2
+      },
+      "phase_collection": {
+        "pre": {
+          "missed:started_too_late": 2,
+          "ok": 32
+        },
+        "close": {
+          "missed:started_too_late": 1,
+          "ok": 33
+        },
+        "post1": {
+          "ok": 34
+        },
+        "post2": {
+          "ok": 34
+        }
+      },
+      "phase_audit": {
+        "pre": {
+          "problem": 2,
+          "ok": 32
+        },
+        "close": {
+          "problem": 1,
+          "ok": 33
+        },
+        "post1": {
+          "ok": 34
+        },
+        "post2": {
+          "ok": 34
+        }
+      },
+      "problem_counts": {
+        "started_too_late": 3
+      },
+      "problems": [
+        "20261108-fukushima-01:pre:missed:started_too_late",
+        "20261108-fukushima-01:close:missed:started_too_late",
+        "20261108-tokyo-01:pre:missed:started_too_late"
+      ],
+      "payout": {
+        "races": 3,
+        "problem_counts": {
+          "payout_unknown": 2
+        },
+        "problems": [
+          "20261108-tokyo-11:sanrenpuku:payout_unknown",
+          "20261108-tokyo-11:umaren:payout_unknown"
+        ]
+      }
+    }
+  },
+  "note": "探索的な記述（Issue #57 Stage 0）。勝率の比較で、3連複の確率ではない。同じ標本の中の比較で、最適性・優位性・有意性の結論は出さない。旗は記録を直すためではなく層別のため。Git の時刻は順序の確認に使うだけで、公開の絶対の証明ではない。"
+}
