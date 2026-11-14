@@ -16,11 +16,13 @@
 4. odds-live の検証（11/7・11/8）：その日の最後のレース一覧（check が ok）を期待の集合として、
    レース × 時点（pre・close・post1・post2）× 5券種で、欠け・状態・時点（unknown を成功にしない）・
    post2 の final_check（券種ごと）を確かめ、結果のあるレースでは post2 の表と払戻を照らす。
-   final_check の `stable_after_close` は「締切後に変わらなかった」ことで、公式の確定オッズの確認ではない。
-   Git の読み出しに失敗したら止める（空として扱わない）。
+   収集時の状態と点検の結果を分け、点検を全部通った時点だけを audit ok に数える。final_check は保存された判定を
+   読み、post1・post2 の表から同じ規則で計算し直して照らす。`stable_after_close` は「締切後に変わらなかった」ことで、
+   公式の確定オッズの確認ではない。払戻との照合は観測の点検と分けて数える。
+   Git の実行の失敗は止める（空として扱わない）。そのコミットにパスが無いことだけは unknown にする。
 
 再現：既定では 2026-11-12 の報告の固定の参照（main・odds-live のコミット、期間）で読む（RUN）。
-新しい期間・参照で動かすときは、別の run として --main-ref・--odds-live-ref・--from・--to を指定する。
+入力が固定の参照と違う run には stage0-r1 以外の --run-id が要り、出力は別の場所に分ける（r1 を上書きしない）。
 出力は data/research/independent_prob/stage0/ にだけ書く。予想・正式成績・事前登録した評価は変えない。
 """
 from __future__ import annotations
@@ -39,6 +41,7 @@ from typing import Any
 from logic import race_performance as rp
 from research import common
 from research import market_audit as ma
+from scraper.capture_odds_live import FINAL_CHECK_BASIS, SALES_CLOSE
 
 SCHEMA = "independent-prob-stage0-v2"
 OUT_DIR = common.ROOT / "data" / "research" / "independent_prob" / "stage0"
@@ -65,9 +68,12 @@ class GitError(RuntimeError):
 
 
 def _git(args: list[str], repo: Path, ok_missing: bool = False) -> bytes | None:
+    """Git を読む。ok_missing のときだけ「そのコミットにそのパスが無い」を None にする（照合は unknown になる）。
+    それ以外の失敗（参照が無い・リポジトリが壊れている・時間切れなど）は GitError で止める。"""
     out = subprocess.run(["git", *args], cwd=repo, capture_output=True, timeout=120)
     if out.returncode != 0:
-        if ok_missing:
+        err = out.stderr.decode("utf-8", "replace")
+        if ok_missing and ("does not exist in" in err or "exists on disk, but not in" in err):
             return None
         raise GitError(f"git {args[0]} failed ({out.returncode})")
     return out.stdout
@@ -124,6 +130,14 @@ def version_at_post(rows: list[dict[str, Any]], post: datetime.datetime) -> tupl
     return before[-1], issues
 
 
+def raw_race(sha: str, week_id: str, race_id: str, repo: Path) -> dict[str, Any] | None:
+    """そのコミットの raw のレース。raw が無い・読めない・レースが無いときは None（照合は unknown）。Git の失敗は止める。"""
+    raw = _json(_git(["show", f"{sha}:raw/{week_id}.json"], repo, ok_missing=True))
+    if not isinstance(raw, dict):
+        return None
+    return next((r for r in raw.get("races") or [] if r.get("id") == race_id), None)
+
+
 def _tri(ok: bool | None) -> str:
     return UNKNOWN if ok is None else VERIFIED if ok else MISMATCH
 
@@ -161,8 +175,9 @@ def provenance(rec: dict[str, Any], main: str, repo: Path) -> dict[str, Any]:
     out["snapshot"] = snap if isinstance(snap, dict) else None
     snap = out["snapshot"] or {}
     frozen = common.parse_dt(snap.get("frozen_at"))
+    # 凍結は発走前で、その版のコミットより後ではない（同じ秒は可）
     checks["snapshot_version"] = _tri(bool(snap) and snap.get("pre_race") is True and frozen is not None
-                                      and frozen < post)
+                                      and frozen < post and frozen <= ver["committed_at"])
     digest = _sha256(ver["blob"]) if ver["blob"] is not None else None
     out["snapshot_sha256"] = digest
     ev_sha = ev_snap.get("sha256")
@@ -176,7 +191,7 @@ def provenance(rec: dict[str, Any], main: str, repo: Path) -> dict[str, Any]:
         out["issues"].append("evaluated_other_version" if ev_sha in earlier else "evaluated_unknown_version")
     checks["race_id"] = _tri(snap.get("race_id") == rid if snap else None)
     checks["frozen_at"] = _tri(_same_time(rec.get("frozen_at"), ev_snap.get("frozen_at"), snap.get("frozen_at")))
-    race = ma.raw_race(ver["sha"], snap.get("week_id"), rid, repo) if snap.get("week_id") else None
+    race = raw_race(ver["sha"], snap.get("week_id"), rid, repo) if snap.get("week_id") else None
     out["raw_race"] = race
     out["raw_rel"] = f"raw/{snap.get('week_id')}.json" if snap.get("week_id") else None
     checks["raw"] = VERIFIED if race else UNKNOWN
@@ -363,7 +378,22 @@ def _ol_read(ref: str, rel: str, repo: Path) -> Any:
     return json.loads(gzip.decompress(data) if rel.endswith(".gz") else data)
 
 
+def _expected_post(row: dict[str, Any]) -> datetime.datetime | None:
+    """一覧の date・post_time（JST）から発走時刻。読めなければ None。"""
+    try:
+        return datetime.datetime.strptime(f"{row['date']} {str(row['post_time']).strip()}",
+                                          "%Y-%m-%d %H:%M").replace(tzinfo=common.JST)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def odds_live_check(ref: str, days: list[str], results: dict[str, Any], repo: Path) -> dict[str, Any]:
+    """odds-live の独立の点検。時点ごとに、収集時の状態（collection）と点検の結果（audit）を分ける。
+
+    audit が ok なのは、その時点の点検を全部通ったときだけ（ファイルの中身が期待のレース・時点・発走時刻と一致、
+    5券種がそろって ok、時点の順序、post2 の final_check の照合）。払戻との照合は観測の正しさとは別の点検として
+    payout に分けて数える。final_check は保存された判定を読み、post1・post2 の表から同じ規則で計算し直して照らす。
+    """
     out = {}
     for day in days:
         files = _ol_tree(ref, day, repo)
@@ -371,7 +401,7 @@ def odds_live_check(ref: str, days: list[str], results: dict[str, Any], repo: Pa
         race_list = _ol_read(ref, lists[-1], repo) if lists else None
         check = (race_list or {}).get("check") or {}
         list_ok = check.get("status") == "ok"
-        expected = [r["race_key"] for r in (race_list or {}).get("races") or []] if list_ok else []
+        rows = [r for r in (race_list or {}).get("races") or [] if r.get("race_key")] if list_ok else []
         observed: dict[str, dict[str, str]] = {}
         for f in files:
             parts = f.split("/")
@@ -380,92 +410,150 @@ def odds_live_check(ref: str, days: list[str], results: dict[str, Any], repo: Pa
         problems: list[str] = []
         if not list_ok:
             problems.append(f"{day}:race_list_not_ok")
+        keys = [r["race_key"] for r in rows]
+        if len(set(keys)) != len(keys):
+            problems.append(f"{day}:race_list_duplicate_keys")
         # check の場ごとの数は障害戦も数える。一覧（期待の集合）は障害戦・発走時刻の無いレースを外す（odds-live の規則）。
         # 差は問題にせず、数だけ残す（外したレースの種別はこの一覧からは確かめられない）
         by_venue = sum((check.get("races_by_venue") or {}).values())
         races = []
-        for key in expected:
-            race = {"race_key": key, "phases": {}}
+        for row in rows:
+            key = row["race_key"]
+            post = _expected_post(row)
+            docs = {ph: _ol_read(ref, observed[key][ph], repo) for ph in PHASES if ph in observed.get(key, {})}
+            race = {"race_key": key, "post_at": _iso(post), "phases": {}}
             for ph in PHASES:
-                rel = observed.get(key, {}).get(ph)
-                if rel is None:
-                    race["phases"][ph] = {"state": "missing_file"}
-                    problems.append(f"{key}:{ph}:missing_file")
-                    continue
-                race["phases"][ph] = _ol_phase(_ol_read(ref, rel, repo), ph, results.get(key), problems)
+                race["phases"][ph] = _ol_phase(key, ph, post, docs.get(ph), docs.get("post1"), problems)
+            if docs.get("post2") is not None and results.get(key):
+                race["payout"] = _payout_match(docs["post2"], results[key])
             races.append(race)
-        extra = sorted(set(observed) - set(expected))
-        for key in extra:
+        for key in sorted(set(observed) - set(keys)):
             problems.append(f"{key}:not_in_race_list")
+        payout_problems = [f"{r['race_key']}:{PAYOUT_MARKETS[jp]}:payout_{pm['match']}"
+                           for r in races for jp, pm in (r.get("payout") or {}).items() if pm["match"] != "match"]
         out[day] = {"race_list": {"file": lists[-1] if lists else None, "status": check.get("status"),
-                                  "races": len(expected), "races_by_venue_total": by_venue,
-                                  "not_in_list": by_venue - len(expected) if list_ok else None},
-                    "phase_state": _count_states(races), "problem_counts": _count_problems(problems),
-                    "problems": problems, "races_detail": races}
+                                  "races": len(rows), "races_by_venue_total": by_venue,
+                                  "not_in_list": by_venue - len(rows) if list_ok else None},
+                    "phase_collection": _count_states(races, "collection"),
+                    "phase_audit": _count_states(races, "audit"),
+                    "problem_counts": _count_problems(problems), "problems": problems,
+                    "payout": {"races": sum(1 for r in races if r.get("payout")),
+                               "problem_counts": _count_problems(payout_problems), "problems": payout_problems},
+                    "races_detail": races}
     return out
 
 
-def _ol_phase(d: dict[str, Any], ph: str, result: dict[str, Any] | None, problems: list[str]) -> dict[str, Any]:
-    key = d.get("race_key")
+def _ol_phase(key: str, ph: str, post: datetime.datetime | None, d: dict[str, Any] | None,
+              post1: dict[str, Any] | None, problems: list[str]) -> dict[str, Any]:
+    mine: list[str] = []
+    if d is None:
+        problems.append(f"{key}:{ph}:missing_file")
+        return {"collection": "missing_file", "audit": "missing_file"}
     status = d.get("status")
-    state = "ok" if status == "ok" else f"{status}:{d.get('reason')}"
-    entry: dict[str, Any] = {"state": state, "markets": {}}
+    entry: dict[str, Any] = {"collection": "ok" if status == "ok" else f"{status}:{d.get('reason')}", "markets": {}}
+    if d.get("race_key") != key:
+        mine.append("race_key_mismatch")
+    if d.get("phase") != ph:
+        mine.append("phase_mismatch")
+    if post is None:
+        mine.append("post_time_unknown")
+    elif common.parse_dt(d.get("post_at")) != post:
+        mine.append("post_at_mismatch")
     if status != "ok":
         # missed（記録を始める前に発走）・partial・failed は成功に数えない。理由を残して区別する
-        problems.append(f"{key}:{ph}:{state}")
-        return entry
-    post = common.parse_dt(d.get("post_at"))
-    for name in OL_MARKETS:
-        m = (d.get("markets") or {}).get(name)
-        if m is None:
-            entry["markets"][name] = {"state": "missing"}
-            problems.append(f"{key}:{ph}:{name}:market_missing")
-            continue
-        st = common.parse_dt(m.get("source_time_jst"))
-        obs = common.parse_dt(m.get("observed_at"))
-        me = {"state": "ok" if m.get("status") == "ok" else f"{m.get('status')}", "rows": m.get("rows"),
-              "source_time": m.get("source_time_jst"), "observed_at": m.get("observed_at")}
-        if m.get("status") != "ok":
-            problems.append(f"{key}:{ph}:{name}:market_{m.get('status')}")
-        if ph in ("pre", "close"):
-            t = ma.odds_timing(st, obs, post, None)["odds_timing_status"]
-            me["timing"] = t
-            if t != "pre_race_verified":
-                problems.append(f"{key}:{ph}:{name}:timing_{t}")
-        elif st is None or obs is None:
-            me["timing"] = "unknown"
-            problems.append(f"{key}:{ph}:{name}:timing_unknown")
-        elif st > obs:
-            me["timing"] = "inconsistent"
-            problems.append(f"{key}:{ph}:{name}:timing_inconsistent")
-        entry["markets"][name] = me
-    if ph == "post2":
-        fc = d.get("final_check")
-        if not isinstance(fc, dict):
-            entry["final_check"] = None
-            problems.append(f"{key}:post2:final_check_missing")
-        else:
-            per = {n: ((fc.get("markets") or {}).get(n) or {}).get("verified") for n in OL_MARKETS}
-            entry["final_check"] = {"verified": fc.get("verified"), "basis": fc.get("basis"), "markets": per}
-            for n, v in per.items():
-                if v is not True:
-                    problems.append(f"{key}:post2:{n}:final_check_{'missing' if v is None else 'not_verified'}")
-            if fc.get("verified") is True and not all(v is True for v in per.values()):
-                problems.append(f"{key}:post2:final_check_overall_disagrees")
-        if result:
-            entry["payout_match"] = _payout_match(d, result)
-            for jp, pm in entry["payout_match"].items():
-                if pm["match"] != "match":
-                    problems.append(f"{key}:post2:{PAYOUT_MARKETS[jp]}:payout_{pm['match']}")
+        mine.append(entry["collection"])
+    else:
+        for name in OL_MARKETS:
+            m = (d.get("markets") or {}).get(name)
+            if m is None:
+                entry["markets"][name] = {"state": "missing"}
+                mine.append(f"{name}:market_missing")
+                continue
+            entry["markets"][name] = me = {"state": m.get("status"), "rows": m.get("rows"),
+                                           "source_time": m.get("source_time_jst"), "observed_at": m.get("observed_at")}
+            if m.get("status") != "ok":
+                mine.append(f"{name}:market_{m.get('status')}")
+            me["timing"] = t = _phase_timing(ph, common.parse_dt(m.get("source_time_jst")),
+                                             common.parse_dt(m.get("observed_at")), post)
+            if t != "verified":
+                mine.append(f"{name}:timing_{t}")
+        if ph == "post2":
+            entry["final_check"], fc_problems = _final_check_audit(d, post1, post)
+            mine.extend(fc_problems)
+    problems.extend(f"{key}:{ph}:{p}" for p in mine)
+    entry["audit"] = "ok" if not mine else "problem"
+    entry["audit_problems"] = mine
     return entry
 
 
-def _count_states(races: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+def _phase_timing(ph: str, source: datetime.datetime | None, observed: datetime.datetime | None,
+                  post: datetime.datetime | None) -> str:
+    """pre・close は source ≦ observed < 発走（market_audit.odds_timing と同じ）。post1・post2 は観測が発走以降で、
+    source ≦ observed。発走後の観測の source は締め切り直前のこともあるので、source ≧ 発走は求めない。"""
+    if ph in ("pre", "close"):
+        t = ma.odds_timing(source, observed, post, None)["odds_timing_status"]
+        return {"pre_race_verified": "verified", "post_race_detected": "post_race"}.get(t, t)
+    if source is None or observed is None or post is None:
+        return "unknown"
+    if observed < post:
+        return "observed_before_post"
+    return "inconsistent" if source > observed else "verified"
+
+
+def _recompute_final(post1: dict[str, Any] | None, post2: dict[str, Any], post: datetime.datetime | None) -> dict[str, Any]:
+    """scraper/capture_odds_live.py の final_check と同じ規則で、post1・post2 の表から計算し直す（券種ごと）。"""
+    if post1 is None or post1.get("status") == "missed" or post is None:
+        return {n: None for n in OL_MARKETS}
+    out = {}
+    for n in OL_MARKETS:
+        m1 = (post1.get("markets") or {}).get(n) or {}
+        m2 = (post2.get("markets") or {}).get(n) or {}
+        if m1.get("status") != "ok" or m2.get("status") != "ok":
+            out[n] = False
+            continue
+        t1, t2 = common.parse_dt(m1.get("source_time_jst")), common.parse_dt(m2.get("source_time_jst"))
+        if t1 is None or t2 is None or t1 < post - SALES_CLOSE or t2 < post - SALES_CLOSE:
+            out[n] = False
+        else:
+            out[n] = m1.get("odds") is not None and m1.get("odds") == m2.get("odds")
+    return out
+
+
+def _final_check_audit(d: dict[str, Any], post1: dict[str, Any] | None,
+                       post: datetime.datetime | None) -> tuple[dict[str, Any] | None, list[str]]:
+    fc = d.get("final_check")
+    if not isinstance(fc, dict):
+        return None, ["final_check_missing"]
+    problems = []
+    per = {n: ((fc.get("markets") or {}).get(n) or {}).get("verified") for n in OL_MARKETS}
+    overall = fc.get("verified")
+    recomputed = _recompute_final(post1, d, post)
+    if fc.get("basis") is None:
+        problems.append("final_check_basis_unknown")
+    elif fc.get("basis") != FINAL_CHECK_BASIS:
+        problems.append("final_check_basis_differs")
+    if overall is None:
+        problems.append("final_check_overall_unknown")
+    for n in OL_MARKETS:
+        if per[n] is None:
+            problems.append(f"{n}:final_check_unknown")
+        elif per[n] is not True:
+            problems.append(f"{n}:final_check_not_verified")
+        if recomputed[n] is None:
+            problems.append(f"{n}:final_check_not_recomputable")
+        elif per[n] is not None and recomputed[n] != per[n]:
+            problems.append(f"{n}:final_check_recomputed_differs")
+    if overall is not None and all(v is not None for v in per.values()) and bool(overall) != all(per.values()):
+        problems.append("final_check_overall_disagrees")
+    return {"verified": overall, "basis": fc.get("basis"), "markets": per, "recomputed": recomputed}, problems
+
+
+def _count_states(races: list[dict[str, Any]], key: str) -> dict[str, dict[str, int]]:
     counts: dict[str, dict[str, int]] = {}
     for r in races:
         for ph, e in r["phases"].items():
-            counts.setdefault(ph, {}).setdefault(e["state"], 0)
-            counts[ph][e["state"]] += 1
+            counts.setdefault(ph, {}).setdefault(e[key], 0)
+            counts[ph][e[key]] += 1
     return counts
 
 
@@ -527,16 +615,47 @@ def load_inputs(main: str, start: str, end: str, repo: Path) -> tuple[list[tuple
     return evals, results
 
 
+def run_target(main: str, ol_ref: str, start: str, end: str, days: list[str], run_id: str | None,
+               out_dir: Path | None) -> tuple[str, Path]:
+    """run の名前と出力先。固定の参照（RUN）と同じ入力のときだけ stage0-r1 として既定の場所に書く。
+
+    入力（main・odds-live のコミット、期間、odds-live の日）が一つでも違えば別の run で、stage0-r1 以外の
+    --run-id が要り、出力は既定で data/research/independent_prob/{run_id}/ に分ける。別の run が stage0-r1 の
+    場所に書くことはできない（--out で指定しても拒否する）。
+    """
+    pinned = (main == RUN["main"] and ol_ref == RUN["odds_live"] and start == RUN["from"] and end == RUN["to"]
+              and days == list(RUN["odds_live_days"]))
+    if pinned and run_id in (None, RUN["run_id"]):
+        return RUN["run_id"], out_dir or OUT_DIR
+    if pinned:
+        raise ValueError("固定の参照と同じ入力の run は stage0-r1（--run-id を付けないか stage0-r1）")
+    if not run_id or run_id == RUN["run_id"] or not run_id.replace("-", "").replace("_", "").isalnum():
+        raise ValueError("固定の参照と違う入力の run には、stage0-r1 以外の --run-id（英数字・-・_）が要る")
+    target = out_dir or OUT_DIR.parent / run_id
+    if target.resolve() == OUT_DIR.resolve():
+        raise ValueError(f"別の run（{run_id}）は stage0-r1 の出力先に書けない")
+    return run_id, target
+
+
+def guard_overwrite(out_dir: Path, summary: dict[str, Any]) -> None:
+    """出力先に別の run か、同じ run の違う入力の結果があれば書かない（研究の記録を混ぜない）。"""
+    path = out_dir / "summary.json"
+    if not path.exists():
+        return
+    old = json.loads(path.read_text(encoding="utf-8"))
+    if old.get("run_id") != summary["run_id"] or old.get("inputs") != summary["inputs"]:
+        raise ValueError(f"{out_dir} には別の run か違う入力の結果がある（run_id={old.get('run_id')}）。上書きしない")
+
+
 def run(repo: Path | None = None, out_dir: Path | None = None, main_ref: str | None = None,
         odds_live_ref: str | None = None, start: str | None = None, end: str | None = None,
         odds_live_days: list[str] | None = None, run_id: str | None = None) -> dict[str, Any]:
     repo = repo or common.ROOT
-    out_dir = out_dir or OUT_DIR
-    pinned = not (main_ref or odds_live_ref or start or end or odds_live_days)
     main = resolve(main_ref or RUN["main"], repo)
     ol_ref = resolve(odds_live_ref or RUN["odds_live"], repo)
     start, end = start or RUN["from"], end or RUN["to"]
-    days = odds_live_days or RUN["odds_live_days"]
+    days = list(odds_live_days or RUN["odds_live_days"])
+    run_id, out_dir = run_target(main, ol_ref, start, end, days, run_id, out_dir)
     evals, results = load_inputs(main, start, end, repo)
     races, horses = [], []
     for rel, blob in evals:
@@ -557,7 +676,7 @@ def run(repo: Path | None = None, out_dir: Path | None = None, main_ref: str | N
         audit_counts[r["audit_status"]] = audit_counts.get(r["audit_status"], 0) + 1
     inputs_digest = _sha256("".join(f"{rel}\0{_sha256(blob)}\n" for rel, blob in evals).encode())
     summary = {
-        "schema": SCHEMA, "issue": 57, "run_id": run_id or (RUN["run_id"] if pinned else "adhoc"),
+        "schema": SCHEMA, "issue": 57, "run_id": run_id,
         "used_for_prediction": False, "official_results_untouched": True,
         "inputs": {"main_commit": main, "odds_live_commit": ol_ref, "race_days": [start, end],
                    "odds_live_days": days, "evaluation": EVAL_DIR_REL, "evaluation_records": len(evals),
@@ -587,6 +706,7 @@ def run(repo: Path | None = None, out_dir: Path | None = None, main_ref: str | N
                  "最適性・優位性・有意性の結論は出さない。旗は記録を直すためではなく層別のため。"
                  "Git の時刻は順序の確認に使うだけで、公開の絶対の証明ではない。"),
     }
+    guard_overwrite(out_dir, summary)
     common.write_json(out_dir / "horses.json", horses)
     common.write_json(out_dir / "races.json", races)
     common.write_json(out_dir / "odds_live.json", ol)
@@ -604,8 +724,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--odds-live-days", nargs="*", default=None)
     p.add_argument("--run-id", default=None)
     args = p.parse_args(argv)
-    s = run(out_dir=args.out, main_ref=args.main_ref, odds_live_ref=args.odds_live_ref, start=args.start,
+    try:
+        s = run(out_dir=args.out, main_ref=args.main_ref, odds_live_ref=args.odds_live_ref, start=args.start,
             end=args.end, odds_live_days=args.odds_live_days, run_id=args.run_id)
+    except ValueError as exc:
+        print(f"中止：{exc}", file=sys.stderr)
+        return 2
     print(json.dumps({k: s[k] for k in ("run_id", "provenance", "denominators", "missing_horses_of_raw")},
                      ensure_ascii=False)[:2000])
     return 0

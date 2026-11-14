@@ -1,6 +1,6 @@
 # 独立した確率推定：Stage 0 監査（Issue #57）
 
-- 書いた日：2026-11-12（2026-11-14 に ChatGPT のレビュー（PR #59）を受けて、照合と表現を直した）
+- 書いた日：2026-11-12（2026-11-14 に ChatGPT のレビューと再レビュー（PR #59）を受けて、照合・表現・出力先を直した）
 - 書いた人：Claude
 - 位置づけ：Issue #57 の Stage 0（読むだけの監査）。数字は 10/10〜11/7 の発走前の凍結版での**探索的な記述**で、同じ標本の中の比較。最適性・優位性・有意性の結論は出さない。勝率の比較で、3連複の確率ではない。
 - 変えないもの：予想・正式成績・UI・Champion・固定3人・scenario-frame/v1・事前登録した評価。記録は直さない・作り直さない（照合の結果と旗を付けて分けるだけ）。
@@ -13,8 +13,13 @@
   - odds-live：`ef15aac78df7bf436774a7213957dd82e5a1b0f4`
   - レースの日：2026-10-10〜2026-11-08。odds-live の日：11/7・11/8
   - 評価の記録 25 件の指紋（パスと生バイトの SHA-256 を並べたものの SHA-256）と、結果ファイルの SHA-256 を `summary.json` の `inputs` に残す。
-- 新しい期間・参照で動かすときは、別の run として `--main-ref`・`--odds-live-ref`・`--from`・`--to`・`--run-id` を指定する（この報告の数字は上書きしない）。
-- Git の読み出しに失敗したら止める（空の一覧として続けない）。
+- 入力（main・odds-live のコミット、期間、odds-live の日）が固定の参照と一つでも違えば、別の run になる。
+  - `stage0-r1` 以外の `--run-id` が要り、出力は既定で `data/research/independent_prob/{run_id}/` に分ける。
+  - 別の run は、`--out` で指定しても `stage0-r1` の出力先には書けない。
+  - 出力先に、別の run の結果か、同じ run の違う入力の結果があるときも書かない。
+  - 固定の参照での再実行は、同じバイト列を書く（generated_at は持たない）。
+- Git の実行の失敗（参照が無い・読めないなど）は止める（空の一覧として続けない）。そのコミットにパスが無いこと（raw が無いなど）だけは、照合を unknown にして監査済みから外す。
+- 範囲：照合したのは、固定の main にある評価の記録 25 件の出所と中身。期間の全レースが評価されたという意味ではない（11/8 のように発走前の凍結版が無い日は、評価の記録が無く、前向きの母数から外れている）。
 
 ## 1. 出所の照合
 
@@ -27,7 +32,7 @@
 |---|---|
 | `evaluation` | 評価の記録が evaluated |
 | `commit_order` | first-parent のコミット時刻が順に並んでいる |
-| `snapshot_version` | 選んだ版が `pre_race`、`frozen_at` が発走前 |
+| `snapshot_version` | 選んだ版が `pre_race`、`frozen_at` が発走前で、その版のコミットより後ではない（同じ秒は可） |
 | `snapshot_digest` | その版の**生バイトの SHA-256** が評価の記録の SHA-256 と一致（別の版と一致したら `evaluated_other_version`） |
 | `race_id`・`frozen_at` | snapshot・評価の記録・評価が残した snapshot の `frozen_at` が一致 |
 | `raw` | 同じコミットの raw にそのレースがある |
@@ -77,19 +82,26 @@
 
 ## 4. odds-live の検証（11/7・11/8）
 
-期待の集合は、その日の最後のレース一覧（`check.status` が ok）。レース × 時点（pre・close・post1・post2）× 5券種（単勝・複勝・馬連・ワイド・3連複）で、欠け・状態・時点・post2 の `final_check`（券種ごと）を確かめた。時点が分からない・欠けている・`missed`・`partial`・`failed`・不一致は、どれも成功に数えず `problems` に出す。
+期待の集合は、その日の最後のレース一覧（`check.status` が ok）。レース × 時点（pre・close・post1・post2）× 5券種（単勝・複勝・馬連・ワイド・3連複）で点検した。
+
+- 時点ごとに、収集時の状態（`collection`：ファイルに書かれた status）と点検の結果（`audit`）を分ける。`audit` が ok なのは、次の点検を全部通ったときだけ。
+  - ファイルの中身の `race_key`・`phase`・`post_at` が、期待の一覧（レース・時点・一覧の発走時刻）と一致する。
+  - 収集時の状態が ok（`missed`・`partial`・`failed` は ok にしない）、5券種がそろって ok。
+  - 時点：pre・close は source_time ≦ observed_at < 発走。post1・post2 は observed_at ≧ 発走で source_time ≦ observed_at（発走後の観測の source_time は締め切り直前のこともあるので、発走以降は求めない）。どれかの時刻が無ければ unknown。
+  - post2 の `final_check`：basis が `stable_after_close`、総合と5券種ごとの判定が両方向で食い違わない、券種ごとに verified。保存された判定を読むだけでなく、post1・post2 の表から収集と同じ規則（両方 ok、両方の source_time が締め切り以降、表が同じ）で計算し直して照らす。
+- 払戻との照合は、観測の正しさとは別の点検として `payout` に分けて数える。
 
 | | 11/7（一覧 35 レース） | 11/8（一覧 34 レース） |
 |---|---|---|
-| pre | ok 28・missed 7 | ok 32・missed 2 |
-| close | ok 29・missed 6 | ok 33・missed 1 |
-| post1・post2 | ok 35・35 | ok 34・34 |
-| ファイルの欠け・一覧に無いファイル | なし | なし |
+| pre（audit ok／problem） | 28／7（missed） | 32／2（missed） |
+| close（audit ok／problem） | 29／6（missed） | 33／1（missed） |
+| post1・post2（audit ok） | 35・35 | 34・34 |
+| ファイルの欠け・中身の取り違え・一覧に無いファイル | なし | なし |
 | 券種の欠け・時点の unknown・発走後の source_time | なし | なし |
-| post2 の final_check（5券種ごと） | 全部 verified | 全部 verified |
+| post2 の final_check（保存・計算し直しとも、5券種ごと） | 全部 verified・一致 | 全部 verified・一致 |
 | 払戻の照合で不明 | なし | 11/8 東京の 3連複・馬連（`combo_not_listed`） |
 
-- `missed` はすべて `started_too_late`（記録を始める前に発走したレース。11/7 は初日の不具合で 10:43 から）。成功には数えていない。
+- 記録のファイルの欠けは無いが、取得できなかった時点（`missed`）が pre 9・close 7 ある。すべて `started_too_late`（記録を始める前に発走したレース。11/7 は初日の不具合で 10:43 から）。
 - 一覧のレース数は、場ごとの数（障害戦も数える、計 36）より少ない（11/7 は 1、11/8 は 2）。odds-live は障害戦と発走時刻の無いレースを一覧から外す規則なので、差は問題にせず数だけ残した（外したレースの種別は、この一覧からは確かめられない）。
 - `final_check` の `stable_after_close` は「締切後の2回の観測で変わらなかった」ことで、**公式の確定オッズの確認ではない**。
 - 払戻との照合は、結果のあるメインの6レースだけ（メイン以外は結果を取っていない）。1行ずつ match・mismatch（ワイドは幅の中・外）・`combo_not_listed`（表に無い組：価格は不明）・`price_unavailable`（その券種の表が取れていない）を付け、まとめは不一致を優先し、次に不明、全部一致のときだけ match とした。

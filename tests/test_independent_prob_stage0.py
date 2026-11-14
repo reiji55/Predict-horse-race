@@ -159,6 +159,18 @@ def test_win_odds_timing_is_three_valued(tmp_path: Path) -> None:
     assert s0.provenance(_rec(snap2, reversed_), "main", repo)["checks"]["win_odds_timing"] == "mismatch"
 
 
+def test_freeze_after_its_commit_is_not_verified(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    frozen = "2026-11-14T13:00:00+09:00"
+    snap, race = _snap(frozen=frozen), _race()
+    _commit(repo, {SNAP_REL: snap, RAW_REL: _raw(race)}, "2026-11-14T12:55:00+09:00")     # コミットが凍結より前
+    prov = s0.provenance(_rec(snap, race, frozen=frozen), "main", repo)
+    assert prov["checks"]["snapshot_version"] == "mismatch" and prov["audit_status"] == "mismatch"
+    same = _snap(frozen="2026-11-14T12:56:00+09:00", tag="same")
+    _commit(repo, {SNAP_REL: same}, "2026-11-14T12:56:00+09:00")                         # 同じ秒は可
+    assert s0.provenance(_rec(same, race, frozen="2026-11-14T12:56:00+09:00"), "main", repo)["audit_status"] == "verified"
+
+
 # ------------------------------------------------------------------ 2. 層別
 
 def _h(race_id: str, p: float, q: float | None, y: int, jockey: bool = True) -> dict:
@@ -189,7 +201,7 @@ def test_diagnostics_separates_as_recorded_and_audited() -> None:
 def _ol_file(key: str, phase: str, **over) -> bytes:
     post = "2026-11-14T12:00:00+09:00"
     before = {"status": "ok", "rows": 5, "source_time_jst": "2026-11-14T11:30:00+09:00",
-              "observed_at": "2026-11-14T11:31:00+09:00"}
+              "observed_at": "2026-11-14T11:31:00+09:00", "odds": {"1": 2.0}}
     after = {**before, "source_time_jst": "2026-11-14T12:05:00+09:00", "observed_at": "2026-11-14T13:00:00+09:00"}
     markets = {m: dict(before if phase in ("pre", "close") else after) for m in s0.OL_MARKETS}
     d = {"race_key": key, "phase": phase, "status": "ok", "post_at": post, "markets": markets}
@@ -201,25 +213,63 @@ def _ol_file(key: str, phase: str, **over) -> bytes:
     return gzip.compress(json.dumps(d).encode())
 
 
-def test_odds_live_reports_gaps_and_fails_closed(tmp_path: Path) -> None:
+def _gz(d: dict) -> bytes:
+    return gzip.compress(json.dumps(d).encode())
+
+
+def _doc(key: str, phase: str) -> dict:
+    return json.loads(gzip.decompress(_ol_file(key, phase)))
+
+
+def _ol_repo(tmp_path: Path, keys: list[str], edit) -> Path:
     repo = _repo(tmp_path)
-    keys = ["20261114-tokyo-01", "20261114-tokyo-02", "20261114-tokyo-03"]
+    rows = [{"race_key": k, "date": "2026-11-14", "post_time": "12:00"} for k in keys]
     files: dict[str, bytes | None] = {"20261114/races/090000.json": json.dumps(
-        {"check": {"status": "ok", "races_by_venue": {"東京": 4}}, "races": [{"race_key": k} for k in keys]}).encode()}
+        {"check": {"status": "ok", "races_by_venue": {"東京": len(keys) + 1}}, "races": rows}).encode()}
     for k in keys:
         for ph in s0.PHASES:
             files[f"20261114/{k}/{ph}.json.gz"] = _ol_file(k, ph)
-    files[f"20261114/{keys[1]}/close.json.gz"] = None
-    del files[f"20261114/{keys[1]}/close.json.gz"]                                            # 時点の欠け
-    pre2 = json.loads(gzip.decompress(_ol_file(keys[2], "pre")))
-    pre2["markets"]["win"]["source_time_jst"] = None                                         # 時点が不明
-    del pre2["markets"]["wide"]                                                              # 券種の欠け
-    files[f"20261114/{keys[2]}/pre.json.gz"] = gzip.compress(json.dumps(pre2).encode())
-    p2 = json.loads(gzip.decompress(_ol_file(keys[0], "post2")))
-    p2["final_check"]["markets"]["wide"]["verified"] = False                                 # 総合は True のまま
-    files[f"20261114/{keys[0]}/post2.json.gz"] = gzip.compress(json.dumps(p2).encode())
-    files[f"20261114/{keys[0]}/close.json.gz"] = _ol_file(keys[0], "close", status="partial", reason="x")
-    _commit(repo, files, "2026-11-14T20:00:00+09:00")
+    edit(files, rows)
+    files["20261114/races/090000.json"] = json.dumps(
+        {"check": {"status": "ok", "races_by_venue": {"東京": len(keys) + 1}}, "races": rows}).encode()
+    _commit(repo, {k: v for k, v in files.items() if v is not None}, "2026-11-14T20:00:00+09:00")
+    return repo
+
+
+def test_odds_live_clean_race_is_audited_ok(tmp_path: Path) -> None:
+    repo = _ol_repo(tmp_path, ["20261114-tokyo-01"], lambda f, r: None)
+    out = s0.odds_live_check("main", ["20261114"], {}, repo)["20261114"]
+    assert out["problems"] == [] and out["race_list"]["not_in_list"] == 1
+    assert out["phase_audit"] == {ph: {"ok": 1} for ph in s0.PHASES}
+    fc = out["races_detail"][0]["phases"]["post2"]["final_check"]
+    assert fc["recomputed"] == {m: True for m in s0.OL_MARKETS}
+
+
+def test_odds_live_problem_phases_are_not_counted_as_audited_ok(tmp_path: Path) -> None:
+    keys = [f"20261114-tokyo-0{i}" for i in range(1, 8)]
+
+    def edit(files, rows):
+        del files[f"20261114/{keys[1]}/close.json.gz"]                                       # 時点の欠け
+        pre = _doc(keys[2], "pre")
+        pre["markets"]["win"]["source_time_jst"] = None                                    # 時点が不明
+        del pre["markets"]["wide"]                                                         # 券種の欠け
+        files[f"20261114/{keys[2]}/pre.json.gz"] = _gz(pre)
+        p2 = _doc(keys[0], "post2")
+        p2["final_check"]["markets"]["wide"]["verified"] = False                          # 総合 True・券種 False
+        files[f"20261114/{keys[0]}/post2.json.gz"] = _gz(p2)
+        files[f"20261114/{keys[0]}/close.json.gz"] = _ol_file(keys[0], "close", status="partial", reason="x")
+        p2 = _doc(keys[3], "post2")
+        p2["final_check"]["verified"] = False                                              # 総合 False・券種 True
+        del p2["final_check"]["basis"]                                                     # basis 不明
+        files[f"20261114/{keys[3]}/post2.json.gz"] = _gz(p2)
+        files[f"20261114/{keys[4]}/pre.json.gz"] = _ol_file(keys[5], "close")              # 別レース・別時点の中身
+        p1 = _doc(keys[5], "post1")
+        p1["markets"]["win"]["observed_at"] = "2026-11-14T11:50:00+09:00"                  # 発走前の post 観測
+        p1["markets"]["umaren"]["odds"] = {"1": 9.9}                                       # post2 と表が違う
+        files[f"20261114/{keys[5]}/post1.json.gz"] = _gz(p1)
+        rows[6]["post_time"] = ""                                                          # 発走時刻が分からない
+
+    repo = _ol_repo(tmp_path, keys, edit)
     out = s0.odds_live_check("main", ["20261114"], {}, repo)["20261114"]
     probs = set(out["problems"])
     assert f"{keys[1]}:close:missing_file" in probs
@@ -227,7 +277,24 @@ def test_odds_live_reports_gaps_and_fails_closed(tmp_path: Path) -> None:
     assert f"{keys[0]}:post2:wide:final_check_not_verified" in probs
     assert f"{keys[0]}:post2:final_check_overall_disagrees" in probs
     assert f"{keys[0]}:close:partial:x" in probs
-    assert out["race_list"]["not_in_list"] == 1 and out["phase_state"]["close"] == {"missing_file": 1, "partial:x": 1, "ok": 1}
+    assert f"{keys[3]}:post2:final_check_overall_disagrees" in probs
+    assert f"{keys[3]}:post2:final_check_basis_unknown" in probs
+    assert {f"{keys[4]}:pre:race_key_mismatch", f"{keys[4]}:pre:phase_mismatch"} <= probs
+    assert f"{keys[5]}:post1:win:timing_observed_before_post" in probs
+    assert f"{keys[5]}:post2:umaren:final_check_recomputed_differs" in probs
+    assert f"{keys[6]}:pre:post_time_unknown" in probs
+    # 収集時は ok でも、点検で問題があった時点は audit の ok に数えない
+    assert out["phase_collection"]["pre"] == {"ok": 7}
+    assert out["phase_audit"]["pre"] == {"ok": 4, "problem": 3}
+    assert out["phase_audit"]["post2"]["ok"] == 3
+    assert out["phase_audit"]["close"] == {"missing_file": 1, "problem": 2, "ok": 4}
+
+
+def test_git_errors_stop_but_missing_paths_are_unknown(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    assert s0._git(["show", "HEAD:no/such/file.json"], repo, ok_missing=True) is None
+    with pytest.raises(s0.GitError):
+        s0._git(["show", "no-such-ref:x.json"], repo, ok_missing=True)
     with pytest.raises(s0.GitError):
         s0.odds_live_check("no-such-ref", ["20261114"], {}, repo)
 
@@ -255,3 +322,45 @@ def test_payout_match_prefers_mismatch_and_separates_unknown() -> None:
     failed = s0._payout_match({"markets": {"sanrenpuku": {"status": "failed"}}},
                               {"dividends": {"3連複": [{"horses": [1, 2, 3], "pay": 1000}]}})
     assert failed["3連複"]["rows"][0]["check"] == "price_unavailable" and failed["3連複"]["match"] == "unknown"
+
+
+# ------------------------------------------------------------------ 4. run と出力先
+
+def _pinned_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
+    (tmp_path / "r").mkdir()
+    repo = _repo(tmp_path / "r")
+    snap, race = _snap(), _race()
+    rec = _rec(snap, race)
+    keys = ["20261114-tokyo-01"]
+    files = {SNAP_REL: snap, RAW_REL: _raw(race), f"{s0.EVAL_DIR_REL}/{RID}.json": json.dumps(rec).encode(),
+             s0.RESULTS_REL: b"{}",
+             "20261114/races/090000.json": json.dumps({"check": {"status": "ok", "races_by_venue": {"東京": 1}},
+                                                       "races": [{"race_key": keys[0], "date": "2026-11-14",
+                                                                  "post_time": "12:00"}]}).encode()}
+    for ph in s0.PHASES:
+        files[f"20261114/{keys[0]}/{ph}.json.gz"] = _ol_file(keys[0], ph)
+    sha = _commit(repo, files, "2026-11-14T12:55:00+09:00")
+    monkeypatch.setattr(s0, "RUN", {"run_id": "stage0-r1", "main": sha, "odds_live": sha, "from": "20261114",
+                                    "to": "20261114", "odds_live_days": ["20261114"]})
+    out = tmp_path / "out" / "stage0"
+    monkeypatch.setattr(s0, "OUT_DIR", out)
+    monkeypatch.setattr(s0.common, "ROOT", repo)
+    return repo, out
+
+
+def test_pinned_run_reproduces_bytes_and_other_runs_never_overwrite_it(tmp_path: Path,
+                                                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, out = _pinned_repo(tmp_path, monkeypatch)
+    assert s0.main([]) == 0
+    before = {p.name: p.read_bytes() for p in out.iterdir()}
+    assert json.loads(before["summary.json"])["run_id"] == "stage0-r1"
+    assert s0.main([]) == 0                                                                 # 同じ入力の再実行は同じバイト列
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before
+    assert s0.main(["--from", "20261113"]) == 2                                             # 別の run には run_id が要る
+    assert s0.main(["--from", "20261113", "--run-id", "stage0-r1"]) == 2                    # r1 の名前は使えない
+    assert s0.main(["--from", "20261113", "--run-id", "stage0-r2", "--out", str(out)]) == 2  # r1 の場所には書けない
+    assert s0.main(["--from", "20261113", "--run-id", "stage0-r2"]) == 0
+    other = out.parent / "stage0-r2"
+    assert json.loads((other / "summary.json").read_text())["run_id"] == "stage0-r2"
+    assert s0.main(["--from", "20261112", "--run-id", "stage0-r2"]) == 2                    # 同じ run_id の違う入力
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == before                         # r1 はそのまま

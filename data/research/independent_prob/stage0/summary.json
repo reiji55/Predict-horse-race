@@ -783,13 +783,29 @@
         "races_by_venue_total": 36,
         "not_in_list": 1
       },
-      "phase_state": {
+      "phase_collection": {
         "pre": {
           "missed:started_too_late": 7,
           "ok": 28
         },
         "close": {
           "missed:started_too_late": 6,
+          "ok": 29
+        },
+        "post1": {
+          "ok": 35
+        },
+        "post2": {
+          "ok": 35
+        }
+      },
+      "phase_audit": {
+        "pre": {
+          "problem": 7,
+          "ok": 28
+        },
+        "close": {
+          "problem": 6,
           "ok": 29
         },
         "post1": {
@@ -816,7 +832,12 @@
         "20261107-kyoto-02:pre:missed:started_too_late",
         "20261107-kyoto-02:close:missed:started_too_late",
         "20261107-fukushima-03:pre:missed:started_too_late"
-      ]
+      ],
+      "payout": {
+        "races": 3,
+        "problem_counts": {},
+        "problems": []
+      }
     },
     "20261108": {
       "race_list": {
@@ -826,7 +847,7 @@
         "races_by_venue_total": 36,
         "not_in_list": 2
       },
-      "phase_state": {
+      "phase_collection": {
         "pre": {
           "missed:started_too_late": 2,
           "ok": 32
@@ -842,17 +863,40 @@
           "ok": 34
         }
       },
+      "phase_audit": {
+        "pre": {
+          "problem": 2,
+          "ok": 32
+        },
+        "close": {
+          "problem": 1,
+          "ok": 33
+        },
+        "post1": {
+          "ok": 34
+        },
+        "post2": {
+          "ok": 34
+        }
+      },
       "problem_counts": {
-        "payout_unknown": 2,
         "started_too_late": 3
       },
       "problems": [
         "20261108-fukushima-01:pre:missed:started_too_late",
         "20261108-fukushima-01:close:missed:started_too_late",
-        "20261108-tokyo-01:pre:missed:started_too_late",
-        "20261108-tokyo-11:post2:sanrenpuku:payout_unknown",
-        "20261108-tokyo-11:post2:umaren:payout_unknown"
-      ]
+        "20261108-tokyo-01:pre:missed:started_too_late"
+      ],
+      "payout": {
+        "races": 3,
+        "problem_counts": {
+          "payout_unknown": 2
+        },
+        "problems": [
+          "20261108-tokyo-11:sanrenpuku:payout_unknown",
+          "20261108-tokyo-11:umaren:payout_unknown"
+        ]
+      }
     }
   },
   "note": "探索的な記述（Issue #57 Stage 0）。勝率の比較で、3連複の確率ではない。同じ標本の中の比較で、最適性・優位性・有意性の結論は出さない。旗は記録を直すためではなく層別のため。Git の時刻は順序の確認に使うだけで、公開の絶対の証明ではない。"
