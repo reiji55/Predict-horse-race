@@ -35,5 +35,130 @@
     "discounted_harville": 1.0,
     "market_trio": 1.0
   },
-  "status": "pending_result"
+  "top3": [
+    3,
+    4,
+    14
+  ],
+  "winner": 3,
+  "win_logloss_market": 2.853018,
+  "models": {
+    "market_trio": {
+      "p_actual_trio": 0.0006371,
+      "trio_logloss": 7.358509,
+      "top3_brier": 0.169497,
+      "actual_trio_rank": 381,
+      "top5_hit": false,
+      "top5_prob_sum": 0.08532
+    },
+    "harville": {
+      "p_actual_trio": 0.000965,
+      "trio_logloss": 6.943366,
+      "top3_brier": 0.167319,
+      "actual_trio_rank": 347,
+      "top5_hit": false,
+      "top5_prob_sum": 0.0488
+    },
+    "discounted_harville": {
+      "p_actual_trio": 0.0011411,
+      "trio_logloss": 6.775739,
+      "top3_brier": 0.163164,
+      "actual_trio_rank": 347,
+      "top5_hit": false,
+      "top5_prob_sum": 0.03678
+    }
+  },
+  "sensitivity": {
+    "payout=0.725|shape=harville|cap=on": {
+      "trio_logloss": 7.219693,
+      "top3_brier": 0.167518,
+      "method": "residual_from_payout"
+    },
+    "payout=0.725|shape=harville|cap=off": {
+      "trio_logloss": 7.141711,
+      "top3_brier": 0.167497,
+      "method": "residual_from_payout"
+    },
+    "payout=0.725|shape=discounted_harville|cap=on": {
+      "trio_logloss": 7.219693,
+      "top3_brier": 0.167524,
+      "method": "residual_from_payout"
+    },
+    "payout=0.725|shape=discounted_harville|cap=off": {
+      "trio_logloss": 7.183466,
+      "top3_brier": 0.167517,
+      "method": "residual_from_payout"
+    },
+    "payout=0.725|shape=uniform|cap=on": {
+      "trio_logloss": 7.461579,
+      "top3_brier": 0.167555,
+      "method": "residual_from_payout"
+    },
+    "payout=0.725|shape=uniform|cap=off": {
+      "trio_logloss": 7.461579,
+      "top3_brier": 0.167555,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=harville|cap=on": {
+      "trio_logloss": 7.358509,
+      "top3_brier": 0.169497,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=harville|cap=off": {
+      "trio_logloss": 7.398373,
+      "top3_brier": 0.169454,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=discounted_harville|cap=on": {
+      "trio_logloss": 7.425681,
+      "top3_brier": 0.169488,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=discounted_harville|cap=off": {
+      "trio_logloss": 7.440129,
+      "top3_brier": 0.169467,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=uniform|cap=on": {
+      "trio_logloss": 7.718241,
+      "top3_brier": 0.169477,
+      "method": "residual_from_payout"
+    },
+    "payout=0.75|shape=uniform|cap=off": {
+      "trio_logloss": 7.718241,
+      "top3_brier": 0.169477,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=harville|cap=on": {
+      "trio_logloss": 7.744544,
+      "top3_brier": 0.171484,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=harville|cap=off": {
+      "trio_logloss": 7.744544,
+      "top3_brier": 0.171484,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=discounted_harville|cap=on": {
+      "trio_logloss": 7.7863,
+      "top3_brier": 0.171491,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=discounted_harville|cap=off": {
+      "trio_logloss": 7.7863,
+      "top3_brier": 0.171491,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=uniform|cap=on": {
+      "trio_logloss": 8.064412,
+      "top3_brier": 0.171485,
+      "method": "residual_from_payout"
+    },
+    "payout=0.775|shape=uniform|cap=off": {
+      "trio_logloss": 8.064412,
+      "top3_brier": 0.171485,
+      "method": "residual_from_payout"
+    }
+  },
+  "status": "evaluated"
 }
