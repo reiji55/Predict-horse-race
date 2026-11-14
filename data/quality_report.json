@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-08T19:49:11+09:00",
-  "week_id": "2026-W45",
+  "generated_at": "2026-11-14T10:45:34+09:00",
+  "week_id": "2026-W46",
   "status": "warning",
   "publish_blocked": false,
   "blocking_reasons": [],
   "summary": {
-    "raw_races": 6,
-    "prediction_races": 6,
+    "raw_races": 3,
+    "prediction_races": 3,
     "critical_races": 0,
-    "warning_races": 5,
+    "warning_races": 2,
     "races_in_this_run": [
-      "20261108-fukushima-11",
-      "20261108-kyoto-11",
-      "20261108-tokyo-11"
+      "20261114-fukushima-11",
+      "20261114-kyoto-11",
+      "20261114-tokyo-11"
     ],
     "selected_this_run": 3,
     "built_this_run": 3,
@@ -20,104 +20,92 @@
     "entry_coverage": {
       "past_runs": 1.0,
       "win_odds": 1.0,
-      "jockey_stats": 0.5978,
+      "jockey_stats": 0.4444,
       "trainer_stats": 1.0
     }
   },
   "collection_report": {
     "requested_dates": [
-      "2026-11-08"
+      "2026-11-14"
     ],
     "selected": [
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608050211"
+        "source_ref": "202608050311"
       },
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605050211"
+        "source_ref": "202605050311"
       },
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "福島",
         "race_no": 11,
-        "source_ref": "202603030211"
+        "source_ref": "202603030311"
       }
     ],
     "built": [
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "京都",
         "race_no": 11,
-        "source_ref": "202608050211",
-        "race_id": "20261108-kyoto-11"
+        "source_ref": "202608050311",
+        "race_id": "20261114-kyoto-11"
       },
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "東京",
         "race_no": 11,
-        "source_ref": "202605050211",
-        "race_id": "20261108-tokyo-11"
+        "source_ref": "202605050311",
+        "race_id": "20261114-tokyo-11"
       },
       {
-        "date": "2026-11-08",
+        "date": "2026-11-14",
         "venue": "福島",
         "race_no": 11,
-        "source_ref": "202603030211",
-        "race_id": "20261108-fukushima-11"
+        "source_ref": "202603030311",
+        "race_id": "20261114-fukushima-11"
       }
     ],
-    "failed": []
+    "failed": [],
+    "leading": {
+      "period": "2026",
+      "jockey_rows": 96,
+      "trainer_rows": 226,
+      "attempts": [
+        {
+          "jockey_rows": 96,
+          "trainer_rows": 226
+        }
+      ],
+      "complete": true,
+      "baseline": {
+        "jockey": null,
+        "trainer": null
+      },
+      "carried_forward": {
+        "jockey": 0,
+        "trainer": 0
+      }
+    }
   },
   "global_issues": [],
   "races": [
     {
-      "race_id": "20261107-fukushima-11",
+      "race_id": "20261114-fukushima-11",
       "venue": "福島",
       "race_no": 11,
-      "name": "キビタキS",
+      "name": "フルーツラインC",
       "status": "warning",
       "raw": {
         "entries": 16,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.5,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 16,
-        "marks_coverage": 1.0,
-        "unscored_runner_nums": [],
-        "extra_mark_nums": [],
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20261107-kyoto-11",
-      "venue": "京都",
-      "race_no": 11,
-      "name": "室町S",
-      "status": "warning",
-      "raw": {
-        "entries": 16,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.625,
+        "jockey_stats_coverage": 0.1875,
         "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
@@ -134,27 +122,32 @@
       "issues": [
         {
           "severity": "warning",
+          "code": "low_jockey_stats_coverage",
+          "message": "騎手成績カバレッジが 19% です"
+        },
+        {
+          "severity": "warning",
           "code": "speed_guard_disabled",
           "message": "speed guard によりスピード指数がレース全体でOFFです"
         }
       ]
     },
     {
-      "race_id": "20261107-tokyo-11",
-      "venue": "東京",
+      "race_id": "20261114-kyoto-11",
+      "venue": "京都",
       "race_no": 11,
-      "name": "京王杯2歳S",
+      "name": "デイリー杯2歳S",
       "status": "warning",
       "raw": {
-        "entries": 10,
+        "entries": 13,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.7,
+        "jockey_stats_coverage": 0.5385,
         "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
       "prediction": {
-        "marks": 10,
+        "marks": 13,
         "marks_coverage": 1.0,
         "unscored_runner_nums": [],
         "extra_mark_nums": [],
@@ -172,48 +165,16 @@
       ]
     },
     {
-      "race_id": "20261108-fukushima-11",
-      "venue": "福島",
+      "race_id": "20261114-tokyo-11",
+      "venue": "東京",
       "race_no": 11,
-      "name": "みちのくS",
-      "status": "warning",
-      "raw": {
-        "entries": 16,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.4375,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 16,
-        "marks_coverage": 1.0,
-        "unscored_runner_nums": [],
-        "extra_mark_nums": [],
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.1875,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
-    },
-    {
-      "race_id": "20261108-kyoto-11",
-      "venue": "京都",
-      "race_no": 11,
-      "name": "みやこS",
+      "name": "武蔵野S",
       "status": "ok",
       "raw": {
         "entries": 16,
         "past_runs_coverage": 1.0,
         "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.75,
+        "jockey_stats_coverage": 0.625,
         "trainer_stats_coverage": 1.0,
         "combo_type_coverage": 1.0
       },
@@ -224,42 +185,10 @@
         "extra_mark_nums": [],
         "cards": 4,
         "speed_used": true,
-        "speed_coverage": 0.875,
+        "speed_coverage": 0.8125,
         "model_id": "win-v1-speed-guard"
       },
       "issues": []
-    },
-    {
-      "race_id": "20261108-tokyo-11",
-      "venue": "東京",
-      "race_no": 11,
-      "name": "アルゼンチン共和国杯",
-      "status": "warning",
-      "raw": {
-        "entries": 18,
-        "past_runs_coverage": 1.0,
-        "win_odds_coverage": 1.0,
-        "jockey_stats_coverage": 0.6111,
-        "trainer_stats_coverage": 1.0,
-        "combo_type_coverage": 1.0
-      },
-      "prediction": {
-        "marks": 18,
-        "marks_coverage": 1.0,
-        "unscored_runner_nums": [],
-        "extra_mark_nums": [],
-        "cards": 4,
-        "speed_used": false,
-        "speed_coverage": 0.0,
-        "model_id": "win-v1-speed-guard"
-      },
-      "issues": [
-        {
-          "severity": "warning",
-          "code": "speed_guard_disabled",
-          "message": "speed guard によりスピード指数がレース全体でOFFです"
-        }
-      ]
     }
   ]
 }
