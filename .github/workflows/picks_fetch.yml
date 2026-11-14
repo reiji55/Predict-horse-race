@@ -1,0 +1,56 @@
+name: 全レースの結果・出馬表の取得（当てやすい3レース用・手動）
+
+# その日の全レースの結果（出ていれば）か出馬表を取り、data/picks/days/ に保存する。
+# アプリの予想パイプラインとは別。計算はここではしない。1レース約4〜8秒。
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: '開催日（YYYY-MM-DD をカンマ区切り）'
+        required: true
+      limit:
+        description: '1日あたり取りに行くレース数の上限（空なら全部）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pedigree-backfill-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: 依存インストール
+        run: pip install -r requirements-dev.txt
+      - name: 取得
+        env:
+          DATES: ${{ github.event.inputs.dates }}
+          LIMIT: ${{ github.event.inputs.limit }}
+        run: |
+          case "$DATES" in *[!0-9,-]*) echo "dates の形式が違います"; exit 1 ;; esac
+          case "$LIMIT" in *[!0-9]*) echo "limit は数字で"; exit 1 ;; esac
+          if [ -n "$LIMIT" ]; then python -m picks.fetch_day --dates "$DATES" --limit "$LIMIT"; else python -m picks.fetch_day --dates "$DATES"; fi
+      - name: コミット
+        if: always()
+        run: |
+          git config user.name "weekend3cards-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/picks/ || exit 0
+          if git diff --cached --quiet; then echo "変更なし"; exit 0; fi
+          git commit -m "data: 全レースの結果・出馬表（picks）"
+          for i in 1 2 3 4; do
+            git push && exit 0
+            sleep $((i * 5))
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          exit 1
