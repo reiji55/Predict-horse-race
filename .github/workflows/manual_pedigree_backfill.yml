@@ -13,12 +13,16 @@ on:
         description: '今回取りに行くレース数（1レース約4秒。200で約15分）'
         required: true
         default: '200'
+      list:
+        description: 'レースIDの一覧（11R = 過去のメインレース、all = 全馬をカバーする一覧）'
+        required: false
+        default: '11R'
 
 permissions:
   contents: write
 
 concurrency:
-  group: pedigree-backfill-${{ github.ref }}
+  group: pedigree-races-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -41,11 +45,16 @@ jobs:
       - name: 血統の取り込み
         env:
           LIMIT: ${{ github.event.inputs.limit || '200' }}
+          LIST: ${{ github.event.inputs.list || '11R' }}
         run: |
           case "$LIMIT" in
             ''|*[!0-9]*) echo "limit は数字で指定してください: $LIMIT"; exit 1 ;;
           esac
-          python -m scripts.backfill_pedigree_races --race-ids data/pedigree/backfill_race_ids_11R.txt --limit "$LIMIT"
+          case "$LIST" in
+            11R|all) ;;
+            *) echo "list は 11R か all: $LIST"; exit 1 ;;
+          esac
+          python -m scripts.backfill_pedigree_races --race-ids "data/pedigree/backfill_race_ids_${LIST}.txt" --limit "$LIMIT"
 
       - name: 取り込んだ血統をコミット
         if: always()
