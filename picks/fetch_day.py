@@ -83,12 +83,24 @@ def parse_result_page(html: str, race_id: str) -> dict[str, Any] | None:
     }
 
 
+def result_is_final(got: dict[str, Any]) -> bool:
+    """確定した結果ページか。レース直後の速報（上位5頭だけ・タイムもラップも無い）は確定扱いにしない。
+
+    速報を「結果」として保存すると、次回から取り直さないので、5頭だけのレースが残ってしまう
+    （2026-11-14 京都12R、11-15 京都11R・福島7R・福島11R で起きた）。
+    確定の条件：ラップか通過順の表があり、走破タイムの入った行が（頭数−3）以上ある。
+    """
+    rows = got.get("rows") or []
+    timed = sum(1 for r in rows if len(r["cells"]) > 7 and r["cells"][7].strip())
+    return bool(got.get("tables")) and timed >= max(1, len(rows) - 3)
+
+
 def fetch_race(race_id: str) -> dict[str, Any] | None:
     resp = http_get(RESULT_URL.format(race_id=race_id))
     if resp is not None:
         resp.encoding = resp.apparent_encoding or resp.encoding
         got = parse_result_page(resp.text, race_id)
-        if got is not None and any(r["cells"][0].isdigit() for r in got["rows"]):
+        if got is not None and any(r["cells"][0].isdigit() for r in got["rows"]) and result_is_final(got):
             return got
     resp = http_get(b_shutuba.SHUTUBA_URL_TMPL.format(race_id=race_id))
     if resp is None:
@@ -116,7 +128,7 @@ def run(dates: list[str], limit: int | None) -> dict[str, Any]:
         ids = [e.source_ref for e in entries if e.source_ref]
         day["list"] = {e.source_ref: {"venue": e.venue, "race_no": e.race_no, "name": e.name, "post_time": e.post_time,
                                       "surface": e.surface, "dist": e.dist, "heads": e.heads} for e in entries if e.source_ref}
-        todo = [r for r in ids if day["races"].get(r, {}).get("status") != "result"]
+        todo = [r for r in ids if not (day["races"].get(r, {}).get("status") == "result" and result_is_final(day["races"][r]))]
         if limit:
             todo = todo[:limit]
         n = {"listed": len(ids), "result": 0, "entry": 0, "failed": 0}
