@@ -1,0 +1,595 @@
+{
+  "schema": "shadow-prerace-v1",
+  "race_id": "20261115-fukushima-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-11-15T12:54:48+09:00",
+  "post_time": "15:11",
+  "minutes_to_post": 136.2,
+  "provenance": {
+    "git_commit": "8db81cfe1bacdb9a0d7f919ad8d697211a5bdcac",
+    "research_version": "shadow-research-v1",
+    "research_config_hash": "62eec6e8bfab8cf795864ab98d112f29db2485587ac503addd7fe15c6f3422dc",
+    "registered_at": "2026-09-27T00:00:00+09:00",
+    "experiments": {
+      "calibration": "calibration-monitor-v1",
+      "chappy_shadow": "chappy-shadow-v1",
+      "diversity": "diversity-monitor-v1",
+      "rank_gap": "rank-gap-v1"
+    },
+    "snapshot": {
+      "path": "data/snapshots/20261115-fukushima-11.json",
+      "sha256": "85fe4185cda41c8d1e2535f33f52cd5eb9109273da5179fae964595fb2d11216",
+      "frozen_at": "2026-11-15T12:54:46+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "ab7d639c51b21e3a"
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      13,
+      1,
+      14,
+      3,
+      5,
+      7,
+      6,
+      8,
+      9,
+      4,
+      12,
+      11,
+      2,
+      10,
+      15
+    ],
+    "snapshot_order": [
+      13,
+      1,
+      14,
+      3,
+      5,
+      7,
+      6,
+      8,
+      9,
+      4,
+      12,
+      11,
+      2,
+      10,
+      15
+    ]
+  },
+  "calibration_inputs": {
+    "temperature_current": 10,
+    "score_source": "prerace_full_precision",
+    "horses": [
+      {
+        "num": 1,
+        "score": 82.72040347691316,
+        "odds": 4.8
+      },
+      {
+        "num": 2,
+        "score": 62.78807971912504,
+        "odds": 11.6
+      },
+      {
+        "num": 3,
+        "score": 75.18031434974517,
+        "odds": 24.5
+      },
+      {
+        "num": 4,
+        "score": 67.04918612251069,
+        "odds": 11.9
+      },
+      {
+        "num": 5,
+        "score": 73.16471433182117,
+        "odds": 15.6
+      },
+      {
+        "num": 6,
+        "score": 72.3225142075539,
+        "odds": 6.5
+      },
+      {
+        "num": 7,
+        "score": 72.48590123435754,
+        "odds": 6.3
+      },
+      {
+        "num": 8,
+        "score": 70.08421662440142,
+        "odds": 23.6
+      },
+      {
+        "num": 9,
+        "score": 68.02169146161188,
+        "odds": 24.5
+      },
+      {
+        "num": 10,
+        "score": 56.4430195396587,
+        "odds": 40.1
+      },
+      {
+        "num": 11,
+        "score": 63.08297043310083,
+        "odds": 35.3
+      },
+      {
+        "num": 12,
+        "score": 66.63861694483599,
+        "odds": 18.6
+      },
+      {
+        "num": 13,
+        "score": 83.60102467499694,
+        "odds": 8.2
+      },
+      {
+        "num": 14,
+        "score": 82.21242614061218,
+        "odds": 8.0
+      },
+      {
+        "num": 15,
+        "score": 54.20492073875535,
+        "odds": 39.0
+      }
+    ]
+  },
+  "diversity": {
+    "sel_orders": {
+      "kei": [
+        {
+          "num": 13,
+          "sel": 1.0
+        },
+        {
+          "num": 14,
+          "sel": 0.928571
+        },
+        {
+          "num": 3,
+          "sel": 0.796429
+        },
+        {
+          "num": 1,
+          "sel": 0.792857
+        },
+        {
+          "num": 5,
+          "sel": 0.653571
+        },
+        {
+          "num": 6,
+          "sel": 0.617857
+        },
+        {
+          "num": 8,
+          "sel": 0.542857
+        },
+        {
+          "num": 7,
+          "sel": 0.485714
+        },
+        {
+          "num": 9,
+          "sel": 0.460714
+        },
+        {
+          "num": 12,
+          "sel": 0.357143
+        },
+        {
+          "num": 4,
+          "sel": 0.275
+        },
+        {
+          "num": 11,
+          "sel": 0.267857
+        },
+        {
+          "num": 2,
+          "sel": 0.142857
+        },
+        {
+          "num": 10,
+          "sel": 0.135714
+        },
+        {
+          "num": 15,
+          "sel": 0.042857
+        }
+      ],
+      "tetsu": [
+        {
+          "num": 13,
+          "sel": 1.0
+        },
+        {
+          "num": 14,
+          "sel": 0.885714
+        },
+        {
+          "num": 3,
+          "sel": 0.814286
+        },
+        {
+          "num": 1,
+          "sel": 0.785714
+        },
+        {
+          "num": 5,
+          "sel": 0.714286
+        },
+        {
+          "num": 8,
+          "sel": 0.614286
+        },
+        {
+          "num": 9,
+          "sel": 0.514286
+        },
+        {
+          "num": 7,
+          "sel": 0.385714
+        },
+        {
+          "num": 6,
+          "sel": 0.371429
+        },
+        {
+          "num": 11,
+          "sel": 0.328571
+        },
+        {
+          "num": 12,
+          "sel": 0.314286
+        },
+        {
+          "num": 4,
+          "sel": 0.3
+        },
+        {
+          "num": 10,
+          "sel": 0.214286
+        },
+        {
+          "num": 2,
+          "sel": 0.142857
+        },
+        {
+          "num": 15,
+          "sel": 0.114286
+        }
+      ],
+      "gen": [
+        {
+          "num": 13,
+          "sel": 1.0
+        },
+        {
+          "num": 3,
+          "sel": 0.839286
+        },
+        {
+          "num": 5,
+          "sel": 0.821429
+        },
+        {
+          "num": 14,
+          "sel": 0.803571
+        },
+        {
+          "num": 9,
+          "sel": 0.660714
+        },
+        {
+          "num": 1,
+          "sel": 0.607143
+        },
+        {
+          "num": 8,
+          "sel": 0.589286
+        },
+        {
+          "num": 7,
+          "sel": 0.464286
+        },
+        {
+          "num": 11,
+          "sel": 0.464286
+        },
+        {
+          "num": 12,
+          "sel": 0.375
+        },
+        {
+          "num": 4,
+          "sel": 0.303571
+        },
+        {
+          "num": 6,
+          "sel": 0.214286
+        },
+        {
+          "num": 2,
+          "sel": 0.178571
+        },
+        {
+          "num": 10,
+          "sel": 0.178571
+        },
+        {
+          "num": 15,
+          "sel": 0.0
+        }
+      ]
+    }
+  },
+  "rank_gap": {
+    "definition": {
+      "max_base_rank": 5,
+      "min_market_rank": 6,
+      "expected_method": "harville_top3_from_win_q"
+    },
+    "field_size": 15,
+    "priced_horses": 15,
+    "horses": [
+      {
+        "num": 3,
+        "name": "レヴォントゥレット",
+        "base_rank": 4,
+        "market_rank": 11,
+        "win_odds": 24.5,
+        "q": 0.032423,
+        "market_top3_prob": 0.104943
+      },
+      {
+        "num": 5,
+        "name": "シンビリーブ",
+        "base_rank": 5,
+        "market_rank": 8,
+        "win_odds": 15.6,
+        "q": 0.05092,
+        "market_top3_prob": 0.161455
+      }
+    ]
+  },
+  "chappy_shadow": {
+    "chappy_version": "chappy-signal-v1",
+    "variants": {
+      "current_auto": {
+        "roles": {
+          "win_anchor": 13,
+          "support": 1,
+          "top3_edge": 9,
+          "long_edge": 5
+        },
+        "bets": [
+          {
+            "type": "ワイド",
+            "horses": [
+              13,
+              9
+            ],
+            "amt": 200
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              13,
+              1
+            ],
+            "amt": 100
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              1,
+              9
+            ],
+            "amt": 100
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              13,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "馬連",
+            "horses": [
+              13,
+              1
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              13,
+              1,
+              9
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              13,
+              9,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              1,
+              9,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              13,
+              1,
+              5
+            ],
+            "amt": 100
+          }
+        ],
+        "source": "snapshot_card",
+        "horses": [
+          1,
+          5,
+          9,
+          13
+        ],
+        "total": 1000,
+        "anchor_stake_share": 0.8
+      },
+      "integrated_top4_same_pattern": {
+        "roles": {
+          "win_anchor": 14,
+          "support": 1,
+          "top3_edge": 9,
+          "long_edge": 5
+        },
+        "ranked": [
+          {
+            "num": 14,
+            "integrated": 0.841244
+          },
+          {
+            "num": 1,
+            "integrated": 0.821987
+          },
+          {
+            "num": 9,
+            "integrated": 0.774876
+          },
+          {
+            "num": 5,
+            "integrated": 0.73424
+          },
+          {
+            "num": 6,
+            "integrated": 0.676187
+          },
+          {
+            "num": 13,
+            "integrated": 0.671644
+          }
+        ],
+        "bets": [
+          {
+            "type": "ワイド",
+            "horses": [
+              14,
+              9
+            ],
+            "amt": 200
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              14,
+              1
+            ],
+            "amt": 100
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              1,
+              9
+            ],
+            "amt": 100
+          },
+          {
+            "type": "ワイド",
+            "horses": [
+              14,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "馬連",
+            "horses": [
+              14,
+              1
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              14,
+              1,
+              9
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              14,
+              9,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              1,
+              9,
+              5
+            ],
+            "amt": 100
+          },
+          {
+            "type": "3連複",
+            "horses": [
+              14,
+              1,
+              5
+            ],
+            "amt": 100
+          }
+        ],
+        "source": "signal_board",
+        "horses": [
+          1,
+          5,
+          9,
+          14
+        ],
+        "total": 1000,
+        "anchor_stake_share": 0.8
+      }
+    }
+  }
+}
