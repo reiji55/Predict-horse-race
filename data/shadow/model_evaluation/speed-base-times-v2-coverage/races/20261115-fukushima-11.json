@@ -1,0 +1,556 @@
+{
+  "schema": "model-eval-race-v1",
+  "race_id": "20261115-fukushima-11",
+  "post_time": "15:11",
+  "official_results_untouched": true,
+  "used_for_prediction": false,
+  "evaluation_version": "speed-v2-forward-eval-v2",
+  "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+  "status": "evaluated",
+  "phase": "forward",
+  "frozen_at": "2026-11-15T12:54:46+09:00",
+  "config_hash": "097972c4afa00737",
+  "top3": [
+    7,
+    15,
+    4
+  ],
+  "sel_orders_paired": true,
+  "probability": {
+    "score_source": "capture_full_precision",
+    "temperature": 10.0,
+    "temperature_source": "capture",
+    "evaluation_set": {
+      "field_size": 15,
+      "scored_horses": 15,
+      "coverage": 1.0
+    },
+    "winner": 7,
+    "models": {
+      "champion": {
+        "log_loss": 2.804914,
+        "brier": 0.991904,
+        "p_winner": 0.060512
+      },
+      "challenger": {
+        "log_loss": 2.850631,
+        "brier": 0.999694,
+        "p_winner": 0.057808
+      }
+    },
+    "market": {
+      "status": "available",
+      "log_loss": 2.070772,
+      "brier": 0.843399,
+      "p_winner": 0.126088
+    },
+    "horses": [
+      {
+        "num": 1,
+        "y": 0,
+        "p_champion": 0.168391,
+        "p_challenger": 0.160157,
+        "p_q_market": 0.165491
+      },
+      {
+        "num": 2,
+        "y": 0,
+        "p_champion": 0.022944,
+        "p_challenger": 0.022653,
+        "p_q_market": 0.068479
+      },
+      {
+        "num": 3,
+        "y": 0,
+        "p_champion": 0.079224,
+        "p_challenger": 0.086448,
+        "p_q_market": 0.032423
+      },
+      {
+        "num": 4,
+        "y": 0,
+        "p_champion": 0.035134,
+        "p_challenger": 0.041869,
+        "p_q_market": 0.066753
+      },
+      {
+        "num": 5,
+        "y": 0,
+        "p_champion": 0.064762,
+        "p_challenger": 0.060761,
+        "p_q_market": 0.05092
+      },
+      {
+        "num": 6,
+        "y": 0,
+        "p_champion": 0.059531,
+        "p_challenger": 0.056016,
+        "p_q_market": 0.122209
+      },
+      {
+        "num": 7,
+        "y": 1,
+        "p_champion": 0.060512,
+        "p_challenger": 0.057808,
+        "p_q_market": 0.126088
+      },
+      {
+        "num": 8,
+        "y": 0,
+        "p_champion": 0.047592,
+        "p_challenger": 0.045761,
+        "p_q_market": 0.033659
+      },
+      {
+        "num": 9,
+        "y": 0,
+        "p_champion": 0.038722,
+        "p_challenger": 0.037059,
+        "p_q_market": 0.032423
+      },
+      {
+        "num": 10,
+        "y": 0,
+        "p_champion": 0.012165,
+        "p_challenger": 0.011926,
+        "p_q_market": 0.019809
+      },
+      {
+        "num": 11,
+        "y": 0,
+        "p_champion": 0.023631,
+        "p_challenger": 0.023613,
+        "p_q_market": 0.022503
+      },
+      {
+        "num": 12,
+        "y": 0,
+        "p_champion": 0.033721,
+        "p_challenger": 0.032116,
+        "p_q_market": 0.042707
+      },
+      {
+        "num": 13,
+        "y": 0,
+        "p_champion": 0.183893,
+        "p_challenger": 0.206177,
+        "p_q_market": 0.096873
+      },
+      {
+        "num": 14,
+        "y": 0,
+        "p_champion": 0.160051,
+        "p_challenger": 0.148158,
+        "p_q_market": 0.099295
+      },
+      {
+        "num": 15,
+        "y": 0,
+        "p_champion": 0.009725,
+        "p_challenger": 0.009478,
+        "p_q_market": 0.020368
+      }
+    ],
+    "status": "evaluated"
+  },
+  "models": {
+    "champion": {
+      "model_id": "win-v1-speed-guard",
+      "snapshot": {
+        "path": "data/snapshots/20261115-fukushima-11.json",
+        "sha256": "85fe4185cda41c8d1e2535f33f52cd5eb9109273da5179fae964595fb2d11216",
+        "frozen_at": "2026-11-15T12:54:46+09:00",
+        "base_times_hash": "ab7d639c51b21e3a",
+        "base_times_ref": null
+      },
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "ranking": {
+        "order_recall": {
+          "base": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          },
+          "top3": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          },
+          "kei_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          },
+          "tetsu_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          },
+          "gen_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          }
+        },
+        "card_selection_recall": {
+          "kei": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          },
+          "tetsu": {
+            "status": "available",
+            "selected_horses": [
+              1,
+              3,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          },
+          "gen": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              5,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          }
+        }
+      },
+      "speed_quality": {
+        "surface": "ダ",
+        "status": "available",
+        "used": true,
+        "qualified_horses": 15,
+        "total_horses": 15,
+        "coverage": 1.0,
+        "raw_available_horses": 15,
+        "reason": "ok"
+      },
+      "diversity": {
+        "active_chars": [
+          "kei",
+          "tetsu",
+          "gen"
+        ],
+        "passed_chars": [],
+        "missing_chars": [],
+        "axis_source": "ticket_template_index0",
+        "axes": {
+          "kei": 13,
+          "tetsu": 13,
+          "gen": 13
+        },
+        "axis_counts": {
+          "13": 3
+        },
+        "max_axis_agreement": 3,
+        "axis_all_same": true,
+        "dominant_axis": 13,
+        "dominant_axis_exposure_yen": 1400,
+        "total_stake_yen": 1500,
+        "dominant_axis_exposure_ratio": 0.9333,
+        "pairwise_rank_spearman": {
+          "kei-tetsu": 0.960714,
+          "kei-gen": 0.867857,
+          "tetsu-gen": 0.942857
+        },
+        "bet_horse_jaccard": {
+          "kei-tetsu": 0.75,
+          "kei-gen": 0.75,
+          "tetsu-gen": 0.6
+        },
+        "redundant_pairs": [
+          "kei-tetsu",
+          "kei-gen",
+          "tetsu-gen"
+        ],
+        "redundancy_flag": true
+      },
+      "secondary": {
+        "status": "evaluated",
+        "fixed_three": {
+          "kei": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "tetsu": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "gen": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          }
+        },
+        "auto_chappy": {
+          "char": "chappy",
+          "status": "bet",
+          "hit": false,
+          "spent": 1000,
+          "payout": 0
+        },
+        "conversion": {
+          "kei": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "tetsu": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "gen": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          }
+        },
+        "winning_coverage": {
+          "wide_pairs_covered": 0,
+          "wide_pairs_total": 3,
+          "umaren_covered": false,
+          "trio_covered": false
+        }
+      }
+    },
+    "challenger": {
+      "model_id": "speed-base-times-v2-coverage",
+      "snapshot": {
+        "path": "data/challengers/speed-base-times-v2-coverage/snapshots/20261115-fukushima-11.json",
+        "sha256": "b4a7e3ec08519fbec41d3fef73b3cf538ea1afae923a61b569a8c0b2e126122a",
+        "frozen_at": "2026-11-15T12:54:46+09:00",
+        "base_times_hash": "4174dc69c392cc30",
+        "base_times_ref": {
+          "artifact_id": "base-times-v2-coverage-20260928-r2",
+          "lookup_file": "data/reference/base_times/base-times-v2-coverage-20260928-r2.json",
+          "lookup_sha256": "e671fd8ab3a2785fa63a7ea53248e5d8ecde404ee8071b1fef713dda64d98b9f",
+          "cutoff_date": "2026-09-27",
+          "meta_content_sha256": "58834c0e30e7bb3ac7944696eb629f190dafabbd1a42d490d3bb651f78f7a5fa",
+          "method_version": "v1-median-class-offset",
+          "file_hash": "4174dc69c392cc30"
+        }
+      },
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "ranking": {
+        "order_recall": {
+          "base": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          },
+          "top3": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.3333,
+            "count6": 1
+          },
+          "kei_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          },
+          "tetsu_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          },
+          "gen_sel": {
+            "status": "available",
+            "denominator": 3,
+            "at4": 0.0,
+            "count4": 0,
+            "at6": 0.0,
+            "count6": 0
+          }
+        },
+        "card_selection_recall": {
+          "kei": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          },
+          "tetsu": {
+            "status": "available",
+            "selected_horses": [
+              1,
+              3,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          },
+          "gen": {
+            "status": "available",
+            "selected_horses": [
+              3,
+              5,
+              13,
+              14
+            ],
+            "count": 0,
+            "recall": 0.0
+          }
+        }
+      },
+      "speed_quality": {
+        "surface": "ダ",
+        "status": "available",
+        "used": true,
+        "qualified_horses": 15,
+        "total_horses": 15,
+        "coverage": 1.0,
+        "raw_available_horses": 15,
+        "reason": "ok"
+      },
+      "diversity": {
+        "active_chars": [
+          "kei",
+          "tetsu",
+          "gen"
+        ],
+        "passed_chars": [],
+        "missing_chars": [],
+        "axis_source": "ticket_template_index0",
+        "axes": {
+          "kei": 13,
+          "tetsu": 13,
+          "gen": 13
+        },
+        "axis_counts": {
+          "13": 3
+        },
+        "max_axis_agreement": 3,
+        "axis_all_same": true,
+        "dominant_axis": 13,
+        "dominant_axis_exposure_yen": 1400,
+        "total_stake_yen": 1500,
+        "dominant_axis_exposure_ratio": 0.9333,
+        "pairwise_rank_spearman": {
+          "kei-tetsu": 0.960714,
+          "kei-gen": 0.864286,
+          "tetsu-gen": 0.939286
+        },
+        "bet_horse_jaccard": {
+          "kei-tetsu": 0.75,
+          "kei-gen": 0.75,
+          "tetsu-gen": 0.6
+        },
+        "redundant_pairs": [
+          "kei-tetsu",
+          "kei-gen",
+          "tetsu-gen"
+        ],
+        "redundancy_flag": true
+      },
+      "secondary": {
+        "status": "evaluated",
+        "fixed_three": {
+          "kei": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "tetsu": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          },
+          "gen": {
+            "status": "bet",
+            "hit": false,
+            "spent": 500,
+            "payout": 0
+          }
+        },
+        "auto_chappy": {
+          "char": "otori",
+          "status": "bet",
+          "hit": false,
+          "spent": 1000,
+          "payout": 0
+        },
+        "conversion": {
+          "kei": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "tetsu": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          },
+          "gen": {
+            "actual_top3_selected_count": 0,
+            "winning_pair_present_but_not_ticketed": false,
+            "winning_trio_selected_but_not_ticketed": false
+          }
+        },
+        "winning_coverage": {
+          "wide_pairs_covered": 0,
+          "wide_pairs_total": 3,
+          "umaren_covered": false,
+          "trio_covered": false
+        }
+      }
+    }
+  }
+}
