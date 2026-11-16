@@ -29,7 +29,12 @@ jobs:
   backfill:
     runs-on: ubuntu-latest
     steps:
+      # 起動を順番待ちしたとき、投げた時点ではなく走り出した時点のブランチの先頭から始める。
+      # 既定の checkout は投げた時点のコミットを取るので、前の回が取った分をやり直したうえ、
+      # 最後のコミットが前の回とぶつかって保存できなかった（2026-11-15 の2本目）。
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:
