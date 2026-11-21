@@ -9,6 +9,7 @@ import json
 import os
 
 MODELS = '/home/claude/keiba_lab/models'
+os.makedirs(MODELS, exist_ok=True)
 FAST = os.environ.get('FAST') == '1'
 SAMEDAY = os.environ.get('SAMEDAY') == '1'
 _PRE = ['horse_weight', 'weight_change', 'horse_weight_rk', 'day_style_adv', 'day_gate_adv', 'day_n',

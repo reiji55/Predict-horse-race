@@ -98,8 +98,12 @@ for c in ('opp_wins_since', 'opp_top3_since'):
 
 new = ['fig_last', 'fig_mean3', 'fig_best5', 'fig_best_surf', 'fig_best_band', 'fig_trend', 'variant',
        'opp_wins_since', 'opp_top3_since', 'lvl_now', 'lvl_then', 'lvl_gain']
+keep_new = runs[['race_id', 'horse_number'] + new].copy()        # メモリが足りない（8GBの環境）ので、途中の表を消してから読む
+del runs, h, g, gs, gb, sh, shs, shb, pairs, hist, cur, top5, F2, agg
+import gc
+gc.collect()
 F = pd.read_parquet(f'{D}/features_v2.parquet')
-F = F.merge(runs[['race_id', 'horse_number'] + new].rename(columns={'variant': 'today_variant_unused'}),
+F = F.merge(keep_new.rename(columns={'variant': 'today_variant_unused'}),
             on=['race_id', 'horse_number'], how='left')
 F = F.drop(columns=['today_variant_unused'])            # today's variant uses today's results -> never a feature
 gp = F.groupby('race_id')

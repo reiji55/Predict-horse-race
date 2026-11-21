@@ -17,6 +17,9 @@ DROP = {'race_id', 'horse_number', 'date', 'year', 'start_min', 'venue_name', 's
 def load_features(path=f'{D}/features.parquet', min_year=2011):
     F = pd.read_parquet(path)
     F = F[~F.dead_heat_win & (F.year >= min_year)].copy()
+    # 8GBの環境ではメモリが足りないので小数は32ビットにする（式には元から32ビットで渡している）
+    f64 = [c for c in F.columns if F[c].dtype == np.float64]
+    F[f64] = F[f64].astype(np.float32)
     F = F.sort_values(['date', 'start_min', 'race_id', 'horse_number']).reset_index(drop=True)
     F['log_pi'] = np.log(F.mkt_p)
     F['pi_rank'] = F.groupby('race_id').mkt_p.rank(ascending=False, pct=True)

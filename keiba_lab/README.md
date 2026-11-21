@@ -72,3 +72,51 @@ printf '/data/warehouse/\n' > .git/info/sparse-checkout && git checkout HEAD
 ## 注意
 - オッズは確定オッズ。発走前に買う場合は優位が縮む可能性が高い。
 - 組み合わせ馬券のオッズ表は無い（当たった組み合わせの払戻だけ）。
+
+
+## 2026-11 の運用（3連複「買うレース」）と、作り直し方
+
+2026-11-21 に環境ごと消えたため、11/14 のzipと会話の記録から戻した。以後はこのブランチ（`lab/keiba-lab`）に保存する。
+
+### 準備（新しい環境で1回）
+```bash
+pip install --break-system-packages "pandas==2.2.3" pyarrow lightgbm catboost scipy
+# 元データ（公開リポジトリ iinumac/keiba_core、2010-01〜2026-10-04）
+git clone --filter=blob:none --no-checkout https://github.com/iinumac/keiba_core /home/claude/src_data/keiba_core
+cd /home/claude/src_data/keiba_core && git sparse-checkout init --no-cone \
+  && printf '/data/warehouse/\n' > .git/info/sparse-checkout && git checkout HEAD
+python3 - <<'PY'
+import glob, pandas as pd
+W='/home/claude/src_data/keiba_core/data/warehouse'; D='/home/claude/keiba_lab/data'
+for t in ['races','results','payouts','odds']:
+    pd.concat([pd.read_parquet(f) for f in sorted(glob.glob(f'{W}/{t}/year=*/*.parquet'))], ignore_index=True).to_parquet(f'{D}/{t}.parquet')
+PY
+# 2026-10-05 以降のレース（アプリの作業用ブランチ claude/all-race-picks などの data/picks）
+mkdir -p /home/claude/picks_data && git -C /home/claude/predict-horse-race archive origin/claude/all-race-picks data/picks | tar -x -C /home/claude/picks_data
+```
+`picks_ingest.py` が読む場所は環境変数 `PICKS_DIR`（既定 `/home/claude/picks_data/data/picks`）。
+
+### 毎週の計算
+| 手順 | 中身 |
+|---|---|
+| `bash src/run_picks.sh train` | 取ったレースを足し、材料を全部作り直し、本命の式（前日版の5本）を作って `models/` に保存。約1時間半 |
+| `bash src/run_picks.sh` | 保存した式で見立てだけ出す（毎週・当日朝。約20分） |
+| 出力 | `share/picks_{日付}.md`（見立て50%以上のレースの3連複5点、消せる馬、全レースの一覧） |
+
+### 11/14〜15 に足したスクリプト
+| スクリプト | 内容 |
+|---|---|
+| `picks_ingest.py` | 取ったレースを keiba_core の形にして races / results に足す（11/21 に書き直し） |
+| `pre_lib.py` | 前日版（前の晩に分からない材料を外す）の決めごと、式の保存と読み込み（`FAST=1`） |
+| `picks_select.py` | 5本の平均 → 3連複の同時確率 → 見立て50%以上のレースを選ぶ（`PICK_RULE`, `PICK_TAGS`） |
+| `new_feats11.py` | 実績比較の材料：週ごとのまとめ解きの力、1走ごとの値打ち、直接対決の着差、今日と同じ馬場での走り |
+| `new_feats12.py` | 騎手の上のクラスでの成績、連続好走、世代、同じ条件での直近の勝ち（採用せず） |
+| `eval_trio.py` / `cmp_exp.py` | 3連複5点・1日3レースの成績／2組の式のクラス別比較 |
+| `run_exp11.sh` / `run_exp13.sh` / `run_exp14.sh` | 材料の効き目の実験 |
+
+### 8GBの環境での変更（11/21）
+`features.py` は表を5万行ごとに作り、`speed_level.py` は途中の表を消してから最後の結合をし、`models_lib.load_features` は小数を32ビットで読む。
+式に渡す値は元から32ビットなので、式の作り方は変わらない。
+
+### 戻せなかったもの
+`new_feats10.py`（当日の馬場傾向）と `trio_boost.py`（3連複の補正の試し）。どちらも採用していない。

@@ -75,6 +75,7 @@ JOCKEY_SHORT = Decayed(90)
 DAY = defaultdict(list)
 
 rows = []
+chunks = []
 race_groups = runs.groupby('race_id', sort=False)
 n_races = runs.race_id.nunique()
 for ri, (rid, g) in enumerate(race_groups):
@@ -239,8 +240,13 @@ for ri, (rid, g) in enumerate(race_groups):
         OWNER.add(row.owner_id, now, vec)
         JOCKEY_SHORT.add(row.jockey_id, now, vec)
     rows.extend(feats)
+    if len(rows) >= 50000:                     # 辞書のまま全部ためるとメモリが足りない（8GBの環境）ので、5万行ごとに表にする
+        chunks.append(pd.DataFrame(rows))
+        rows = []
 
-F = pd.DataFrame(rows)
+chunks.append(pd.DataFrame(rows))
+F = pd.concat(chunks, ignore_index=True)
+del chunks, rows
 base = runs[['race_id', 'horse_number', 'date', 'year', 'race_num', 'start_min', 'venue_name', 'surf', 'distance', 'cond',
              'cls', 'handicap', 'female_only', 'listed', 'month', 'field', 'gate_number', 'sex', 'age', 'impost',
              'horse_weight', 'weight_change', 'jockey_id', 'trainer_id', 'finish', 'completed', 'odds', 'popularity',
