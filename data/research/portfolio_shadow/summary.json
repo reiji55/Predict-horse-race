@@ -1,8 +1,8 @@
 {
   "schema": "portfolio-shadow-summary-v1",
   "version": "portfolio-shadow-v1",
-  "generated_at": "2026-11-16T02:14:47+09:00",
-  "as_of": "2026-11-16",
+  "generated_at": "2026-11-22T02:36:51+09:00",
+  "as_of": "2026-11-22",
   "as_of_mode": "live",
   "used_for_prediction": false,
   "official_results_untouched": true,
@@ -15,9 +15,9 @@
   "status": "collecting",
   "warnings": [],
   "errors": [],
-  "races": 47,
-  "eligible": 22,
-  "evaluated": 18,
+  "races": 49,
+  "eligible": 24,
+  "evaluated": 20,
   "pending_result": [],
   "excluded": {
     "dead_heat_top3": [
@@ -30,9 +30,9 @@
     ]
   },
   "decision": {
-    "counted_races": 19,
+    "counted_races": 21,
     "reached": {},
-    "resolved_through": "20261115",
+    "resolved_through": "20261121",
     "unresolved_days": [],
     "checkpoints": {},
     "status": "collecting"
@@ -43,10 +43,10 @@
   "late_correction": [],
   "live_dependency_changed": [],
   "to_date": {
-    "races_in_window": 22,
-    "evaluated": 18,
-    "primary_races": 18,
-    "n_day": 7,
+    "races_in_window": 24,
+    "evaluated": 20,
+    "primary_races": 20,
+    "n_day": 8,
     "pending_result": [],
     "excluded_by_result_contract": [
       "20261025-niigata-11",
@@ -56,21 +56,21 @@
     ],
     "strategies": {
       "top_prob": {
-        "races": 18,
+        "races": 20,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": -0.017958,
-        "C_with_variant_min": -0.007507,
-        "C_with_variant_max": -0.022909,
-        "mean_p_hit": 0.184625,
-        "hit_rate": 0.166667,
+        "C": -0.031517,
+        "C_with_variant_min": -0.0216,
+        "C_with_variant_max": -0.036484,
+        "mean_p_hit": 0.181517,
+        "hit_rate": 0.15,
         "hits": 3,
-        "mean_variant_width": 0.015401,
+        "mean_variant_width": 0.014885,
         "diagnostics": {
-          "brier": 0.139192,
-          "log_score": 0.446848,
+          "brier": 0.127644,
+          "log_score": 0.418842,
           "reliability_bins": [
             {
               "p_range": [
@@ -86,9 +86,9 @@
                 0.1,
                 0.2
               ],
-              "n": 9,
-              "mean_p": 0.160959,
-              "hit_rate": 0.222222
+              "n": 11,
+              "mean_p": 0.159612,
+              "hit_rate": 0.181818
             },
             {
               "p_range": [
@@ -116,30 +116,30 @@
           "mean_p_hit_given_x_out": 0.012614
         },
         "return": {
-          "races_payout_known": 18,
+          "races_payout_known": 20,
           "races_payout_unknown": [],
-          "stake": 9000,
+          "stake": 10000,
           "payout": 7490,
-          "roi": 0.832222,
-          "payout_sd": 934.868612
+          "roi": 0.749,
+          "payout_sd": 895.636506
         }
       },
       "x_out_2": {
-        "races": 18,
+        "races": 20,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": -0.053719,
-        "C_with_variant_min": -0.044187,
-        "C_with_variant_max": -0.058135,
-        "mean_p_hit": 0.16483,
-        "hit_rate": 0.111111,
+        "C": -0.061841,
+        "C_with_variant_min": -0.052812,
+        "C_with_variant_max": -0.066266,
+        "mean_p_hit": 0.161841,
+        "hit_rate": 0.1,
         "hits": 2,
-        "mean_variant_width": 0.013949,
+        "mean_variant_width": 0.013453,
         "diagnostics": {
-          "brier": 0.109627,
-          "log_score": 0.383204,
+          "brier": 0.100512,
+          "log_score": 0.359397,
           "reliability_bins": [
             {
               "p_range": [
@@ -155,9 +155,9 @@
                 0.1,
                 0.2
               ],
-              "n": 11,
-              "mean_p": 0.150429,
-              "hit_rate": 0.181818
+              "n": 13,
+              "mean_p": 0.148047,
+              "hit_rate": 0.153846
             },
             {
               "p_range": [
@@ -185,30 +185,30 @@
           "mean_p_hit_given_x_out": 0.086863
         },
         "return": {
-          "races_payout_known": 18,
+          "races_payout_known": 20,
           "races_payout_unknown": [],
-          "stake": 9000,
+          "stake": 10000,
           "payout": 9090,
-          "roi": 1.01,
-          "payout_sd": 1629.854288
+          "roi": 0.909,
+          "payout_sd": 1553.619886
         }
       },
       "exposure_cap_3": {
-        "races": 18,
+        "races": 20,
         "excluded": {
           "not_proven_optimal": [],
           "infeasible": []
         },
-        "C": -0.090942,
-        "C_with_variant_min": -0.082489,
-        "C_with_variant_max": -0.094862,
-        "mean_p_hit": 0.146498,
-        "hit_rate": 0.055556,
-        "hits": 1,
-        "mean_variant_width": 0.012373,
+        "C": -0.044403,
+        "C_with_variant_min": -0.036377,
+        "C_with_variant_max": -0.048349,
+        "mean_p_hit": 0.144403,
+        "hit_rate": 0.1,
+        "hits": 2,
+        "mean_variant_width": 0.011973,
         "diagnostics": {
-          "brier": 0.06416,
-          "log_score": 0.262803,
+          "brier": 0.095529,
+          "log_score": 0.34152,
           "reliability_bins": [
             {
               "p_range": [
@@ -224,9 +224,9 @@
                 0.1,
                 0.2
               ],
-              "n": 15,
-              "mean_p": 0.146529,
-              "hit_rate": 0.066667
+              "n": 17,
+              "mean_p": 0.144061,
+              "hit_rate": 0.117647
             },
             {
               "p_range": [
@@ -254,16 +254,16 @@
           "mean_p_hit_given_x_out": 0.047692
         },
         "return": {
-          "races_payout_known": 18,
+          "races_payout_known": 20,
           "races_payout_unknown": [],
-          "stake": 9000,
-          "payout": 2190,
-          "roi": 0.243333,
-          "payout_sd": 501.644518
+          "stake": 10000,
+          "payout": 5540,
+          "roi": 0.554,
+          "payout_sd": 851.0
         }
       }
     },
-    "x_calibration": -0.052714,
+    "x_calibration": -0.003437,
     "v1_comparison": {
       "races": 14,
       "both": 0,
@@ -271,7 +271,7 @@
       "v1_only": 2,
       "neither": 9
     },
-    "primary_C": -0.017958
+    "primary_C": -0.031517
   },
   "note": "portfolio-shadow-v1 の前向き評価（observe-only）。判定は §5 の判定の時点でだけ決め、途中の数値は報告だけ。engine は市場だけの確率で、期待回収で組み方の優劣は決まらない。的中・払戻は shadow で、正式成績・ROI には入れない。"
 }
