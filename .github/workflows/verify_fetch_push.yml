@@ -23,7 +23,7 @@ jobs:
         run: |
           D=$(head -1 picks/verify_request.txt | tr -d '[:space:]')
           case "$D" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) echo bad; exit 1 ;; esac
-          python -m picks.fetch_verify --date "$D"
+          if [ "$(sed -n 2p picks/verify_request.txt | tr -d "[:space:]")" = payout ]; then python -m picks.fetch_payout --date "$D"; else python -m picks.fetch_verify --date "$D"; fi
       - name: コミット
         if: always()
         run: |
