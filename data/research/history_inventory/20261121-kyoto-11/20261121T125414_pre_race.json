@@ -1,0 +1,4295 @@
+{
+  "version": "history-feature-inventory-v1",
+  "mode": "observe_only",
+  "history_inventory_config_sha256": "7bccb5912fa1868b164c4b7ee4b80a370a2101bcb0bad7943517406eb4574a88",
+  "registered_at": "2026-10-06T19:58:00+09:00",
+  "implementation_revision": "afcb41b5a2583939d7a944a5b724fd444ec7a8d3",
+  "race_id": "20261121-kyoto-11",
+  "race_name": "シトリンS",
+  "race_date": "2026-11-21",
+  "post_at": "2026-11-21T15:40:00+09:00",
+  "observed_at": "2026-11-21T12:54:14+09:00",
+  "retrieval_timing": "pre_race",
+  "cutoff_rule": "run.date < race.date",
+  "today": {
+    "surface": "ダ",
+    "dist": 1900,
+    "venue": "京都",
+    "going": null
+  },
+  "source": {
+    "current_history": "raw/{week}.json entries[].past_runs（いまの予想の入力そのまま）",
+    "long_history": null
+  },
+  "source_status": {
+    "long_history_requested": false,
+    "long_history_status_counts": {
+      "not_requested": 16
+    },
+    "long_history_success_rate": null,
+    "long_history_retrieval_counts": {},
+    "blocked_page_summary": null,
+    "ajax_failure_summary": null
+  },
+  "feature_usage": {
+    "finish": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.recent_profile",
+        "chappy.condition_profile",
+        "aptitude",
+        "top3_score"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "heads": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.recent_profile",
+        "aptitude",
+        "top3_score"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "surface": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.recent_profile",
+        "chappy.condition_profile",
+        "aptitude",
+        "top3_score",
+        "speed_index"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "dist": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.condition_profile",
+        "aptitude",
+        "top3_score",
+        "speed_index"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "venue": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.condition_profile",
+        "aptitude",
+        "top3_score",
+        "speed_index"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "going": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "chappy.condition_profile",
+        "aptitude",
+        "top3_score",
+        "speed_index"
+      ],
+      "used_by_form_evaluation": true,
+      "available_but_unused_by_form_evaluation": 0
+    },
+    "class": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "speed_index（class_offset による走破タイム補正だけ。speed が使われたレースのみ）"
+      ],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 73
+    },
+    "margin_sec": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 73
+    },
+    "time_sec": {
+      "available": true,
+      "available_runs": 72,
+      "total_runs": 73,
+      "used_by": [
+        "speed_index"
+      ],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 72,
+      "note": "speed 専用。着順系の評価（recent / condition / aptitude / top3）では使っていない"
+    },
+    "last3f": {
+      "available": true,
+      "available_runs": 72,
+      "total_runs": 73,
+      "used_by": [],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 72
+    },
+    "impost": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [
+        "speed_index"
+      ],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 73
+    },
+    "date": {
+      "available": true,
+      "available_runs": 73,
+      "total_runs": 73,
+      "used_by": [],
+      "used_by_form_evaluation": false,
+      "available_but_unused_by_form_evaluation": 73,
+      "note": "並び順（新しい順）としてだけ使われ、日付の値そのものは読まれていない"
+    }
+  },
+  "horses": [
+    {
+      "num": 1,
+      "name": "ヒルノハンブルク",
+      "horse_ref": "2022103614",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2026-08-08",
+          "2026-07-18",
+          "2026-07-05",
+          "2026-05-16"
+        ],
+        "earliest_date": "2026-05-16",
+        "latest_date": "2026-08-08",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 4,
+          "same_distance_runs": 1,
+          "same_distance_top3": 1,
+          "same_course_distance_runs": 1,
+          "same_course_distance_top3": 1,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": 1,
+          "best_margin_same_course_distance": 0.0,
+          "best_class_same_course_distance": "3win"
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g3",
+          "recent_classes": [
+            "g3",
+            "op",
+            "op",
+            "3win"
+          ],
+          "high_class_runs": 1,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.0,
+          "median_margin": 0.8,
+          "close_finish_runs": {
+            "0.0": 1,
+            "0.1": 1,
+            "0.2": 1,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.60067,
+          "runs": 3,
+          "top3": 2
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-08-08",
+            "venue": "札幌",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 7,
+            "heads": 11,
+            "margin_sec": 1.5,
+            "time_sec": 105.3,
+            "last3f": 39.3
+          },
+          {
+            "date": "2026-07-18",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 13,
+            "margin_sec": 0.8,
+            "time_sec": 103.6,
+            "last3f": 37.6
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 11,
+            "margin_sec": 0.8,
+            "time_sec": 104.2,
+            "last3f": 37.7
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-08-08",
+            "venue": "札幌",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 7,
+            "heads": 11,
+            "margin_sec": 1.5,
+            "time_sec": 105.3,
+            "last3f": 39.3
+          },
+          {
+            "date": "2026-07-18",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 13,
+            "margin_sec": 0.8,
+            "time_sec": 103.6,
+            "last3f": 37.6
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 11,
+            "margin_sec": 0.8,
+            "time_sec": 104.2,
+            "last3f": 37.7
+          },
+          {
+            "date": "2026-05-16",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 15,
+            "margin_sec": 0.0,
+            "time_sec": 118.6,
+            "last3f": 36.2
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "course_distance_proven",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-05-16",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "良",
+              "class": "3win",
+              "finish": 1,
+              "heads": 15,
+              "margin_sec": 0.0,
+              "time_sec": 118.6,
+              "last3f": 36.2
+            }
+          ]
+        },
+        {
+          "type": "distance_proven",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-05-16",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "良",
+              "class": "3win",
+              "finish": 1,
+              "heads": 15,
+              "margin_sec": 0.0,
+              "time_sec": 118.6,
+              "last3f": 36.2
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 2,
+      "name": "ゼットリアン",
+      "horse_ref": "2020104760",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-09-26",
+          "2026-08-02",
+          "2026-05-23",
+          "2026-05-03",
+          "2026-02-28"
+        ],
+        "earliest_date": "2026-02-28",
+        "latest_date": "2026-09-26",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 1,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 1,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": 9,
+          "best_margin_same_course_distance": 1.6,
+          "best_class_same_course_distance": "g3"
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g3",
+          "recent_classes": [
+            "g3",
+            "op",
+            "g3",
+            "op",
+            "op"
+          ],
+          "high_class_runs": 2,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.2,
+          "median_margin": 0.6,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 1,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.450608,
+          "runs": 3,
+          "top3": 1
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-09-26",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 6,
+            "heads": 16,
+            "margin_sec": 0.4,
+            "time_sec": 125.7,
+            "last3f": 36.8
+          },
+          {
+            "date": "2026-08-02",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 2,
+            "heads": 9,
+            "margin_sec": 0.6,
+            "time_sec": 113.1,
+            "last3f": 37.0
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 9,
+            "heads": 16,
+            "margin_sec": 1.6,
+            "time_sec": 118.5,
+            "last3f": 37.3
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-09-26",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 6,
+            "heads": 16,
+            "margin_sec": 0.4,
+            "time_sec": 125.7,
+            "last3f": 36.8
+          },
+          {
+            "date": "2026-08-02",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 2,
+            "heads": 9,
+            "margin_sec": 0.6,
+            "time_sec": 113.1,
+            "last3f": 37.0
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 9,
+            "heads": 16,
+            "margin_sec": 1.6,
+            "time_sec": 118.5,
+            "last3f": 37.3
+          },
+          {
+            "date": "2026-05-03",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "稍重",
+            "class": "op",
+            "finish": 9,
+            "heads": 16,
+            "margin_sec": 1.1,
+            "time_sec": 131.4,
+            "last3f": 37.2
+          },
+          {
+            "date": "2026-02-28",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "op",
+            "finish": 4,
+            "heads": 16,
+            "margin_sec": 0.2,
+            "time_sec": 124.2,
+            "last3f": 37.5
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 3,
+      "name": "メリークリスマス",
+      "horse_ref": "2022100394",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-09-22",
+          "2026-07-05",
+          "2026-05-23",
+          "2026-04-05",
+          "2026-02-28"
+        ],
+        "earliest_date": "2026-02-28",
+        "latest_date": "2026-09-22",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 1,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 1,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": 4,
+          "best_margin_same_course_distance": 1.1,
+          "best_class_same_course_distance": "g3"
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g3",
+          "recent_classes": [
+            "g3",
+            "op",
+            "g3",
+            "3win",
+            "2win"
+          ],
+          "high_class_runs": 2,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.0,
+          "median_margin": 0.3,
+          "close_finish_runs": {
+            "0.0": 2,
+            "0.1": 2,
+            "0.2": 2,
+            "0.3": 3
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.473394,
+          "runs": 3,
+          "top3": 1
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-09-22",
+            "venue": "金沢",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 5,
+            "heads": 12,
+            "margin_sec": 1.3,
+            "time_sec": 135.2,
+            "last3f": 39.3
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "福島",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 15,
+            "margin_sec": 0.3,
+            "time_sec": 104.1,
+            "last3f": 37.7
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 4,
+            "heads": 16,
+            "margin_sec": 1.1,
+            "time_sec": 118.0,
+            "last3f": 37.3
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-09-22",
+            "venue": "金沢",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 5,
+            "heads": 12,
+            "margin_sec": 1.3,
+            "time_sec": 135.2,
+            "last3f": 39.3
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "福島",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 3,
+            "heads": 15,
+            "margin_sec": 0.3,
+            "time_sec": 104.1,
+            "last3f": 37.7
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 4,
+            "heads": 16,
+            "margin_sec": 1.1,
+            "time_sec": 118.0,
+            "last3f": 37.3
+          },
+          {
+            "date": "2026-04-05",
+            "venue": "中山",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "重",
+            "class": "3win",
+            "finish": 1,
+            "heads": 16,
+            "margin_sec": 0.0,
+            "time_sec": 111.4,
+            "last3f": 37.2
+          },
+          {
+            "date": "2026-02-28",
+            "venue": "中山",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "2win",
+            "finish": 1,
+            "heads": 16,
+            "margin_sec": 0.0,
+            "time_sec": 112.7,
+            "last3f": 38.0
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 4,
+      "name": "ポッドロゴ",
+      "horse_ref": "2021104873",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2026-08-02",
+          "2026-07-05",
+          "2026-05-23",
+          "2026-02-28"
+        ],
+        "earliest_date": "2026-02-28",
+        "latest_date": "2026-08-02",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 4,
+          "same_distance_runs": 1,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 1,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": 7,
+          "best_margin_same_course_distance": 1.4,
+          "best_class_same_course_distance": "g3"
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g3",
+          "recent_classes": [
+            "op",
+            "op",
+            "g3",
+            "op"
+          ],
+          "high_class_runs": 1,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.3,
+          "median_margin": 1.15,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 0,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.13524,
+          "runs": 3,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-08-02",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 7,
+            "heads": 9,
+            "margin_sec": 1.7,
+            "time_sec": 114.2,
+            "last3f": 38.2
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "福島",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 10,
+            "heads": 15,
+            "margin_sec": 0.9,
+            "time_sec": 104.7,
+            "last3f": 37.9
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 7,
+            "heads": 16,
+            "margin_sec": 1.4,
+            "time_sec": 118.3,
+            "last3f": 38.0
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-08-02",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 7,
+            "heads": 9,
+            "margin_sec": 1.7,
+            "time_sec": 114.2,
+            "last3f": 38.2
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "福島",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 10,
+            "heads": 15,
+            "margin_sec": 0.9,
+            "time_sec": 104.7,
+            "last3f": 37.9
+          },
+          {
+            "date": "2026-05-23",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 7,
+            "heads": 16,
+            "margin_sec": 1.4,
+            "time_sec": 118.3,
+            "last3f": 38.0
+          },
+          {
+            "date": "2026-02-28",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "op",
+            "finish": 5,
+            "heads": 16,
+            "margin_sec": 0.3,
+            "time_sec": 124.3,
+            "last3f": 37.6
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 5,
+      "name": "センツブラッド",
+      "horse_ref": "2022101648",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-09-12",
+          "2026-07-12",
+          "2026-05-09",
+          "2026-02-22",
+          "2025-12-06"
+        ],
+        "earliest_date": "2025-12-06",
+        "latest_date": "2026-09-12",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g3",
+          "recent_classes": [
+            "g3",
+            "g3",
+            "g3",
+            "g3",
+            "g3"
+          ],
+          "high_class_runs": 5,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.3,
+          "median_margin": 0.7,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 0,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-09-12",
+            "venue": "阪神",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 12,
+            "heads": 16,
+            "margin_sec": 1.1,
+            "time_sec": 118.7,
+            "last3f": 35.1
+          },
+          {
+            "date": "2026-07-12",
+            "venue": "福島",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 4,
+            "heads": 16,
+            "margin_sec": 0.7,
+            "time_sec": 118.6,
+            "last3f": 36.3
+          },
+          {
+            "date": "2026-05-09",
+            "venue": "東京",
+            "surface": "芝",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 10,
+            "heads": 17,
+            "margin_sec": 0.6,
+            "time_sec": 105.9,
+            "last3f": 34.2
+          },
+          {
+            "date": "2026-02-22",
+            "venue": "小倉",
+            "surface": "芝",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 14,
+            "heads": 16,
+            "margin_sec": 1.6,
+            "time_sec": 106.8,
+            "last3f": 36.1
+          },
+          {
+            "date": "2025-12-06",
+            "venue": "阪神",
+            "surface": "芝",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 2,
+            "heads": 14,
+            "margin_sec": 0.3,
+            "time_sec": 104.0,
+            "last3f": 34.1
+          }
+        ],
+        "notable_runs": [
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2025-12-06",
+              "venue": "阪神",
+              "surface": "芝",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 2,
+              "heads": 14,
+              "margin_sec": 0.3,
+              "time_sec": 104.0,
+              "last3f": 34.1
+            },
+            "status": "hypothesis_candidate"
+          }
+        ],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2025-12-06",
+              "venue": "阪神",
+              "surface": "芝",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 2,
+              "heads": 14,
+              "margin_sec": 0.3,
+              "time_sec": 104.0,
+              "last3f": 34.1
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 6,
+      "name": "ヤマニンブークリエ",
+      "horse_ref": "2022106611",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2026-07-12",
+          "2026-05-16",
+          "2026-02-15",
+          "2026-01-18"
+        ],
+        "earliest_date": "2026-01-18",
+        "latest_date": "2026-07-12",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g1",
+          "recent_classes": [
+            "g3",
+            "g3",
+            "g1",
+            "g2"
+          ],
+          "high_class_runs": 4,
+          "g1_runs": 1,
+          "g2plus_runs": 2,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.0,
+          "median_margin": 0.6,
+          "close_finish_runs": {
+            "0.0": 1,
+            "0.1": 1,
+            "0.2": 1,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 0.75,
+          "last3f_coverage": 0.75
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-07-12",
+            "venue": "福島",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 6,
+            "heads": 16,
+            "margin_sec": 1.2,
+            "time_sec": 119.1,
+            "last3f": 36.4
+          },
+          {
+            "date": "2026-05-16",
+            "venue": "新潟",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 5,
+            "heads": 15,
+            "margin_sec": 0.4,
+            "time_sec": 119.3,
+            "last3f": 34.3
+          },
+          {
+            "date": "2026-02-15",
+            "venue": "キングアブドゥルアジーズ",
+            "surface": "芝",
+            "dist": 2100,
+            "going": "良",
+            "class": "g1",
+            "finish": 5,
+            "heads": 11,
+            "margin_sec": 0.0,
+            "time_sec": null,
+            "last3f": 0.0
+          },
+          {
+            "date": "2026-01-18",
+            "venue": "京都",
+            "surface": "芝",
+            "dist": 2400,
+            "going": "良",
+            "class": "g2",
+            "finish": 7,
+            "heads": 13,
+            "margin_sec": 0.8,
+            "time_sec": 146.5,
+            "last3f": 34.6
+          }
+        ],
+        "notable_runs": [
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2026-02-15",
+              "venue": "キングアブドゥルアジーズ",
+              "surface": "芝",
+              "dist": 2100,
+              "going": "良",
+              "class": "g1",
+              "finish": 5,
+              "heads": 11,
+              "margin_sec": 0.0,
+              "time_sec": null,
+              "last3f": 0.0
+            },
+            "status": "hypothesis_candidate"
+          }
+        ],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-02-15",
+              "venue": "キングアブドゥルアジーズ",
+              "surface": "芝",
+              "dist": 2100,
+              "going": "良",
+              "class": "g1",
+              "finish": 5,
+              "heads": 11,
+              "margin_sec": 0.0,
+              "time_sec": null,
+              "last3f": 0.0
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 7,
+      "name": "マキシ",
+      "horse_ref": "2020103666",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2025-07-27",
+          "2025-06-01",
+          "2025-03-29",
+          "2024-11-30"
+        ],
+        "earliest_date": "2024-11-30",
+        "latest_date": "2025-07-27",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g2",
+          "recent_classes": [
+            "op",
+            "g2",
+            "g2",
+            "g3"
+          ],
+          "high_class_runs": 3,
+          "g1_runs": 0,
+          "g2plus_runs": 2,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.7,
+          "median_margin": 1.3,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 0,
+            "0.3": 0
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2025-07-27",
+            "venue": "札幌",
+            "surface": "芝",
+            "dist": 2600,
+            "going": "稍重",
+            "class": "op",
+            "finish": 6,
+            "heads": 10,
+            "margin_sec": 0.8,
+            "time_sec": 162.5,
+            "last3f": 36.4
+          },
+          {
+            "date": "2025-06-01",
+            "venue": "東京",
+            "surface": "芝",
+            "dist": 2500,
+            "going": "良",
+            "class": "g2",
+            "finish": 16,
+            "heads": 18,
+            "margin_sec": 1.8,
+            "time_sec": 154.7,
+            "last3f": 36.2
+          },
+          {
+            "date": "2025-03-29",
+            "venue": "中山",
+            "surface": "芝",
+            "dist": 2500,
+            "going": "稍重",
+            "class": "g2",
+            "finish": 15,
+            "heads": 15,
+            "margin_sec": 0.7,
+            "time_sec": 156.8,
+            "last3f": 37.1
+          },
+          {
+            "date": "2024-11-30",
+            "venue": "京都",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 12,
+            "heads": 15,
+            "margin_sec": 3.3,
+            "time_sec": 121.5,
+            "last3f": 37.7
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 8,
+      "name": "アスクデビューモア",
+      "horse_ref": "2021104824",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2026-07-18",
+          "2026-07-05",
+          "2026-03-08",
+          "2026-01-04"
+        ],
+        "earliest_date": "2026-01-04",
+        "latest_date": "2026-07-18",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 4,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "op",
+          "recent_classes": [
+            "op",
+            "op",
+            "op",
+            "3win"
+          ],
+          "high_class_runs": 0,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.0,
+          "median_margin": 1.7,
+          "close_finish_runs": {
+            "0.0": 1,
+            "0.1": 1,
+            "0.2": 1,
+            "0.3": 1
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.069143,
+          "runs": 3,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-07-18",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 11,
+            "heads": 13,
+            "margin_sec": 2.4,
+            "time_sec": 105.2,
+            "last3f": 38.4
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 9,
+            "heads": 11,
+            "margin_sec": 1.8,
+            "time_sec": 105.2,
+            "last3f": 38.3
+          },
+          {
+            "date": "2026-03-08",
+            "venue": "中山",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "op",
+            "finish": 13,
+            "heads": 15,
+            "margin_sec": 1.6,
+            "time_sec": 114.3,
+            "last3f": 38.6
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-07-18",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 11,
+            "heads": 13,
+            "margin_sec": 2.4,
+            "time_sec": 105.2,
+            "last3f": 38.4
+          },
+          {
+            "date": "2026-07-05",
+            "venue": "函館",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "op",
+            "finish": 9,
+            "heads": 11,
+            "margin_sec": 1.8,
+            "time_sec": 105.2,
+            "last3f": 38.3
+          },
+          {
+            "date": "2026-03-08",
+            "venue": "中山",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "op",
+            "finish": 13,
+            "heads": 15,
+            "margin_sec": 1.6,
+            "time_sec": 114.3,
+            "last3f": 38.6
+          },
+          {
+            "date": "2026-01-04",
+            "venue": "中山",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "3win",
+            "finish": 1,
+            "heads": 11,
+            "margin_sec": 0.0,
+            "time_sec": 113.1,
+            "last3f": 38.1
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 9,
+      "name": "レッドプロフェシー",
+      "horse_ref": "2020101579",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-10-18",
+          "2026-08-23",
+          "2026-06-20",
+          "2026-05-03",
+          "2026-03-22"
+        ],
+        "earliest_date": "2026-03-22",
+        "latest_date": "2026-10-18",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "op",
+          "recent_classes": [
+            "op",
+            "op",
+            "op",
+            "op",
+            "op"
+          ],
+          "high_class_runs": 0,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.1,
+          "median_margin": 0.5,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 1,
+            "0.2": 2,
+            "0.3": 2
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.527444,
+          "runs": 3,
+          "top3": 1
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-10-18",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "良",
+            "class": "op",
+            "finish": 2,
+            "heads": 13,
+            "margin_sec": 0.2,
+            "time_sec": 130.2,
+            "last3f": 36.8
+          },
+          {
+            "date": "2026-08-23",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 5,
+            "heads": 16,
+            "margin_sec": 0.5,
+            "time_sec": 113.1,
+            "last3f": 37.4
+          },
+          {
+            "date": "2026-06-20",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "不良",
+            "class": "op",
+            "finish": 8,
+            "heads": 15,
+            "margin_sec": 1.0,
+            "time_sec": 129.2,
+            "last3f": 35.5
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-10-18",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "良",
+            "class": "op",
+            "finish": 2,
+            "heads": 13,
+            "margin_sec": 0.2,
+            "time_sec": 130.2,
+            "last3f": 36.8
+          },
+          {
+            "date": "2026-08-23",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 5,
+            "heads": 16,
+            "margin_sec": 0.5,
+            "time_sec": 113.1,
+            "last3f": 37.4
+          },
+          {
+            "date": "2026-06-20",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "不良",
+            "class": "op",
+            "finish": 8,
+            "heads": 15,
+            "margin_sec": 1.0,
+            "time_sec": 129.2,
+            "last3f": 35.5
+          },
+          {
+            "date": "2026-05-03",
+            "venue": "東京",
+            "surface": "ダ",
+            "dist": 2100,
+            "going": "稍重",
+            "class": "op",
+            "finish": 2,
+            "heads": 16,
+            "margin_sec": 0.1,
+            "time_sec": 130.4,
+            "last3f": 36.1
+          },
+          {
+            "date": "2026-03-22",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 8,
+            "heads": 16,
+            "margin_sec": 0.6,
+            "time_sec": 112.3,
+            "last3f": 36.4
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 10,
+      "name": "テーオーマルコーニ",
+      "horse_ref": "2022102228",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2026-09-30",
+          "2026-05-30",
+          "2026-03-29",
+          "2026-03-14"
+        ],
+        "earliest_date": "2026-03-14",
+        "latest_date": "2026-09-30",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 4,
+          "same_distance_runs": 1,
+          "same_distance_top3": 1,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g2",
+          "recent_classes": [
+            "g2",
+            "3win",
+            "3win",
+            "2win"
+          ],
+          "high_class_runs": 1,
+          "g1_runs": 0,
+          "g2plus_runs": 1,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.0,
+          "median_margin": 0.05,
+          "close_finish_runs": {
+            "0.0": 2,
+            "0.1": 3,
+            "0.2": 3,
+            "0.3": 3
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.963299,
+          "runs": 3,
+          "top3": 3
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-09-30",
+            "venue": "船橋",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "不良",
+            "class": "g2",
+            "finish": 2,
+            "heads": 9,
+            "margin_sec": 0.6,
+            "time_sec": 112.7,
+            "last3f": 37.2
+          },
+          {
+            "date": "2026-05-30",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 16,
+            "margin_sec": 0.0,
+            "time_sec": 111.4,
+            "last3f": 35.1
+          },
+          {
+            "date": "2026-03-29",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "良",
+            "class": "3win",
+            "finish": 2,
+            "heads": 15,
+            "margin_sec": 0.1,
+            "time_sec": 118.7,
+            "last3f": 36.6
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-09-30",
+            "venue": "船橋",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "不良",
+            "class": "g2",
+            "finish": 2,
+            "heads": 9,
+            "margin_sec": 0.6,
+            "time_sec": 112.7,
+            "last3f": 37.2
+          },
+          {
+            "date": "2026-05-30",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 16,
+            "margin_sec": 0.0,
+            "time_sec": 111.4,
+            "last3f": 35.1
+          },
+          {
+            "date": "2026-03-29",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "良",
+            "class": "3win",
+            "finish": 2,
+            "heads": 15,
+            "margin_sec": 0.1,
+            "time_sec": 118.7,
+            "last3f": 36.6
+          },
+          {
+            "date": "2026-03-14",
+            "venue": "中京",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "2win",
+            "finish": 1,
+            "heads": 14,
+            "margin_sec": 0.0,
+            "time_sec": 114.1,
+            "last3f": 36.2
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "distance_proven",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-03-29",
+              "venue": "中京",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "良",
+              "class": "3win",
+              "finish": 2,
+              "heads": 15,
+              "margin_sec": 0.1,
+              "time_sec": 118.7,
+              "last3f": 36.6
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 11,
+      "name": "ハヤテノフクノスケ",
+      "horse_ref": "2021109070",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 4,
+        "dates": [
+          "2025-08-17",
+          "2025-06-29",
+          "2025-05-04",
+          "2025-03-01"
+        ],
+        "earliest_date": "2025-03-01",
+        "latest_date": "2025-08-17",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 4,
+          "best_class": "g1",
+          "recent_classes": [
+            "g2",
+            "g3",
+            "g1",
+            "3win"
+          ],
+          "high_class_runs": 3,
+          "g1_runs": 1,
+          "g2plus_runs": 2,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 4,
+          "best_margin": 0.0,
+          "median_margin": 0.75,
+          "close_finish_runs": {
+            "0.0": 1,
+            "0.1": 1,
+            "0.2": 1,
+            "0.3": 2
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2025-08-17",
+            "venue": "札幌",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "稍重",
+            "class": "g2",
+            "finish": 12,
+            "heads": 16,
+            "margin_sec": 1.2,
+            "time_sec": 122.7,
+            "last3f": 37.5
+          },
+          {
+            "date": "2025-06-29",
+            "venue": "函館",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 2,
+            "heads": 14,
+            "margin_sec": 0.3,
+            "time_sec": 117.9,
+            "last3f": 35.3
+          },
+          {
+            "date": "2025-05-04",
+            "venue": "京都",
+            "surface": "芝",
+            "dist": 3200,
+            "going": "良",
+            "class": "g1",
+            "finish": 11,
+            "heads": 15,
+            "margin_sec": 3.5,
+            "time_sec": 197.5,
+            "last3f": 38.9
+          },
+          {
+            "date": "2025-03-01",
+            "venue": "阪神",
+            "surface": "芝",
+            "dist": 3000,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 10,
+            "margin_sec": 0.0,
+            "time_sec": 182.9,
+            "last3f": 35.1
+          }
+        ],
+        "notable_runs": [
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2025-06-29",
+              "venue": "函館",
+              "surface": "芝",
+              "dist": 2000,
+              "going": "良",
+              "class": "g3",
+              "finish": 2,
+              "heads": 14,
+              "margin_sec": 0.3,
+              "time_sec": 117.9,
+              "last3f": 35.3
+            },
+            "status": "hypothesis_candidate"
+          }
+        ],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2025-06-29",
+              "venue": "函館",
+              "surface": "芝",
+              "dist": 2000,
+              "going": "良",
+              "class": "g3",
+              "finish": 2,
+              "heads": 14,
+              "margin_sec": 0.3,
+              "time_sec": 117.9,
+              "last3f": 35.3
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 12,
+      "name": "メルカントゥール",
+      "horse_ref": "2023105303",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-10-11",
+          "2026-08-09",
+          "2026-05-02",
+          "2026-03-01",
+          "2026-01-05"
+        ],
+        "earliest_date": "2026-01-05",
+        "latest_date": "2026-10-11",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 1,
+          "same_distance_top3": 1,
+          "same_course_distance_runs": 1,
+          "same_course_distance_top3": 1,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": 2,
+          "best_margin_same_course_distance": 0.1,
+          "best_class_same_course_distance": "g3"
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g3",
+          "recent_classes": [
+            "op",
+            "g3",
+            "g3",
+            "1win",
+            "1win"
+          ],
+          "high_class_runs": 2,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.0,
+          "median_margin": 0.1,
+          "close_finish_runs": {
+            "0.0": 1,
+            "0.1": 4,
+            "0.2": 4,
+            "0.3": 4
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.615799,
+          "runs": 3,
+          "top3": 2
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-10-11",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 8,
+            "heads": 14,
+            "margin_sec": 1.2,
+            "time_sec": 111.4,
+            "last3f": 38.2
+          },
+          {
+            "date": "2026-08-09",
+            "venue": "新潟",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 3,
+            "heads": 12,
+            "margin_sec": 0.1,
+            "time_sec": 111.3,
+            "last3f": 38.0
+          },
+          {
+            "date": "2026-05-02",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 2,
+            "heads": 12,
+            "margin_sec": 0.1,
+            "time_sec": 117.6,
+            "last3f": 36.8
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-10-11",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "op",
+            "finish": 8,
+            "heads": 14,
+            "margin_sec": 1.2,
+            "time_sec": 111.4,
+            "last3f": 38.2
+          },
+          {
+            "date": "2026-08-09",
+            "venue": "新潟",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 3,
+            "heads": 12,
+            "margin_sec": 0.1,
+            "time_sec": 111.3,
+            "last3f": 38.0
+          },
+          {
+            "date": "2026-05-02",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1900,
+            "going": "稍重",
+            "class": "g3",
+            "finish": 2,
+            "heads": 12,
+            "margin_sec": 0.1,
+            "time_sec": 117.6,
+            "last3f": 36.8
+          },
+          {
+            "date": "2026-03-01",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "1win",
+            "finish": 1,
+            "heads": 8,
+            "margin_sec": 0.0,
+            "time_sec": 113.3,
+            "last3f": 36.9
+          },
+          {
+            "date": "2026-01-05",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "1win",
+            "finish": 2,
+            "heads": 11,
+            "margin_sec": 0.1,
+            "time_sec": 112.5,
+            "last3f": 36.5
+          }
+        ],
+        "notable_runs": [
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2026-08-09",
+              "venue": "新潟",
+              "surface": "ダ",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 3,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 111.3,
+              "last3f": 38.0
+            },
+            "status": "hypothesis_candidate"
+          },
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2026-05-02",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "稍重",
+              "class": "g3",
+              "finish": 2,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 117.6,
+              "last3f": 36.8
+            },
+            "status": "hypothesis_candidate"
+          }
+        ],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-08-09",
+              "venue": "新潟",
+              "surface": "ダ",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 3,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 111.3,
+              "last3f": 38.0
+            }
+          ]
+        },
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-05-02",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "稍重",
+              "class": "g3",
+              "finish": 2,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 117.6,
+              "last3f": 36.8
+            }
+          ]
+        },
+        {
+          "type": "course_distance_proven",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-05-02",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "稍重",
+              "class": "g3",
+              "finish": 2,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 117.6,
+              "last3f": 36.8
+            }
+          ]
+        },
+        {
+          "type": "distance_proven",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-05-02",
+              "venue": "京都",
+              "surface": "ダ",
+              "dist": 1900,
+              "going": "稍重",
+              "class": "g3",
+              "finish": 2,
+              "heads": 12,
+              "margin_sec": 0.1,
+              "time_sec": 117.6,
+              "last3f": 36.8
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 13,
+      "name": "カネフラ",
+      "horse_ref": "2020103082",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-09-12",
+          "2026-07-19",
+          "2026-04-11",
+          "2026-02-08",
+          "2025-12-13"
+        ],
+        "earliest_date": "2025-12-13",
+        "latest_date": "2026-09-12",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g3",
+          "recent_classes": [
+            "g3",
+            "g3",
+            "op",
+            "op",
+            "g3"
+          ],
+          "high_class_runs": 3,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.9,
+          "median_margin": 1.3,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 0,
+            "0.3": 0
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-09-12",
+            "venue": "阪神",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 13,
+            "heads": 16,
+            "margin_sec": 1.3,
+            "time_sec": 118.9,
+            "last3f": 34.9
+          },
+          {
+            "date": "2026-07-19",
+            "venue": "小倉",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 13,
+            "heads": 18,
+            "margin_sec": 1.4,
+            "time_sec": 119.4,
+            "last3f": 35.5
+          },
+          {
+            "date": "2026-04-11",
+            "venue": "阪神",
+            "surface": "芝",
+            "dist": 2600,
+            "going": "良",
+            "class": "op",
+            "finish": 7,
+            "heads": 13,
+            "margin_sec": 1.0,
+            "time_sec": 157.9,
+            "last3f": 33.5
+          },
+          {
+            "date": "2026-02-08",
+            "venue": "小倉",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "op",
+            "finish": 5,
+            "heads": 12,
+            "margin_sec": 0.9,
+            "time_sec": 120.3,
+            "last3f": 34.8
+          },
+          {
+            "date": "2025-12-13",
+            "venue": "中京",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "g3",
+            "finish": 17,
+            "heads": 18,
+            "margin_sec": 2.4,
+            "time_sec": 120.0,
+            "last3f": 33.3
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 14,
+      "name": "チェリヴェント",
+      "horse_ref": "2023104387",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-10-07",
+          "2026-08-09",
+          "2026-06-07",
+          "2026-05-17",
+          "2026-04-05"
+        ],
+        "earliest_date": "2026-04-05",
+        "latest_date": "2026-10-07",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g1",
+          "recent_classes": [
+            "g1",
+            "g3",
+            "1win",
+            "1win",
+            "1win"
+          ],
+          "high_class_runs": 2,
+          "g1_runs": 1,
+          "g2plus_runs": 1,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.0,
+          "median_margin": 0.0,
+          "close_finish_runs": {
+            "0.0": 3,
+            "0.1": 3,
+            "0.2": 3,
+            "0.3": 3
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.968707,
+          "runs": 3,
+          "top3": 3
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-10-07",
+            "venue": "大井",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "g1",
+            "finish": 3,
+            "heads": 16,
+            "margin_sec": 0.8,
+            "time_sec": 124.8,
+            "last3f": 39.5
+          },
+          {
+            "date": "2026-08-09",
+            "venue": "新潟",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 111.2,
+            "last3f": 37.6
+          },
+          {
+            "date": "2026-06-07",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "1win",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 111.3,
+            "last3f": 35.6
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-10-07",
+            "venue": "大井",
+            "surface": "ダ",
+            "dist": 2000,
+            "going": "良",
+            "class": "g1",
+            "finish": 3,
+            "heads": 16,
+            "margin_sec": 0.8,
+            "time_sec": 124.8,
+            "last3f": 39.5
+          },
+          {
+            "date": "2026-08-09",
+            "venue": "新潟",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "g3",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 111.2,
+            "last3f": 37.6
+          },
+          {
+            "date": "2026-06-07",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "稍重",
+            "class": "1win",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 111.3,
+            "last3f": 35.6
+          },
+          {
+            "date": "2026-05-17",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "1win",
+            "finish": 3,
+            "heads": 16,
+            "margin_sec": 0.4,
+            "time_sec": 112.2,
+            "last3f": 37.4
+          },
+          {
+            "date": "2026-04-05",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "重",
+            "class": "1win",
+            "finish": 2,
+            "heads": 13,
+            "margin_sec": 0.0,
+            "time_sec": 110.2,
+            "last3f": 36.1
+          }
+        ],
+        "notable_runs": [
+          {
+            "reason": "high_class_close_finish",
+            "evidence": {
+              "date": "2026-08-09",
+              "venue": "新潟",
+              "surface": "ダ",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 1,
+              "heads": 12,
+              "margin_sec": 0.0,
+              "time_sec": 111.2,
+              "last3f": 37.6
+            },
+            "status": "hypothesis_candidate"
+          }
+        ],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [
+        {
+          "type": "high_class_close_finish",
+          "source": "current",
+          "evidence": [
+            {
+              "date": "2026-08-09",
+              "venue": "新潟",
+              "surface": "ダ",
+              "dist": 1800,
+              "going": "良",
+              "class": "g3",
+              "finish": 1,
+              "heads": 12,
+              "margin_sec": 0.0,
+              "time_sec": 111.2,
+              "last3f": 37.6
+            }
+          ]
+        }
+      ],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 15,
+      "name": "リビアングラス",
+      "horse_ref": "2020105633",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-10-04",
+          "2026-09-20",
+          "2026-04-12",
+          "2026-03-28",
+          "2026-02-15"
+        ],
+        "earliest_date": "2026-02-15",
+        "latest_date": "2026-10-04",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 0,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "g2",
+          "recent_classes": [
+            "g2",
+            "g2",
+            "op",
+            "g2",
+            "g2"
+          ],
+          "high_class_runs": 4,
+          "g1_runs": 0,
+          "g2plus_runs": 4,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.4,
+          "median_margin": 1.1,
+          "close_finish_runs": {
+            "0.0": 0,
+            "0.1": 0,
+            "0.2": 0,
+            "0.3": 0
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.0,
+          "runs": 0,
+          "top3": 0
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [],
+        "present_but_unused": {
+          "class": 0,
+          "margin_sec": 0,
+          "last3f": 0
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-10-04",
+            "venue": "京都",
+            "surface": "芝",
+            "dist": 2400,
+            "going": "稍重",
+            "class": "g2",
+            "finish": 14,
+            "heads": 18,
+            "margin_sec": 1.1,
+            "time_sec": 145.1,
+            "last3f": 35.3
+          },
+          {
+            "date": "2026-09-20",
+            "venue": "中山",
+            "surface": "芝",
+            "dist": 2200,
+            "going": "重",
+            "class": "g2",
+            "finish": 10,
+            "heads": 13,
+            "margin_sec": 3.1,
+            "time_sec": 140.0,
+            "last3f": 39.4
+          },
+          {
+            "date": "2026-04-12",
+            "venue": "福島",
+            "surface": "芝",
+            "dist": 2000,
+            "going": "良",
+            "class": "op",
+            "finish": 5,
+            "heads": 15,
+            "margin_sec": 0.4,
+            "time_sec": 118.8,
+            "last3f": 35.3
+          },
+          {
+            "date": "2026-03-28",
+            "venue": "中山",
+            "surface": "芝",
+            "dist": 2500,
+            "going": "良",
+            "class": "g2",
+            "finish": 11,
+            "heads": 15,
+            "margin_sec": 1.9,
+            "time_sec": 152.6,
+            "last3f": 37.9
+          },
+          {
+            "date": "2026-02-15",
+            "venue": "京都",
+            "surface": "芝",
+            "dist": 2200,
+            "going": "良",
+            "class": "g2",
+            "finish": 6,
+            "heads": 12,
+            "margin_sec": 0.5,
+            "time_sec": 133.2,
+            "last3f": 34.1
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    },
+    {
+      "num": 16,
+      "name": "サイモンシュバリエ",
+      "horse_ref": "2022102223",
+      "current_history": {
+        "requested_runs": 5,
+        "available_runs": 5,
+        "dates": [
+          "2026-10-10",
+          "2026-07-19",
+          "2026-05-24",
+          "2026-05-09",
+          "2026-02-28"
+        ],
+        "earliest_date": "2026-02-28",
+        "latest_date": "2026-10-10",
+        "excluded_by_cutoff": {
+          "count": 0,
+          "same_day": 0,
+          "future": 0,
+          "undated": 0,
+          "dates": []
+        }
+      },
+      "current": {
+        "conditions": {
+          "same_surface_runs": 5,
+          "same_distance_runs": 0,
+          "same_distance_top3": 0,
+          "same_course_distance_runs": 0,
+          "same_course_distance_top3": 0,
+          "same_going_runs": 0,
+          "same_going_top3": 0,
+          "best_finish_same_course_distance": null,
+          "best_margin_same_course_distance": null,
+          "best_class_same_course_distance": null
+        },
+        "class": {
+          "class_available_runs": 5,
+          "best_class": "3win",
+          "recent_classes": [
+            "3win",
+            "3win",
+            "2win",
+            "2win",
+            "1win"
+          ],
+          "high_class_runs": 0,
+          "g1_runs": 0,
+          "g2plus_runs": 0,
+          "note": "記録のみ。クラスを点数化しない"
+        },
+        "margin": {
+          "margin_available_runs": 5,
+          "best_margin": 0.0,
+          "median_margin": 0.0,
+          "close_finish_runs": {
+            "0.0": 3,
+            "0.1": 4,
+            "0.2": 4,
+            "0.3": 4
+          }
+        },
+        "coverage": {
+          "time_sec_coverage": 1.0,
+          "last3f_coverage": 1.0
+        }
+      },
+      "current_recent_profile_view": {
+        "profile": {
+          "score": 0.726683,
+          "runs": 3,
+          "top3": 2
+        },
+        "value_fields": [
+          "finish",
+          "heads"
+        ],
+        "selection_fields": [
+          "surface",
+          "recency_order"
+        ],
+        "runs_seen": [
+          {
+            "date": "2026-10-10",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 13,
+            "margin_sec": 0.0,
+            "time_sec": 110.9,
+            "last3f": 36.1
+          },
+          {
+            "date": "2026-07-19",
+            "venue": "小倉",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "3win",
+            "finish": 7,
+            "heads": 16,
+            "margin_sec": 0.9,
+            "time_sec": 105.8,
+            "last3f": 39.0
+          },
+          {
+            "date": "2026-05-24",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "2win",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 112.9,
+            "last3f": 37.1
+          }
+        ],
+        "present_but_unused": {
+          "class": 3,
+          "margin_sec": 3,
+          "last3f": 3
+        }
+      },
+      "performance_evidence": {
+        "recent_runs": [
+          {
+            "date": "2026-10-10",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "3win",
+            "finish": 1,
+            "heads": 13,
+            "margin_sec": 0.0,
+            "time_sec": 110.9,
+            "last3f": 36.1
+          },
+          {
+            "date": "2026-07-19",
+            "venue": "小倉",
+            "surface": "ダ",
+            "dist": 1700,
+            "going": "良",
+            "class": "3win",
+            "finish": 7,
+            "heads": 16,
+            "margin_sec": 0.9,
+            "time_sec": 105.8,
+            "last3f": 39.0
+          },
+          {
+            "date": "2026-05-24",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "2win",
+            "finish": 1,
+            "heads": 12,
+            "margin_sec": 0.0,
+            "time_sec": 112.9,
+            "last3f": 37.1
+          },
+          {
+            "date": "2026-05-09",
+            "venue": "京都",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "2win",
+            "finish": 3,
+            "heads": 13,
+            "margin_sec": 0.1,
+            "time_sec": 111.8,
+            "last3f": 36.7
+          },
+          {
+            "date": "2026-02-28",
+            "venue": "阪神",
+            "surface": "ダ",
+            "dist": 1800,
+            "going": "良",
+            "class": "1win",
+            "finish": 1,
+            "heads": 13,
+            "margin_sec": 0.0,
+            "time_sec": 113.8,
+            "last3f": 38.2
+          }
+        ],
+        "notable_runs": [],
+        "note": "将来の仮説候補。Champion が使う特徴量ではない"
+      },
+      "long_history": {
+        "status": "not_requested",
+        "requested_runs": 15,
+        "available_runs": 0,
+        "dates": [],
+        "earliest_date": null,
+        "latest_date": null,
+        "source": "db.netkeiba.com/horse（scraper.fetchers.c_horse_history・研究用の取得関数）"
+      },
+      "long": null,
+      "coverage_delta": null,
+      "same_named_race": {
+        "status": "unavailable",
+        "reason": "race_name_not_in_current_past_runs"
+      },
+      "expert_evidence": [],
+      "expert_evidence_unavailable": [
+        {
+          "type": "trouble_last_run",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "slow_start",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "wide_trip",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "blocked_in_running",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "workout_quality",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "paddock_condition",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "stable_intent",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        },
+        {
+          "type": "pace_disadvantage",
+          "status": "unavailable",
+          "reason": "no_structured_source"
+        }
+      ]
+    }
+  ],
+  "interpretation": "observe_only。ここから『長期履歴を増やせば精度が上がる』とは結論しない"
+}
