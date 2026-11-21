@@ -1,0 +1,7 @@
+/home/claude/keiba_lab/src/exp_harness.py:47: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  F['top3'] = (F.finish <= 3).astype(float)
+{"tag": "chain5", "iters": 527, "n_feats": 311, "logloss": 0.41294, "no1_top3": 0.6341, "top3_in_top5": 2.1204, "all3_in_top5": 0.3354, "no1_top3_11R": 0.5547, "all3_in_top5_11R": 0.2366, "extra_gain_share": 0.8095}
+/home/claude/keiba_lab/src/exp_harness.py:47: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  F['top3'] = (F.finish <= 3).astype(float)
+{"tag": "chain5_s2", "iters": 677, "n_feats": 311, "logloss": 0.41315, "no1_top3": 0.6357, "top3_in_top5": 2.118, "all3_in_top5": 0.3329, "no1_top3_11R": 0.5585, "all3_in_top5_11R": 0.2443, "extra_gain_share": 0.7929}
+DONE

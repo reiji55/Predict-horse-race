@@ -1,0 +1,10 @@
+/home/claude/keiba_lab/src/oof_base.py:45: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  F['top3'] = (F.finish <= 3).astype(float)
+/home/claude/keiba_lab/src/oof_base.py:49: PerformanceWarning: DataFrame is highly fragmented.  This is usually the result of calling `frame.insert` many times, which has poor performance.  Consider joining all columns at once using pd.concat(axis=1) instead. To get a de-fragmented frame, use `newframe = frame.copy()`
+  F['s'] = np.nan
+{"fold": [2014, 2016], "logloss": 0.40747}
+{"fold": [2017, 2019], "logloss": 0.41028}
+{"fold": [2020, 2022], "logloss": 0.4204}
+{"fold": [2023, 2023], "logloss": 0.41621}
+{"fold": [2024, 2026], "logloss": 0.41291}
+DONE

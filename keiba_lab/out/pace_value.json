@@ -1,0 +1,60 @@
+{
+ "base_formula": -6.40023,
+ "+ predicted pace x closer (before the race)": {
+  "gain_per_race": 0.00015,
+  "coef": [
+   1.001,
+   0.05
+  ]
+ },
+ "+ actual pace x closer (after the race)": {
+  "gain_per_race": 0.00121,
+  "coef": [
+   1.001,
+   -0.075
+  ]
+ },
+ "+ horse's actual 4th-corner position (after the race)": {
+  "gain_per_race": 0.42108,
+  "coef": [
+   0.865,
+   -2.197
+  ]
+ },
+ "+ actual pace x closer + actual position": {
+  "gain_per_race": 0.42984,
+  "coef": [
+   0.866,
+   -0.1,
+   -2.207
+  ]
+ },
+ "top3_rate_by_pace_and_style": {
+  "前（先行）": {
+   "速い（1SD以上）": 0.247,
+   "平均": 0.293,
+   "遅い（1SD以上）": 0.357
+  },
+  "中団": {
+   "速い（1SD以上）": 0.228,
+   "平均": 0.226,
+   "遅い（1SD以上）": 0.263
+  },
+  "後方（差し・追込）": {
+   "速い（1SD以上）": 0.14,
+   "平均": 0.126,
+   "遅い（1SD以上）": 0.139
+  }
+ },
+ "sirius": [
+  {
+   "p3": 36.1,
+   "norm": 35.6,
+   "pace_resid": 0.5,
+   "pace_z": 0.644,
+   "pace_pred": -0.092,
+   "fast": 2
+  }
+ ],
+ "pace_r2": 0.0878
+}
