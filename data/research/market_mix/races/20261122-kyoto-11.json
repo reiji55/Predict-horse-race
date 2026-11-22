@@ -1,0 +1,173 @@
+{
+  "schema": "market-mix-race-v1",
+  "race_id": "20261122-kyoto-11",
+  "race_day": "20261122",
+  "used_for_prediction": false,
+  "official_results_untouched": true,
+  "post_at": "2026-11-22T15:40:00+09:00",
+  "pinned": {
+    "commit": "e00d6430000d969f70b4dc79d9600ac91435e9af",
+    "frozen_at": "2026-11-22T12:52:41+09:00"
+  },
+  "odds_timing_status": {
+    "trio": "pre_race_verified",
+    "win": "pre_race_verified"
+  },
+  "runners": {
+    "with_win_odds": 18,
+    "entries": 18,
+    "without_win_odds": []
+  },
+  "market_trio": {
+    "method": "residual_from_payout",
+    "listed": 247,
+    "unlisted": 569,
+    "residual_mass": 0.12931
+  },
+  "p_model": {
+    "source": {
+      "path": "data/shadow/model_evaluation/race-performance-v1/races/20261122-kyoto-11.json",
+      "blob_sha": "265b3f7920cddb65cd80f284fc587592d4b36d6f",
+      "frozen_at": "2026-11-22T12:52:41+09:00",
+      "model_id": "win-v1-speed-guard",
+      "config_hash": "097972c4afa00737",
+      "evaluation_config_hash": "c72cc7bf042615c6b9ef6907be794573309580aa89c302459a1290ca64d85618",
+      "snapshot_sha256": "86785057fb9bad6857a8f6149e17aeb302bf2f5d10d11b7533b1ea78fd9b59e7",
+      "capture": {
+        "matched": true,
+        "fidelity": true
+      },
+      "horses_with_p_model": 18
+    },
+    "values": {
+      "p_champion": {
+        "1": 0.096143,
+        "2": 0.105933,
+        "3": 0.022267,
+        "4": 0.025521,
+        "5": 0.03104,
+        "6": 0.035969,
+        "7": 0.061209,
+        "8": 0.059144,
+        "9": 0.025346,
+        "10": 0.009479,
+        "11": 0.082486,
+        "12": 0.12537,
+        "13": 0.022481,
+        "14": 0.06918,
+        "15": 0.087982,
+        "16": 0.017173,
+        "17": 0.104976,
+        "18": 0.0183
+      },
+      "p_challenger": {
+        "1": 0.068182,
+        "2": 0.130213,
+        "3": 0.022424,
+        "4": 0.03812,
+        "5": 0.028494,
+        "6": 0.0276,
+        "7": 0.054095,
+        "8": 0.058085,
+        "9": 0.039985,
+        "10": 0.009453,
+        "11": 0.097577,
+        "12": 0.127272,
+        "13": 0.023028,
+        "14": 0.091789,
+        "15": 0.071902,
+        "16": 0.01802,
+        "17": 0.069961,
+        "18": 0.0238
+      }
+    }
+  },
+  "eligibility": "verified",
+  "result_used": {
+    "top3": [
+      1,
+      2,
+      14
+    ],
+    "winner": 1,
+    "trio_dividends": 1
+  },
+  "top3": [
+    1,
+    2,
+    14
+  ],
+  "winner": 1,
+  "status": "evaluated",
+  "role": "evaluation",
+  "evaluation": {
+    "a": 1.08,
+    "b": 0.36,
+    "w": 0.9,
+    "trio_logloss": {
+      "T2": 3.876485,
+      "market_trio": 3.966511,
+      "T1": 3.302777,
+      "harville_mkt": 3.784959
+    },
+    "win_logloss": {
+      "p_mix": 2.128498,
+      "p_mkt": 2.270803
+    },
+    "top3_brier": {
+      "T2": 0.090545,
+      "market_trio": 0.092354
+    },
+    "D": -0.090026,
+    "secondary_diffs": {
+      "win_logloss": -0.142305,
+      "top3_brier": -0.001808,
+      "T1_vs_harville_mkt": -0.482181
+    },
+    "D_variants": {
+      "payout=0.725|shape=harville|cap=on": -0.140935,
+      "payout=0.725|shape=harville|cap=off": -0.140935,
+      "payout=0.725|shape=discounted_harville|cap=on": -0.140935,
+      "payout=0.725|shape=discounted_harville|cap=off": -0.140935,
+      "payout=0.725|shape=uniform|cap=on": -0.140935,
+      "payout=0.725|shape=uniform|cap=off": -0.140935,
+      "payout=0.75|shape=harville|cap=on": -0.090026,
+      "payout=0.75|shape=harville|cap=off": -0.090026,
+      "payout=0.75|shape=discounted_harville|cap=on": -0.090026,
+      "payout=0.75|shape=discounted_harville|cap=off": -0.090026,
+      "payout=0.75|shape=uniform|cap=on": -0.090026,
+      "payout=0.75|shape=uniform|cap=off": -0.090026,
+      "payout=0.775|shape=harville|cap=on": -0.04303,
+      "payout=0.775|shape=harville|cap=off": -0.04303,
+      "payout=0.775|shape=discounted_harville|cap=on": -0.04303,
+      "payout=0.775|shape=discounted_harville|cap=off": -0.04303,
+      "payout=0.775|shape=uniform|cap=on": -0.04303,
+      "payout=0.775|shape=uniform|cap=off": -0.084285
+    }
+  },
+  "secondary_evaluation": {
+    "a": 1.0,
+    "b": 0.5,
+    "w": 0.85,
+    "trio_logloss": {
+      "T2": 3.827563,
+      "market_trio": 3.966511,
+      "T1": 3.276488,
+      "harville_mkt": 3.784959
+    },
+    "win_logloss": {
+      "p_mix": 2.291692,
+      "p_mkt": 2.270803
+    },
+    "top3_brier": {
+      "T2": 0.089425,
+      "market_trio": 0.092354
+    },
+    "D": -0.138948,
+    "secondary_diffs": {
+      "win_logloss": 0.020889,
+      "top3_brier": -0.002929,
+      "T1_vs_harville_mkt": -0.508471
+    }
+  }
+}
