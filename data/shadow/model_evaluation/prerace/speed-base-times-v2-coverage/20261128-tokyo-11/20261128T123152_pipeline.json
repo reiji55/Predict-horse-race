@@ -1,0 +1,403 @@
+{
+  "schema": "model-eval-prerace-v1",
+  "model_id": "speed-base-times-v2-coverage",
+  "race_id": "20261128-tokyo-11",
+  "phase": "pipeline",
+  "pre_race": true,
+  "captured_at": "2026-11-28T12:31:52+09:00",
+  "post_time": "15:25",
+  "minutes_to_post": 173.1,
+  "provenance": {
+    "git_commit": "e33df7b9ab961cf7b2f0a4cb711cc342fe5ab0cb",
+    "evaluation_version": "speed-v2-forward-eval-v2",
+    "evaluation_config_hash": "db464bf7f7b131077240928fec85cfa39ee27f3763bbfcd0049eceea18d5d4af",
+    "input_raw_sha256": "92cb69acf4797fda13a65369a5a86d9fe1543b6656956ac0b6d3c9164d82cece",
+    "snapshot": {
+      "path": "data/challengers/speed-base-times-v2-coverage/snapshots/20261128-tokyo-11.json",
+      "sha256": "806628b112057d82a6a4f73620e108871a35cfd418ab2d84fce083cb90109172",
+      "frozen_at": "2026-11-28T12:31:52+09:00",
+      "model_id": "speed-base-times-v2-coverage",
+      "config_hash": "097972c4afa00737",
+      "base_times_hash": "4174dc69c392cc30",
+      "base_times_ref": {
+        "artifact_id": "base-times-v2-coverage-20260928-r2",
+        "lookup_file": "data/reference/base_times/base-times-v2-coverage-20260928-r2.json",
+        "lookup_sha256": "e671fd8ab3a2785fa63a7ea53248e5d8ecde404ee8071b1fef713dda64d98b9f",
+        "cutoff_date": "2026-09-27",
+        "meta_content_sha256": "58834c0e30e7bb3ac7944696eb629f190dafabbd1a42d490d3bb651f78f7a5fa",
+        "method_version": "v1-median-class-offset",
+        "file_hash": "4174dc69c392cc30"
+      },
+      "race_performance_ref": null
+    }
+  },
+  "fidelity": {
+    "recomputed_matches_snapshot": true,
+    "compared_fields": [
+      "num",
+      "score",
+      "odds",
+      "top3_score",
+      "top3_rank"
+    ],
+    "mismatches": [],
+    "recomputed_order": [
+      11,
+      16,
+      15,
+      4,
+      2,
+      3,
+      5,
+      6,
+      17,
+      8,
+      9,
+      7,
+      10,
+      12,
+      14,
+      13,
+      18,
+      1
+    ],
+    "snapshot_order": [
+      11,
+      16,
+      15,
+      4,
+      2,
+      3,
+      5,
+      6,
+      17,
+      8,
+      9,
+      7,
+      10,
+      12,
+      14,
+      13,
+      18,
+      1
+    ]
+  },
+  "temperature": 10,
+  "model_config_hash": "097972c4afa00737",
+  "scores": [
+    {
+      "num": 1,
+      "score": 50.571876507998816,
+      "odds": 57.3
+    },
+    {
+      "num": 2,
+      "score": 77.35740781007205,
+      "odds": 17.4
+    },
+    {
+      "num": 3,
+      "score": 74.02528895852709,
+      "odds": 6.8
+    },
+    {
+      "num": 4,
+      "score": 77.5831666527951,
+      "odds": 4.5
+    },
+    {
+      "num": 5,
+      "score": 73.18899506475599,
+      "odds": 16.7
+    },
+    {
+      "num": 6,
+      "score": 72.02927090121948,
+      "odds": 27.2
+    },
+    {
+      "num": 7,
+      "score": 69.8292868700335,
+      "odds": 14.1
+    },
+    {
+      "num": 8,
+      "score": 70.60985509530589,
+      "odds": 52.0
+    },
+    {
+      "num": 9,
+      "score": 70.19256584020793,
+      "odds": 53.4
+    },
+    {
+      "num": 10,
+      "score": 67.9192440301609,
+      "odds": 14.7
+    },
+    {
+      "num": 11,
+      "score": 83.54010747102701,
+      "odds": 8.6
+    },
+    {
+      "num": 12,
+      "score": 65.69645122178903,
+      "odds": 170.8
+    },
+    {
+      "num": 13,
+      "score": 59.87211707644846,
+      "odds": 78.3
+    },
+    {
+      "num": 14,
+      "score": 62.56465224706918,
+      "odds": 29.2
+    },
+    {
+      "num": 15,
+      "score": 78.0946289601836,
+      "odds": 5.0
+    },
+    {
+      "num": 16,
+      "score": 78.95185457236141,
+      "odds": 8.8
+    },
+    {
+      "num": 17,
+      "score": 71.56655962146323,
+      "odds": 21.6
+    },
+    {
+      "num": 18,
+      "score": 56.40667109858141,
+      "odds": 100.8
+    }
+  ],
+  "sel_orders": {
+    "kei": [
+      {
+        "num": 11,
+        "sel": 1.0
+      },
+      {
+        "num": 16,
+        "sel": 0.888235
+      },
+      {
+        "num": 2,
+        "sel": 0.782353
+      },
+      {
+        "num": 4,
+        "sel": 0.75
+      },
+      {
+        "num": 15,
+        "sel": 0.708824
+      },
+      {
+        "num": 5,
+        "sel": 0.647059
+      },
+      {
+        "num": 3,
+        "sel": 0.617647
+      },
+      {
+        "num": 6,
+        "sel": 0.605882
+      },
+      {
+        "num": 8,
+        "sel": 0.541176
+      },
+      {
+        "num": 17,
+        "sel": 0.529412
+      },
+      {
+        "num": 9,
+        "sel": 0.423529
+      },
+      {
+        "num": 7,
+        "sel": 0.385294
+      },
+      {
+        "num": 12,
+        "sel": 0.314706
+      },
+      {
+        "num": 10,
+        "sel": 0.276471
+      },
+      {
+        "num": 14,
+        "sel": 0.202941
+      },
+      {
+        "num": 13,
+        "sel": 0.170588
+      },
+      {
+        "num": 18,
+        "sel": 0.111765
+      },
+      {
+        "num": 1,
+        "sel": 0.044118
+      }
+    ],
+    "tetsu": [
+      {
+        "num": 11,
+        "sel": 1.0
+      },
+      {
+        "num": 2,
+        "sel": 0.835294
+      },
+      {
+        "num": 16,
+        "sel": 0.823529
+      },
+      {
+        "num": 6,
+        "sel": 0.635294
+      },
+      {
+        "num": 8,
+        "sel": 0.635294
+      },
+      {
+        "num": 5,
+        "sel": 0.6
+      },
+      {
+        "num": 9,
+        "sel": 0.576471
+      },
+      {
+        "num": 15,
+        "sel": 0.552941
+      },
+      {
+        "num": 17,
+        "sel": 0.552941
+      },
+      {
+        "num": 4,
+        "sel": 0.494118
+      },
+      {
+        "num": 3,
+        "sel": 0.470588
+      },
+      {
+        "num": 12,
+        "sel": 0.447059
+      },
+      {
+        "num": 7,
+        "sel": 0.305882
+      },
+      {
+        "num": 13,
+        "sel": 0.258824
+      },
+      {
+        "num": 10,
+        "sel": 0.247059
+      },
+      {
+        "num": 14,
+        "sel": 0.247059
+      },
+      {
+        "num": 18,
+        "sel": 0.2
+      },
+      {
+        "num": 1,
+        "sel": 0.117647
+      }
+    ],
+    "gen": [
+      {
+        "num": 11,
+        "sel": 0.823529
+      },
+      {
+        "num": 9,
+        "sel": 0.838235
+      },
+      {
+        "num": 12,
+        "sel": 0.808824
+      },
+      {
+        "num": 6,
+        "sel": 0.794118
+      },
+      {
+        "num": 8,
+        "sel": 0.75
+      },
+      {
+        "num": 2,
+        "sel": 0.676471
+      },
+      {
+        "num": 13,
+        "sel": 0.558824
+      },
+      {
+        "num": 16,
+        "sel": 0.558824
+      },
+      {
+        "num": 15,
+        "sel": 0.544118
+      },
+      {
+        "num": 17,
+        "sel": 0.544118
+      },
+      {
+        "num": 18,
+        "sel": 0.455882
+      },
+      {
+        "num": 5,
+        "sel": 0.367647
+      },
+      {
+        "num": 4,
+        "sel": 0.308824
+      },
+      {
+        "num": 7,
+        "sel": 0.294118
+      },
+      {
+        "num": 14,
+        "sel": 0.264706
+      },
+      {
+        "num": 3,
+        "sel": 0.205882
+      },
+      {
+        "num": 10,
+        "sel": 0.205882
+      },
+      {
+        "num": 1,
+        "sel": 0.0
+      }
+    ]
+  }
+}
